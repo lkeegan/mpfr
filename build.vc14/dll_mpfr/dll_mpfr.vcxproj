@@ -306,6 +306,7 @@
     <ClCompile Include="..\..\src\fits_ulong.c" />
     <ClCompile Include="..\..\src\fits_ushort.c" />
     <ClCompile Include="..\..\src\fma.c" />
+    <ClCompile Include="..\..\src\fmma.c" />
     <ClCompile Include="..\..\src\fms.c" />
     <ClCompile Include="..\..\src\fpif.c" />
     <ClCompile Include="..\..\src\frac.c" />
@@ -313,6 +314,7 @@
     <ClCompile Include="..\..\src\frexp.c" />
     <ClCompile Include="..\..\src\gamma.c" />
     <ClCompile Include="..\..\src\gammaonethird.c" />
+    <ClCompile Include="..\..\src\gamma_inc.c" />
     <ClCompile Include="..\..\src\get_d.c" />
     <ClCompile Include="..\..\src\get_d64.c" />
     <ClCompile Include="..\..\src\get_exp.c" />
@@ -357,6 +359,7 @@
     <ClCompile Include="..\..\src\log1p.c" />
     <ClCompile Include="..\..\src\log2.c" />
     <ClCompile Include="..\..\src\logging.c" />
+    <ClCompile Include="..\..\src\log_ui.c" />
     <ClCompile Include="..\..\src\min_prec.c" />
     <ClCompile Include="..\..\src\minmax.c" />
     <ClCompile Include="..\..\src\modf.c" />

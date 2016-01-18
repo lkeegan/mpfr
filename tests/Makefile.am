@@ -20,11 +20,11 @@ check_PROGRAMS = tversion tabort_prec_max tassert tabort_defalloc1	\
      tconst_euler tconst_log2 tconst_pi tcopysign tcos tcosh tcot	\
      tcoth tcsc tcsch td_div td_sub tdigamma tdim tdiv tdiv_d tdiv_ui	\
      teint teq terandom terandom_chisq terf texp texp10 texp2 texpm1	\
-     tfactorial tfits tfma tfmod tfms tfpif tfprintf tfrac tfrexp	\
-     tgamma tget_flt tget_d tget_d_2exp tget_f tget_ld_2exp		\
+     tfactorial tfits tfma tfmma tfmod tfms tfpif tfprintf tfrac tfrexp	\
+     tgamma tgamma_inc tget_flt tget_d tget_d_2exp tget_f tget_ld_2exp	\
      tget_set_d64 tget_sj tget_str tget_z tgmpop tgrandom thyperbolic	\
      thypot tinp_str tj0 tj1 tjn tl2b tlgamma tli2 tlngamma tlog	\
-     tlog10 tlog1p tlog2 tmin_prec tminmax tmodf tmul tmul_2exp		\
+     tlog10 tlog1p tlog2 tlog_ui tmin_prec tminmax tmodf tmul tmul_2exp	\
      tmul_d tmul_ui tnext tnrandom tnrandom_chisq tout_str toutimpl	\
      tpow tpow3 tpow_all tpow_z tprintf trandom trandom_deviate		\
      trec_sqrt tremquo trint trndna troot tround_prec tsec tsech	\
@@ -72,6 +72,11 @@ $(top_builddir)/src/libmpfr.la:
 	cd $(top_builddir)/src && $(MAKE) $(AM_MAKEFLAGS) libmpfr.la
 
 TESTS = $(check_PROGRAMS)
+
+# $(VALGRIND) is still there to be able to use a wrapper such as valgrind
+# in case old Automake. With Automake 1.13+, where a parallel test harness
+# is generated, use LOG_COMPILER instead. For additional information, see:
+# http://www.gnu.org/software/automake/manual/automake.html#Parallel-Test-Harness
 TESTS_ENVIRONMENT = MPFR_QUIET=1 $(VALGRIND)
 
 # The -no-install option prevents libtool from generating wrapper scripts

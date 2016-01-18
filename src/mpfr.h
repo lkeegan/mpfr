@@ -192,7 +192,11 @@ typedef uintmax_t mpfr_uexp_t;
 
 /* DON'T USE THIS! (For MPFR-public macros only, see below.)
    The mpfr_sgn macro uses the fact that __MPFR_EXP_NAN and __MPFR_EXP_ZERO
-   are the smallest values. */
+   are the smallest values. For a n-bit type, EXP_MAX is 2^(n-1)-1,
+   EXP_ZERO is 1-2^(n-1), EXP_NAN is 2-2^(n-1), EXP_INF is 3-2^(n-1).
+   This may change in the future. MPFR code should not be based on these
+   representations (but if this is absolutely needed, protect the code
+   with a static assertion). */
 #define __MPFR_EXP_MAX ((mpfr_exp_t) (((mpfr_uexp_t) -1) >> 1))
 #define __MPFR_EXP_NAN  (1 - __MPFR_EXP_MAX)
 #define __MPFR_EXP_ZERO (0 - __MPFR_EXP_MAX)
@@ -608,6 +612,8 @@ __MPFR_DECLSPEC int mpfr_log10 _MPFR_PROTO ((mpfr_ptr, mpfr_srcptr,
                                              mpfr_rnd_t));
 __MPFR_DECLSPEC int mpfr_log1p _MPFR_PROTO ((mpfr_ptr, mpfr_srcptr,
                                              mpfr_rnd_t));
+__MPFR_DECLSPEC int mpfr_log_ui _MPFR_PROTO ((mpfr_ptr, unsigned long,
+                                              mpfr_rnd_t));
 
 __MPFR_DECLSPEC int mpfr_exp _MPFR_PROTO ((mpfr_ptr, mpfr_srcptr,mpfr_rnd_t));
 __MPFR_DECLSPEC int mpfr_exp2 _MPFR_PROTO ((mpfr_ptr,mpfr_srcptr,mpfr_rnd_t));
@@ -740,6 +746,8 @@ __MPFR_DECLSPEC int mpfr_erfc _MPFR_PROTO ((mpfr_ptr, mpfr_srcptr,mpfr_rnd_t));
 __MPFR_DECLSPEC int mpfr_cbrt _MPFR_PROTO ((mpfr_ptr,mpfr_srcptr,mpfr_rnd_t));
 __MPFR_DECLSPEC int mpfr_root _MPFR_PROTO ((mpfr_ptr,mpfr_srcptr,unsigned long,mpfr_rnd_t));
 __MPFR_DECLSPEC int mpfr_gamma _MPFR_PROTO((mpfr_ptr,mpfr_srcptr,mpfr_rnd_t));
+__MPFR_DECLSPEC int mpfr_gamma_inc _MPFR_PROTO((mpfr_ptr,mpfr_srcptr,
+                                                mpfr_srcptr, mpfr_rnd_t));
 __MPFR_DECLSPEC int mpfr_lngamma _MPFR_PROTO((mpfr_ptr,mpfr_srcptr,mpfr_rnd_t));
 __MPFR_DECLSPEC int mpfr_lgamma _MPFR_PROTO((mpfr_ptr,int*,mpfr_srcptr,mpfr_rnd_t));
 __MPFR_DECLSPEC int mpfr_digamma _MPFR_PROTO((mpfr_ptr,mpfr_srcptr,mpfr_rnd_t));
@@ -781,6 +789,12 @@ __MPFR_DECLSPEC int mpfr_fma _MPFR_PROTO ((mpfr_ptr, mpfr_srcptr, mpfr_srcptr,
                                            mpfr_srcptr, mpfr_rnd_t));
 __MPFR_DECLSPEC int mpfr_fms _MPFR_PROTO ((mpfr_ptr, mpfr_srcptr, mpfr_srcptr,
                                            mpfr_srcptr, mpfr_rnd_t));
+__MPFR_DECLSPEC int mpfr_fmma _MPFR_PROTO ((mpfr_ptr, mpfr_srcptr, mpfr_srcptr,
+                                            mpfr_srcptr, mpfr_srcptr,
+                                            mpfr_rnd_t));
+__MPFR_DECLSPEC int mpfr_fmms _MPFR_PROTO ((mpfr_ptr, mpfr_srcptr, mpfr_srcptr,
+                                            mpfr_srcptr, mpfr_srcptr,
+                                            mpfr_rnd_t));
 __MPFR_DECLSPEC int mpfr_sum _MPFR_PROTO ((mpfr_ptr, mpfr_ptr *const,
                                            unsigned long, mpfr_rnd_t));
 
