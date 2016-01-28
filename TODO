@@ -101,6 +101,7 @@ Table of contents:
 4. New functions to implement
 ##############################################################################
 
+- implement mpfr_get_decimal128 and mpfr_set_decimal128
 - implement mpfr_log_ui to compute log(n) for an unsigned long n.
   We can write for argument reduction n = 2^k * n/2^k, where
   2/3 <= n/2^k < 4/3, i.e., k = floor(log2(3n))-1, thus
@@ -139,6 +140,10 @@ Table of contents:
     E1(-Inf) = -Inf
     E1(+0)   = +Inf
     E1(-0)   = -Inf
+  (we could extend mpfr_eint for negative values so that mpfr_eint(-x)
+   = E1(x), cf 6.2.6 of http://dlmf.nist.gov/6.2, which matches the C
+   bindings in ISO/IEC 24747:2009, cf
+   https://sympa.inria.fr/sympa/arc/mpfr/2016-01/msg00042.html)
   ExponentialIntegralEn (formula 5.1.4 of Abramowitz and Stegun)
   DawsonIntegral
   GammaD(x) = Gamma(x+1/2)
