@@ -155,14 +155,28 @@ mpfr_can_round_raw (const mp_limb_t *bp, mp_size_t bn, int neg, mpfr_exp_t err0,
 
   if (MPFR_UNLIKELY(err0 < 0 || (mpfr_uexp_t) err0 <= prec))
     return 0;  /* can't round */
-  else if (MPFR_UNLIKELY (prec > (mpfr_prec_t) bn * GMP_NUMB_BITS))
-    { /* then ulp(b) < precision < error */
-      return rnd2 == MPFR_RNDN && (mpfr_uexp_t) err0 - 2 >= prec;
-      /* can round only in rounding to the nearest and err0 >= prec + 2 */
-    }
 
   MPFR_ASSERT_SIGN(neg);
   neg = MPFR_IS_NEG_SIGN(neg);
+
+  /* Transform RNDD and RNDU to Zero / Away */
+  MPFR_ASSERTD((neg == 0) || (neg == 1));
+  if (rnd1 != MPFR_RNDN)
+    rnd1 = MPFR_IS_LIKE_RNDZ(rnd1, neg) ? MPFR_RNDZ : MPFR_RNDA;
+  if (rnd2 != MPFR_RNDN)
+    rnd2 = MPFR_IS_LIKE_RNDZ(rnd2, neg) ? MPFR_RNDZ : MPFR_RNDA;
+
+  if (MPFR_UNLIKELY (prec > (mpfr_prec_t) bn * GMP_NUMB_BITS))
+    { /* Then prec < PREC(b): we can round:
+         (i) in rounding to the nearest iff err0 >= prec + 2
+         (ii) in directed rounding mode iff rnd1 is compatible with rnd2
+              and err0 >= prec + 1, unless b = 2^k and rnd1=rnd2=RNDA in
+              which case we need err0 >= prec + 2. */
+      if (rnd2 == MPFR_RNDN)
+        return (mpfr_uexp_t) err0 - 2 >= prec;
+      else
+        return (rnd1 == rnd2) && (mpfr_uexp_t) err0 - 2 >= prec;
+    }
 
   /* if the error is smaller than ulp(b), then anyway it will propagate
      up to ulp(b) */
@@ -173,17 +187,22 @@ mpfr_can_round_raw (const mp_limb_t *bp, mp_size_t bn, int neg, mpfr_exp_t err0,
   k = (err - 1) / GMP_NUMB_BITS;
   MPFR_UNSIGNED_MINUS_MODULO(s, err);
   /* the error corresponds to bit s in limb k, the most significant limb
-     being limb 0 */
+     being limb 0; in memory, limb k is bp[bn-1-k]. */
 
   k1 = (prec - 1) / GMP_NUMB_BITS;
   MPFR_UNSIGNED_MINUS_MODULO(s1, prec);
-  /* the last significant bit is bit s1 in limb k1 */
+  /* the least significant bit is bit s1 in limb k1 */
 
-  /* don't need to consider the k1 most significant limbs */
+  /* We don't need to consider the k1 most significant limbs.
+     They will be considered later only to detect when subtracting
+     the error bound yields a change of binade.
+     Warning! The number with updated bn may no longer be normalized. */
   k -= k1;
   bn -= k1;
   prec -= (mpfr_prec_t) k1 * GMP_NUMB_BITS;
 
+  /* FIXME: The following comment should be more detailed about the change
+     of binade and the effect of the rounding modes. */
   /* if when adding or subtracting (1 << s) in bp[bn-1-k], it does not
      change bp[bn-1] >> s1, then we can round */
   MPFR_TMP_MARK(marker);
@@ -194,11 +213,6 @@ mpfr_can_round_raw (const mp_limb_t *bp, mp_size_t bn, int neg, mpfr_exp_t err0,
     MPN_COPY (tmp, bp, bn - k);
 
   MPFR_ASSERTD (k > 0);
-
-  /* Transform RNDD and RNDU to Zero / Away */
-  MPFR_ASSERTD((neg == 0) || (neg ==1));
-  if (MPFR_IS_RNDUTEST_OR_RNDDNOTTEST(rnd1, neg))
-    rnd1 = MPFR_RNDZ;
 
   switch (rnd1)
     {
