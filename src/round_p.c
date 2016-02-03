@@ -30,7 +30,11 @@ mpfr_round_p (mp_limb_t *bp, mp_size_t bn, mpfr_exp_t err0, mpfr_prec_t prec)
 {
   int i1, i2;
 
+  MPFR_ASSERTN(bp[bn - 1] & MPFR_LIMB_HIGHBIT);
+
   i1 = mpfr_round_p_2 (bp, bn, err0, prec);
+
+  /* compare with mpfr_can_round_raw */
   i2 = mpfr_can_round_raw (bp, bn, MPFR_SIGN_POS, err0,
                            MPFR_RNDN, MPFR_RNDZ, prec);
   if (i1 != i2)
@@ -41,6 +45,7 @@ mpfr_round_p (mp_limb_t *bp, mp_size_t bn, mpfr_exp_t err0, mpfr_prec_t prec)
       gmp_fprintf (stderr, "%NX\n", bp, bn);
       MPFR_ASSERTN (0);
     }
+
   return i1;
 }
 # define mpfr_round_p mpfr_round_p_2
