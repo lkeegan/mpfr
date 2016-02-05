@@ -1,7 +1,7 @@
 /* Test file for mpfr_eint.
 
 Copyright 2005-2016 Free Software Foundation, Inc.
-Contributed by the AriC and Caramel projects, INRIA.
+Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
 
@@ -205,7 +205,7 @@ main (int argc, char *argv[])
     {
       check_specials ();
 
-      test_generic (2, 100, 100);
+      test_generic (MPFR_PREC_MIN, 100, 100);
     }
 
   tests_end_mpfr ();

@@ -1,7 +1,7 @@
 /* Test file for mpfr_root.
 
 Copyright 2005-2016 Free Software Foundation, Inc.
-Contributed by the AriC and Caramel projects, INRIA.
+Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
 
@@ -21,6 +21,15 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include "mpfr-test.h"
+
+#include <time.h>
+
+/* return the cpu time in seconds */
+static double
+cputime (void)
+{
+  return (double) clock () / (double) CLOCKS_PER_SEC;
+}
 
 static void
 special (void)
@@ -280,22 +289,120 @@ bigint (void)
   (INTEGER_TYPE) (randlimb () & 1 ? randlimb () : randlimb () % 3 + 2)
 #include "tgeneric_ui.c"
 
+static void
+exact_powers (unsigned long bmax, unsigned long kmax)
+{
+  long b, k;
+  mpz_t z;
+  mpfr_t x, y;
+  int inex, neg;
+
+  mpz_init (z);
+  for (b = 2; b <= bmax; b++)
+    for (k = 1; k <= kmax; k++)
+      {
+        mpz_ui_pow_ui (z, b, k);
+        mpfr_init2 (x, mpz_sizeinbase (z, 2));
+        mpfr_set_ui (x, b, MPFR_RNDN);
+        mpfr_pow_ui (x, x, k, MPFR_RNDN);
+        mpz_set_ui (z, b);
+        mpfr_init2 (y, mpz_sizeinbase (z, 2));
+        for (neg = 0; neg <= 1; neg++)
+          {
+            inex = mpfr_root (y, x, k, MPFR_RNDN);
+            if (inex != 0)
+              {
+                printf ("Error in exact_powers, b=%ld, k=%ld\n", b, k);
+                printf ("Expected inex=0, got %d\n", inex);
+                exit (1);
+              }
+            if (neg && (k & 1) == 0)
+              {
+                if (!MPFR_IS_NAN (y))
+                  {
+                    printf ("Error in exact_powers, b=%ld, k=%ld\n", b, k);
+                    printf ("Expected y=NaN\n");
+                    printf ("Got      ");
+                    mpfr_out_str (stdout, 10, 0, y, MPFR_RNDN);
+                    printf ("\n");
+                    exit (1);
+                  }
+              }
+            else if (MPFR_IS_NAN (y) || mpfr_cmp_si (y, b) != 0)
+              {
+                printf ("Error in exact_powers, b=%ld, k=%ld\n", b, k);
+                printf ("Expected y=%ld\n", b);
+                printf ("Got      ");
+                mpfr_out_str (stdout, 10, 0, y, MPFR_RNDN);
+                printf ("\n");
+                exit (1);
+              }
+            mpfr_neg (x, x, MPFR_RNDN);
+            b = -b;
+          }
+        mpfr_clear (x);
+        mpfr_clear (y);
+      }
+  mpz_clear (z);
+}
+
 int
-main (void)
+main (int argc, char *argv[])
 {
   mpfr_t x;
   int r;
   mpfr_prec_t p;
   unsigned long k;
 
+  if (argc == 3) /* troot prec k */
+    {
+      double st1, st2;
+      unsigned long k;
+      int l;
+      mpfr_t y;
+      p = strtoul (argv[1], NULL, 10);
+      k = strtoul (argv[2], NULL, 10);
+      mpfr_init2 (x, p);
+      mpfr_init2 (y, p);
+      mpfr_const_pi (y, MPFR_RNDN);
+      mpfr_root (x, y, k, MPFR_RNDN); /* to warm up cache */
+      st1 = cputime ();
+      for (l = 0; cputime () - st1 < 1.0; l++)
+        mpfr_root (x, y, k, MPFR_RNDN);
+      st1 = (cputime () - st1) / l;
+      printf ("mpfr_root       took %.2es\n", st1);
+
+      /* compare with x^(1/k) = exp(1/k*log(x)) */
+      /* first warm up cache */
+      mpfr_swap (x, y);
+      mpfr_log (y, x, MPFR_RNDN);
+      mpfr_div_ui (y, y, k, MPFR_RNDN);
+      mpfr_exp (y, y, MPFR_RNDN);
+
+      st2 = cputime ();
+      for (l = 0; cputime () - st2 < 1.0; l++)
+        {
+          mpfr_log (y, x, MPFR_RNDN);
+          mpfr_div_ui (y, y, k, MPFR_RNDN);
+          mpfr_exp (y, y, MPFR_RNDN);
+        }
+      st2 = (cputime () - st2) / l;
+      printf ("exp(1/k*log(x)) took %.2es\n", st2);
+
+      mpfr_clear (x);
+      mpfr_clear (y);
+      return 0;
+    }
+
   tests_start_mpfr ();
 
+  exact_powers (3, 1000);
   special ();
   bigint ();
 
   mpfr_init (x);
 
-  for (p = 2; p < 100; p++)
+  for (p = MPFR_PREC_MIN; p < 100; p++)
     {
       mpfr_set_prec (x, p);
       for (r = 0; r < MPFR_RND_MAX; r++)
@@ -348,7 +455,7 @@ main (void)
     }
   mpfr_clear (x);
 
-  test_generic_ui (2, 200, 30);
+  test_generic_ui (MPFR_PREC_MIN, 200, 30);
 
   tests_end_mpfr ();
   return 0;
