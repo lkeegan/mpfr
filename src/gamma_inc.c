@@ -152,17 +152,14 @@ mpfr_gamma_inc (mpfr_ptr y, mpfr_srcptr a, mpfr_srcptr x, mpfr_rnd_t rnd)
                   MPFR_RET_NAN;
                 }
               else if (MPFR_IS_ZERO (x))
-                {
-                  /* gamma_inc(a,0) = +Inf */
-                  MPFR_SET_INF (y);
-                  MPFR_SET_POS (y);
-                  MPFR_RET (0);  /* exact */
-                }
+                /* gamma_inc(a,0) = gamma(a) */
+                return mpfr_gamma (y, a, rnd); /* a=+0->+Inf, a=-0->-Inf */
               else
                 {
-                  /* gamma_inc (0, x) = int (exp(-t), t=x..infinity) = Ei(1,x)
-                     but the mpfr_eint function returns -Re(Ei(1,-x)) */
-                  MPFR_ASSERTN(0);
+                  /* gamma_inc (0, x) = int (exp(-t), t=x..infinity) = E1(x) */
+                  mpfr_t minus_x;
+                  MPFR_TMP_INIT_NEG(minus_x, x);
+                  return mpfr_eint (y, minus_x, rnd);
                 }
             }
           else /* x = 0: gamma_inc(a,0) = gamma(a) */
@@ -186,8 +183,7 @@ mpfr_gamma_inc (mpfr_ptr y, mpfr_srcptr a, mpfr_srcptr x, mpfr_rnd_t rnd)
   MPFR_ZIV_INIT (loop, w);
   for (;;)
     {
-      mpfr_prec_t precu;
-      mpfr_exp_t expu;
+      mpfr_exp_t expu, precu;
       mpfr_t s_abs;
       mpfr_exp_t decay = 0;
 
@@ -200,8 +196,10 @@ mpfr_gamma_inc (mpfr_ptr y, mpfr_srcptr a, mpfr_srcptr x, mpfr_rnd_t rnd)
          (1) EXP(a) <= 0, then we need PREC(u) >= 1 - EXP(a) + PREC(a)
          (2) EXP(a) - PREC(a) <= 0 < E(a), then PREC(u) >= PREC(a)
          (3) 0 < EXP(a) - PREC(a), then PREC(u) >= EXP(a) */
-      precu = (MPFR_EXP(a) <= 0) ? 1 - MPFR_EXP(a) + MPFR_PREC(a)
+      precu = MPFR_GET_EXP(a) <= 0 ?
+        MPFR_ADD_PREC (MPFR_PREC(a), 1 - MPFR_EXP(a))
         : (MPFR_EXP(a) <= MPFR_PREC(a)) ? MPFR_PREC(a) : MPFR_EXP(a);
+      MPFR_ASSERTN (precu + 1 <= MPFR_PREC_MAX);
       mpfr_set_prec (u, precu + 1);
       expu = (MPFR_EXP(a) > 0) ? MPFR_EXP(a) : 1;
 

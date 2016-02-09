@@ -1896,9 +1896,13 @@ All those functions, except explicitly stated (for example
 exact return value, a positive value for a return value larger than the
 exact result, and a negative value otherwise.
 
-Important note: in some domains, computing special functions (either with
-correct or incorrect rounding) is expensive, even for small precision,
+Important note: in some domains, computing special functions (even more
+with correct rounding) is expensive, even for small precision,
 for example the trigonometric and Bessel functions for large argument.
+For some functions, the memory usage might depend not only on the output
+precision: it is the case of the @code{mpfr_root} function where the memory
+usage is also linear in the argument @var{k},
+and of the incomplete Gamma function (dependence on the precision of @var{op}).
 
 @deftypefun int mpfr_log (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_log_ui (mpfr_t @var{rop}, unsigned long @var{op}, mpfr_rnd_t @var{rnd})
@@ -2060,9 +2064,9 @@ $@var{op}^k/(k \cdot k!)$
 @end tex
 (see formula 5.1.10 from the Handbook of Mathematical Functions from
 Abramowitz and Stegun).
-For negative @var{op}, @var{rop} is set to NaN
-(this definition for negative argument follows formula 5.1.2 from the same
-reference, a future version might use another definition).
+For negative @var{op}, @var{rop} is set to the opposite of the
+E1 exponential integral (sometimes called eint1)
+at @minus{}@var{op} (formula 5.1.1 from the same reference).
 @end deftypefun
 
 @deftypefun int mpfr_li2 (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -2080,9 +2084,10 @@ to @var{op}}.
 Set @var{rop} to the value of the Gamma function on @var{op}, resp. the
 incomplete Gamma function on @var{op} and @var{op2},
 rounded in the direction @var{rnd}.
-When @var{op} is a negative integer, @var{rop} is set to NaN@.
-For @code{mpfr_gamma_inc}, the case where
-@var{op} equals zero and @var{op2} is positive is not implemented.
+For @code{mpfr_gamma} (and @code{mpfr_gamma_inc} when @var{op2} is zero),
+when @var{op} is a negative integer, @var{rop} is set to NaN@.
+For @code{mpfr_gamma_inc}, the case where @var{op} is zero
+(except when @var{op2} is zero) or a negative integer is not yet implemented.
 @end deftypefun
 
 @deftypefun int mpfr_lngamma (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -3765,6 +3770,10 @@ If the value is an inexact infinity, the overflow flag is now set
 This is really what is expected in practice (and what the MPFR code
 was expecting), so that the previous behavior was regarded as a bug.
 Hence the change in MPFR 2.3.2.
+
+@item @code{mpfr_eint} changed in MPFR 3.2.
+This function now returns the value of the E1/eint1 function for
+negative argument (before MPFR 3.2, it was returning NaN)@.
 
 @item @code{mpfr_get_f} changed in MPFR 3.0.
 This function was returning zero, except for NaN and Inf, which do not

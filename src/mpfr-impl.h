@@ -1079,6 +1079,12 @@ typedef union { mp_size_t s; mp_limb_t l; } mpfr_size_limb_t;
    MPFR_SET_POS(d),                                                  \
    MPFR_EXP(d)  = MPFR_EXP(s))
 
+#define MPFR_TMP_INIT_NEG(d, s)                                      \
+ ( MPFR_PREC(d) = MPFR_PREC(s),                                      \
+   MPFR_MANT(d) = MPFR_MANT(s),                                      \
+   MPFR_SET_OPPOSITE_SIGN(d,s),                                      \
+   MPFR_EXP(d)  = MPFR_EXP(s))
+
 
 
 /******************************************************
@@ -2159,7 +2165,7 @@ __MPFR_DECLSPEC void mpfr_mpz_clear _MPFR_PROTO((mpz_ptr));
 extern "C" {
 #endif
 
-__MPFR_DECLSPEC extern int __gmpfr_cov_sum_tmd[MPFR_RND_MAX][2][2][3][2];
+__MPFR_DECLSPEC extern int __gmpfr_cov_sum_tmd[MPFR_RND_MAX][2][2][3][2][2];
 
 #if defined (__cplusplus)
 }
