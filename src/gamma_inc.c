@@ -38,6 +38,10 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
    gamma(a,x) = x^a * sum((-x)^k/k!/(a+k), k=0..infinity)
 
    gamma(a,x) = x^a * exp(-x) * sum(x^k/(a*(a+1)*...*(a+k)), k=0..infinity)
+
+   For a negative integer, we have:
+
+   gamma(-n,x) = (-1)^n/n [E_1(x) - exp(-x) sum((-1)^j*j!/x^(j+1), j=0..n-1)]
 */
 
 int
@@ -46,8 +50,8 @@ mpfr_gamma_inc (mpfr_ptr y, mpfr_srcptr a, mpfr_srcptr x, mpfr_rnd_t rnd)
   mpfr_prec_t w;
   mpfr_t s, t, u;
   int inex;
-  unsigned long k, err;
-  mpfr_exp_t e0, e1, e2;
+  unsigned long k;
+  mpfr_exp_t e0, e1, e2, err;
   MPFR_GROUP_DECL(group);
   MPFR_ZIV_DECL(loop);
   MPFR_SAVE_EXPO_DECL (expo);
@@ -159,7 +163,10 @@ mpfr_gamma_inc (mpfr_ptr y, mpfr_srcptr a, mpfr_srcptr x, mpfr_rnd_t rnd)
                   /* gamma_inc (0, x) = int (exp(-t), t=x..infinity) = E1(x) */
                   mpfr_t minus_x;
                   MPFR_TMP_INIT_NEG(minus_x, x);
-                  return mpfr_eint (y, minus_x, rnd);
+                  /* mpfr_eint(x) for x < 0 returns -E1(-x) */
+                  inex = mpfr_eint (y, minus_x, MPFR_INVERT_RND(rnd));
+                  MPFR_CHANGE_SIGN(y);
+                  return -inex;
                 }
             }
           else /* x = 0: gamma_inc(a,0) = gamma(a) */
@@ -186,6 +193,7 @@ mpfr_gamma_inc (mpfr_ptr y, mpfr_srcptr a, mpfr_srcptr x, mpfr_rnd_t rnd)
       mpfr_exp_t expu, precu;
       mpfr_t s_abs;
       mpfr_exp_t decay = 0;
+      MPFR_BLOCK_DECL (flags);
 
       /* Note: in the error analysis below, theta represents any value of
          absolute value less than 2^(-w) where w is the working precision (two
@@ -273,9 +281,11 @@ mpfr_gamma_inc (mpfr_ptr y, mpfr_srcptr a, mpfr_srcptr x, mpfr_rnd_t rnd)
          the error on s is at most 2^(decay+1)*(2k+7) ulps. */
 
       /* subtract from gamma(a) */
-      mpfr_gamma (t, a, MPFR_RNDZ);  /* t = gamma(a) * (1+theta) */
+      MPFR_BLOCK (flags, mpfr_gamma (t, a, MPFR_RNDZ));
+      MPFR_ASSERTN (!MPFR_OVERFLOW (flags));  /* FIXME: support overflow */
+      /* t = gamma(a) * (1+theta) */
       e0 = MPFR_GET_EXP (t);
-      e1 = MPFR_GET_EXP (s);
+      e1 = (MPFR_IS_ZERO(s)) ? __gmpfr_emin : MPFR_GET_EXP (s);
       mpfr_sub (s, t, s, MPFR_RNDZ);
       e2 = MPFR_GET_EXP (s);
       /* the final error is at most 1 ulp (for the final subtraction)
@@ -291,10 +301,17 @@ mpfr_gamma_inc (mpfr_ptr y, mpfr_srcptr a, mpfr_srcptr x, mpfr_rnd_t rnd)
                          <= 2^(e0-e2+1) if e0 > e2
                          <= 2^2 otherwise */
       if (e0 == e1)
-        err = e0 - e2 + 2;
+        {
+          /* Check that e0 - e2 + 2 <= MPFR_EXP_MAX */
+          MPFR_ASSERTD (e2 >= 2 || e0 <= (MPFR_EXP_MAX - 2) + e2);
+          /* Check that e0 - e2 + 2 >= MPFR_EXP_MIN */
+          MPFR_ASSERTD (e2 <= 2 || e0 >= MPFR_EXP_MIN + (e2 - 2));
+          err = e0 - e2 + 2;
+        }
       else
         {
           e0 = (e0 > e1) ? e0 : e1; /* max(e0,e1) */
+          MPFR_ASSERTD (e0 <= e2 || e2 >= 1 || e0 <= (MPFR_EXP_MAX - 1) + e2);
           err = (e0 > e2) ? e0 - e2 + 1 : 2;
         }
 
