@@ -390,7 +390,6 @@ Format of long double.
 
 + DEBUG:                For debugging messages in some functions.
 + XDEBUG:               Use generic 'double' code instead of IEEE specific one.
-                        The IEEE code for double needs GMP internal files.
 + MPFR_WANT_ASSERT:     Assertion level. See src/mpfr-impl.h for details.
 + MPFR_EXP_CHECK:       Define if we want to check the exp field.
 
@@ -458,6 +457,17 @@ List of macros used for checking MPFR:
 + MPFR_COV_CHECK:       Define to enable value coverage checking (must not
                         be used in production). This macro is for the MPFR
                         developers, in order to improve the test suite.
+
+===========================================================================
+
+Before testing any macro in a .c file, one needs:
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
+except if mpfr-impl.h (for the library) or mpfr-test.h (for the tests) is
+included first, because these header files already have the above code.
 
 ===========================================================================
 

@@ -21,7 +21,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #ifdef HAVE_CONFIG_H
-# include "config.h"       /* for a build within gmp */
+# include "config.h"
 #endif
 
 #ifdef WITH_FPU_CONTROL
@@ -49,9 +49,10 @@ check_special (void)
       exit (1);
     }
   f = mpfr_get_float128 (x, MPFR_RNDN);
-  if (f == f)
+  if (! DOUBLE_ISNAN (f))
     {
       printf ("Error in mpfr_get_float128(NaN)\n");
+      printf ("got %f\n", (double) f);
       exit (1);
     }
 
