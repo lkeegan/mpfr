@@ -233,7 +233,7 @@ if test -z "$GMP_CC$GMP_CFLAGS" ; then
        *cpp*) ;;
        *) cpp="$cpp -E" ;;
      esac
-     echo foo > conftest.c
+     echo "#include \"gmp.h\"" > conftest.c
      if $cpp $CPPFLAGS conftest.c > /dev/null 2> /dev/null ; then
        # Get CC
        echo "#include \"gmp.h\"" >  conftest.c
@@ -250,11 +250,11 @@ if test -z "$GMP_CC$GMP_CFLAGS" ; then
    done
    rm -f conftest*
    if test "x$GMP_CC" = "x__GMP_CC" || test "x$GMP_CFLAGS" = "x__GMP_CFLAGS" ; then
-      AC_MSG_RESULT(no)
+      AC_MSG_RESULT(failed)
       GMP_CFLAGS=
       GMP_CC=
    else
-      AC_MSG_RESULT(yes [CC=$GMP_CC CFLAGS=$GMP_CFLAGS])
+      AC_MSG_RESULT([CC=$GMP_CC CFLAGS=$GMP_CFLAGS])
    fi
 fi
 
@@ -287,7 +287,6 @@ AM_PROG_AR
 dnl Try to determine the double format
 AC_MSG_CHECKING(format of `double' floating point)
 AC_RUN_IFELSE([AC_LANG_PROGRAM([[
-#include <stdint.h>
 ]], [[
 union ieee_double_extract
 {
@@ -316,7 +315,7 @@ case "$mpfr_ieee_double" in
      AC_DEFINE(HAVE_DOUBLE_IEEE_LITTLE_ENDIAN) ;;
   2) AC_MSG_RESULT([IEEE big endian])
      AC_DEFINE(HAVE_DOUBLE_IEEE_BIG_ENDIAN) ;;
-  *) AC_MSG_ERROR([format of `double' floating-point not recognized]) ;;
+  *) AC_MSG_WARN([format of `double' floating-point not recognized]) ;;
 esac
 
 dnl For GCC, _Decimal64 was introduced in GCC 4.3 for some targets
@@ -329,25 +328,23 @@ dnl _Decimal64 support is broken with GCC 4.6.3 and 4.7.2 on powerpc64
 dnl with the mode32 ABI, e.g. "-m32 -mpowerpc64 -mtune=970 -O3"; this
 dnl is detected by the x != x test below.
 AC_ARG_ENABLE(decimal-float,
-   [  --disable-decimal-float  do not build conversion functions from/to decimal floats
-                          [[default=no]]],
+   [  --disable-decimal-float explicitly disable decimal floats support
+  --enable-decimal-float  build conversion functions from/to decimal floats
+                          [[default=autodetect]]],
    [ case $enableval in
       yes) ;;
       no)  ;;
       *)   AC_MSG_ERROR([bad value for --enable-decimal-float: yes or no]) ;;
      esac])
 
+dnl GCC >= 4.3 provides __float128, but since this is not standard,
+dnl the default is "autodetect" and not "yes"
 AC_ARG_ENABLE(float128,
-   [  --enable-float128       build conversion functions from/to __float128
-                          [[default=no]]],
+   [  --disable-float128      explicitly disable __float128 support
+  --enable-float128       build conversion functions from/to __float128
+                          [[default=autodetect]]],
    [ case $enableval in
-      yes) AC_DEFINE([MPFR_WANT_FLOAT128],1,
-              [Build float128 conversion functions])
-           AC_MSG_CHECKING(if compiler knows __float128)
-           AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__float128 x;]])],
-              [AC_MSG_RESULT(yes)],
-              [AC_MSG_ERROR([Compiler doesn't know __float128; try GCC >= 4.3]
-           )]);;
+      yes) ;;
       no)  ;;
       *)   AC_MSG_ERROR([bad value for --enable-float128: yes or no]) ;;
      esac])
@@ -573,7 +570,7 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include "gmp.h"
 ]],[[]])],[AC_MSG_RESULT(yes)],[
  AC_MSG_RESULT(no)
- AC_MSG_ERROR([There is an incompatibility between gmp.h and the compiler.
+ AC_MSG_ERROR([there is an incompatibility between gmp.h and the compiler.
 See 'config.log' for details.])
 ])
 
@@ -725,7 +722,7 @@ if $EGREP -q -e '-dev$' $srcdir/VERSION; then
 fi
 
 dnl Output
-AC_CONFIG_FILES([Makefile doc/Makefile src/Makefile tests/Makefile tune/Makefile src/mparam.h:src/mparam_h.in tools/bench/Makefile])
+AC_CONFIG_FILES([Makefile mpfr.pc doc/Makefile src/Makefile tests/Makefile tune/Makefile src/mparam.h:src/mparam_h.in tools/bench/Makefile])
 AC_OUTPUT
 
 dnl NEWS README AUTHORS Changelog

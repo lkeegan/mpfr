@@ -27,6 +27,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "mpfr-intmax.h"
 #include "mpfr-test.h"
 
+#define STRINGIZE(S) #S
+#define MAKE_STR(S) STRINGIZE(S)
+
 int
 main (void)
 {
@@ -41,13 +44,26 @@ main (void)
   /* TODO: We may want to output info for non-GNUC-compat compilers too. See:
    * http://sourceforge.net/p/predef/wiki/Compilers/
    * http://nadeausoftware.com/articles/2012/10/c_c_tip_how_detect_compiler_name_and_version_using_compiler_predefined_macros
+   *
+   * For ICC, do not check the __ICC macro as it is obsolete and not always
+   * defined.
    */
-#ifdef __ICC
-  printf ("[tversion] ICC: %d.%d.%d\n", __INTEL_COMPILER / 100,
+#define COMP "[tversion] Compiler: "
+#ifdef __INTEL_COMPILER
+# ifdef __VERSION__
+#  define ICCV " [" __VERSION__ "]"
+# else
+#  define ICCV ""
+# endif
+  printf (COMP "ICC %d.%d.%d" ICCV "\n", __INTEL_COMPILER / 100,
           __INTEL_COMPILER % 100, __INTEL_COMPILER_UPDATE);
-#endif
-#if defined(__GNUC__) && defined(__VERSION__) && !defined(__ICC)
-  printf ("[tversion] GCC: %s\n", __VERSION__);
+#elif (defined(__GNUC__) || defined(__clang__)) && defined(__VERSION__)
+# ifdef __clang__
+#  define COMP2 COMP
+# else
+#  define COMP2 COMP "GCC "
+# endif
+  printf (COMP2 "%s\n", __VERSION__);
 #endif
 
 #ifdef __MPIR_VERSION
@@ -63,6 +79,28 @@ main (void)
           gmp_version);
 #endif
 #endif
+
+  /* The following output is also useful under Unix, where one should get:
+     WinDLL: __GMP_LIBGMP_DLL = 0, MPFR_WIN_THREAD_SAFE_DLL = undef
+     If this is not the case, something is probably broken. We cannot test
+     automatically as some MS Windows implementations may declare some Unix
+     (POSIX) compatibility; for instance, Cygwin32 defines __unix__ (but
+     Cygwin64 does not, probably because providing both MS Windows API and
+     POSIX API is not possible with a 64-bit ABI, since MS Windows is LLP64
+     and Unix is LP64). */
+  printf ("[tversion] WinDLL: __GMP_LIBGMP_DLL = "
+#if defined(__GMP_LIBGMP_DLL)
+          MAKE_STR(__GMP_LIBGMP_DLL)
+#else
+          "undef"
+#endif
+          ", MPFR_WIN_THREAD_SAFE_DLL = "
+#if defined(MPFR_WIN_THREAD_SAFE_DLL)
+          MAKE_STR(MPFR_WIN_THREAD_SAFE_DLL)
+#else
+          "undef"
+#endif
+          "\n");
 
   if (
 #ifdef MPFR_USE_THREAD_SAFE

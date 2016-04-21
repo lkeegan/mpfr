@@ -264,13 +264,16 @@ static double get_max (void) { static volatile double d = DBL_MAX; return d; }
 fi
 
 dnl Check if subnormal (denormalized) numbers are supported
-AC_CACHE_CHECK([for subnormal numbers], mpfr_cv_have_denorms, [
+dnl for the binary64 format, the smallest normal number is 2^(-1022)
+dnl for the binary32 format, the smallest normal number is 2^(-126)
+AC_CACHE_CHECK([for subnormal double-precision numbers],
+mpfr_cv_have_denorms, [
 AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <stdio.h>
 int main (void) {
   double x = 2.22507385850720138309e-308;
   fprintf (stderr, "%e\n", x / 2.0);
-  return 2.0 * (x / 2.0) != x;
+  return 2.0 * (double) (x / 2.0) != x;
 }
 ]])],
    [mpfr_cv_have_denorms="yes"],
@@ -278,7 +281,25 @@ int main (void) {
    [mpfr_cv_have_denorms="cannot test, assume no"])
 ])
 if test "$mpfr_cv_have_denorms" = "yes"; then
-  AC_DEFINE(HAVE_DENORMS,1,[Define if subnormal (denormalized) floats work.])
+  AC_DEFINE(HAVE_DENORMS,1,[Define if subnormal (denormalized) doubles work.])
+fi
+AC_CACHE_CHECK([for subnormal single-precision numbers],
+mpfr_cv_have_denorms_flt, [
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
+#include <stdio.h>
+int main (void) {
+  float x = 1.17549435082229e-38;
+  fprintf (stderr, "%e\n", x / 2.0);
+  return 2.0 * (float) (x / 2.0) != x;
+}
+]])],
+   [mpfr_cv_have_denorms_flt="yes"],
+   [mpfr_cv_have_denorms_flt="no"],
+   [mpfr_cv_have_denorms_flt="cannot test, assume no"])
+])
+if test "$mpfr_cv_have_denorms_flt" = "yes"; then
+  AC_DEFINE(HAVE_DENORMS_FLT,1,
+  [Define if subnormal (denormalized) floats work.])
 fi
 
 dnl Check if signed zeros are supported. Note: the test will fail
@@ -446,7 +467,7 @@ MPFR_C_LONG_DOUBLE_FORMAT
 
 if test "$enable_logging" = yes; then
   if test "$enable_thread_safe" = yes; then
-    AC_MSG_ERROR([Enable either `Logging' or `thread-safe', not both])
+    AC_MSG_ERROR([enable either `Logging' or `thread-safe', not both])
   else
     enable_thread_safe=no
   fi
@@ -519,17 +540,13 @@ fi
 
 dnl Check if decimal floats are available
 if test "$enable_decimal_float" != no; then
-   AC_DEFINE([MPFR_WANT_DECIMAL_FLOATS],1,
-              [Build decimal float functions])
            AC_MSG_CHECKING(if compiler knows _Decimal64)
            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[_Decimal64 x;]])],
-              [AC_MSG_RESULT(yes)],
-              [AC_MSG_RESULT(no)
-   AC_MSG_ERROR([Compiler doesn't know _Decimal64 (ISO/IEC TR 24732).
-   Please use another compiler or build MPFR with --disable-decimal-float.])]
-           )
-           AC_MSG_CHECKING(decimal float format)
-           AC_RUN_IFELSE([AC_LANG_PROGRAM([[
+              [AC_MSG_RESULT(yes)
+               AC_DEFINE([MPFR_WANT_DECIMAL_FLOATS],1,
+                         [Build decimal float functions])
+               AC_MSG_CHECKING(decimal float format)
+               AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <stdlib.h>
 ]], [[
 volatile _Decimal64 x = 1;
@@ -542,13 +559,35 @@ return y.d == 0.14894469406741037E-123 ? 0 :
        AC_DEFINE([DPD_FORMAT],1,[])],
       [case "$?" in
          1) AC_MSG_RESULT(BID) ;;
-         2) AC_MSG_FAILURE(neither DPD nor BID) ;;
-         3) AC_MSG_FAILURE([_Decimal64 support is broken.
-Please use another compiler or build MPFR with --disable-decimal-float.]) ;;
-         *) AC_MSG_FAILURE(internal error) ;;
+         2) AC_MSG_RESULT(neither DPD nor BID)
+            if test "$enable_decimal_float" = yes; then
+               AC_MSG_ERROR([unsupported decimal float format.
+Please build MPFR without --enable-decimal-float.])
+            fi ;;
+         *) AC_MSG_RESULT(internal error)
+            AC_MSG_FAILURE(unexpected exit status) ;;
        esac],
       [AC_MSG_RESULT(assuming DPD)
        AC_DEFINE([DPD_FORMAT],1,[])])
+              ],
+              [AC_MSG_RESULT(no)
+               if test "$enable_decimal_float" = yes; then
+                  AC_MSG_ERROR([compiler doesn't know _Decimal64 (ISO/IEC TR 24732).
+Please use another compiler or build MPFR without --enable-decimal-float.])
+               fi])
+fi
+
+dnl Check if __float128 is available
+if test "$enable_float128" != no; then
+   AC_MSG_CHECKING(if compiler knows __float128)
+   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__float128 x;]])],
+      [AC_MSG_RESULT(yes)
+       AC_DEFINE([MPFR_WANT_FLOAT128],1,[Build float128 functions])],
+      [AC_MSG_RESULT(no)
+       if test "$enable_float128" = yes; then
+          AC_MSG_ERROR([compiler doesn't know __float128
+Please use another compiler or build MPFR without --enable-float128.])
+       fi])
 fi
 
 dnl Check if Static Assertions are supported.
@@ -1145,7 +1184,7 @@ case $mpfr_cv_c_long_double_format in
   unknown* | "not available")
     ;;
   *)
-    AC_MSG_WARN([oops, unrecognised float format: $mpfr_cv_c_long_double_format])
+    AC_MSG_WARN([unrecognized long double FP format: $mpfr_cv_c_long_double_format])
     ;;
 esac
 ])

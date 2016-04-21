@@ -67,7 +67,17 @@ int __gmpfr_cov_sum_tmd[MPFR_RND_MAX][2][2][3][2][2] = { 0 };
 #endif
 
 /* Update minexp after detecting a potential integer overflow in extreme
-   cases (only 32-bit machines may be concerned in practice). */
+   cases (only a 32-bit ABI may be concerned in practice).
+   Instead of an assertion failure below, we could
+   1. check that the ulp of each regular input has an exponent >= MPFR_EXP_MIN
+      (with an assertion failure if this is not the case);
+   2. set minexp to MPFR_EXP_MIN and shift the accumulator accordingly
+      (the sum will then be exact).
+   However, such cases, which involve huge precisions, will probably
+   never occur in practice (at least with a 64-bit ABI) and are not
+   easily testable due to these huge precisions. Moreover, switching
+   to a 64-bit ABI would be a better solution for such computations.
+   So, let's leave this unimplemented. */
 #define UPDATE_MINEXP(E,SH)                     \
   do                                            \
     {                                           \
@@ -162,7 +172,7 @@ sum_raw (mp_limb_t *wp, mp_size_t ws, mpfr_prec_t wq, mpfr_ptr *const x,
       MPFR_ASSERTD (maxexp > minexp);
 
       for (i = 0; i < n; i++)
-        if (! MPFR_IS_SINGULAR (x[i]))
+        if (! MPFR_IS_SINGULAR (x[i]))  /* Step 1 (see sum_raw in sum.txt) */
           {
             mp_limb_t *dp, *vp;
             mp_size_t ds, vs, vds;
@@ -182,6 +192,8 @@ sum_raw (mp_limb_t *wp, mp_size_t ws, mpfr_prec_t wq, mpfr_ptr *const x,
                make the code simpler, we won't try to filter out the trailing
                bits of x[i]. */
 
+            /* Steps 2, 3, 4 (see sum_raw in sum.txt) */
+
             if (vd < 0)
               {
                 /* This covers the following cases:
@@ -193,19 +205,29 @@ sum_raw (mp_limb_t *wp, mp_size_t ws, mpfr_prec_t wq, mpfr_ptr *const x,
                  *     maxexp           minexp
                  */
 
+                /* Step 2 for subcase vd < 0 */
+
                 if (xe <= minexp)
                   {
                     /* x[i] is entirely after the LSB of the accumulator,
                        so that it will be ignored at this iteration. */
                     if (xe > maxexp2)
-                      maxexp2 = xe;
+                      {
+                        maxexp2 = xe;
+                        /* And since the exponent of x[i] is valid... */
+                        MPFR_ASSERTD (maxexp2 >= MPFR_EMIN_MIN);
+                      }
                     continue;
                   }
+
+                /* Step 3 for subcase vd < 0 */
 
                 /* If some significant bits of x[i] are after the LSB of the
                    accumulator, then maxexp2 will necessarily be minexp. */
                 if (MPFR_LIKELY (xe - xq < minexp))
                   maxexp2 = minexp;
+
+                /* Step 4 for subcase vd < 0 */
 
                 /* We need to ignore the least |vd| significant bits of x[i].
                    First, let's ignore the least vds = |vd| / GMP_NUMB_BITS
@@ -263,6 +285,12 @@ sum_raw (mp_limb_t *wp, mp_size_t ws, mpfr_prec_t wq, mpfr_ptr *const x,
                  *               maxexp           minexp
                  */
 
+                /* Steps 2 and 3 for subcase vd >= 0 */
+
+                MPFR_ASSERTD (xe - xq >= minexp);  /* see definition of vd */
+
+                /* Step 4 for subcase vd >= 0 */
+
                 /* We need to ignore the least vd significant bits
                    of the accumulator. First, let's ignore the least
                    vds = vd / GMP_NUMB_BITS limbs. -> (dp,ds) */
@@ -308,7 +336,7 @@ sum_raw (mp_limb_t *wp, mp_size_t ws, mpfr_prec_t wq, mpfr_ptr *const x,
                     MPFR_ASSERTD (tr >= 0 && tr < GMP_NUMB_BITS);
                     vp = tp;
                   }
-              }
+              }  /* vd >= 0 */
 
             MPFR_ASSERTD (vs > 0 && vs <= ds);
 
@@ -318,6 +346,8 @@ sum_raw (mp_limb_t *wp, mp_size_t ws, mpfr_prec_t wq, mpfr_ptr *const x,
                via carry propagation after the addition. */
             if (tr != 0)
               vs--;
+
+            /* Step 5 (see sum_raw in sum.txt) */
 
             if (MPFR_IS_POS (x[i]))
               {
@@ -388,8 +418,14 @@ sum_raw (mp_limb_t *wp, mp_size_t ws, mpfr_prec_t wq, mpfr_ptr *const x,
                maxexp2 == MPFR_EXP_MIN). */
 
             /* This basically tests whether err <= e - prec without
-               potential integer overflow (since prec >= 0)... */
-            if (err <= e && SAFE_DIFF (mpfr_uexp_t, e, err) >= prec)
+               potential integer overflow (since prec >= 0)...
+               Note that the maxexp2 == MPFR_EXP_MIN test is there just for
+               the potential corner case e - prec < MPFR_EXP_MIN + logn.
+               Such corner cases, involving specific huge-precision numbers,
+               are probably not supported in many places in MPFR, but this
+               test doesn't hurt... */
+            if (maxexp2 == MPFR_EXP_MIN ||
+                (err <= e && SAFE_DIFF (mpfr_uexp_t, e, err) >= prec))
               {
                 MPFR_LOG_MSG (("(err=%" MPFR_EXP_FSPEC "d) <= (e=%"
                                MPFR_EXP_FSPEC "d) - (prec=%Pd)\n",
@@ -439,7 +475,8 @@ sum_raw (mp_limb_t *wp, mp_size_t ws, mpfr_prec_t wq, mpfr_ptr *const x,
                 else
                   MPN_COPY_DECR (wp + shifts, wp, ws - shifts);
                 MPN_ZERO (wp, shifts);
-                minexp -= shiftq;
+                /* Compute minexp = minexp - shiftq safely. */
+                UPDATE_MINEXP (minexp, shiftq);
                 MPFR_ASSERTD (minexp < maxexp2);
               }
           }
@@ -451,6 +488,7 @@ sum_raw (mp_limb_t *wp, mp_size_t ws, mpfr_prec_t wq, mpfr_ptr *const x,
         else
           {
             MPFR_LOG_MSG (("accumulator = 0, reiterate\n", 0));
+            /* Compute minexp = maxexp2 - (wq - (logn + 1)) safely. */
             UPDATE_MINEXP (maxexp2, wq - (logn + 1));
             /* Note: the logn + 1 corresponds to cq in the main code. */
           }
@@ -543,6 +581,7 @@ sum_aux (mpfr_ptr sum, mpfr_ptr *const x, unsigned long n, mpfr_rnd_t rnd,
 
     MPFR_LOG_MSG (("Compute an approximation with sum_raw...\n", 0));
 
+    /* Compute minexp = maxexp - (wq - cq) safely. */
     UPDATE_MINEXP (maxexp, wq - cq);
     MPFR_ASSERTD (wq >= logn + sq + 5);
     cancel = sum_raw (wp, ws, wq, x, n, minexp, maxexp, tp, ts,
@@ -679,11 +718,15 @@ sum_aux (mpfr_ptr sum, mpfr_ptr *const x, unsigned long n, mpfr_rnd_t rnd,
             mp_limb_t limb, mask;
             int nbits;
 
+            /* Since maxexp was set to either the exponent of a x[i] or
+               to minexp... */
+            MPFR_ASSERTD (maxexp >= MPFR_EMIN_MIN || maxexp == minexp);
+
             inex = 1;  /* We do not know whether the sum is exact. */
 
-            MPFR_ASSERTD (u <= MPFR_EMAX_MAX);
+            MPFR_ASSERTD (u <= MPFR_EMAX_MAX && u <= minexp + wq);
             d = u - (maxexp + logn);  /* representable */
-            MPFR_ASSERTD (d >= 3);
+            MPFR_ASSERTD (d >= 3);  /* due to prec = sq + 3 in sum_raw */
 
             /* Let's see whether the TMD occurs by looking at the d bits
                following the ulp bit, or the d-1 bits after the rounding
@@ -893,6 +936,7 @@ sum_aux (mpfr_ptr sum, mpfr_ptr *const x, unsigned long n, mpfr_rnd_t rnd,
                   MPN_COPY_DECR (wp + zs, wp, wi);
               }
 
+            /* Compute minexp = minexp - (zs * GMP_NUMB_BITS + td) safely. */
             UPDATE_MINEXP (minexp, zs * GMP_NUMB_BITS + td);
             MPFR_ASSERTD (minexp == err + 2 - wq);
           }
@@ -906,7 +950,7 @@ sum_aux (mpfr_ptr sum, mpfr_ptr *const x, unsigned long n, mpfr_rnd_t rnd,
             MPFR_LOG_MSG (("[TMD] err < minexp\n", 0));
             zs = ws;
 
-            /* minexp = maxexp + cq - wq */
+            /* Compute minexp = maxexp - (wq - cq) safely. */
             UPDATE_MINEXP (maxexp, wq - cq);
             MPFR_ASSERTD (minexp == err + 1 - wq);
           }
