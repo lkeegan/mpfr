@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 3.2.0-dev
-@set UPDATED-MONTH April 2016
+@set UPDATED-MONTH May 2016
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -642,6 +642,12 @@ Alternatively, it is possible to use @samp{pkg-config} (a file
 @example
 cc myprogram.c $(pkg-config --cflags --libs mpfr)
 @end example
+
+Note that the @samp{MPFR_} and @samp{mpfr_} prefixes are reserved for MPFR@.
+As a general rule, in order to avoid clashes, software using MPFR (directly
+or indirectly) and system headers/libraries should not define macros and
+symbols using these prefixes.
+@c Concerning system headers/libraries: those that may be used by MPFR.
 
 @node Nomenclature and Types, MPFR Variable Conventions, Headers and Libraries, MPFR Basics
 @comment  node-name,  next,  previous,  up
@@ -3403,7 +3409,7 @@ efficiency reasons: for example @code{mpfr_custom_init (s, p)}
 uses the macro, while @code{(mpfr_custom_init) (s, p)} uses the function.
 
 Note 1: MPFR functions may still initialize temporary floating-point numbers
-using @code{mpfr_init} and similar functions. See Custom Allocation (GNU MP).
+using @code{mpfr_init} and similar functions. See Custom Allocation (GNU MP)@.
 
 Note 2: MPFR functions may use the cached functions (@code{mpfr_const_pi} for
 example), even if they are not explicitly called. You have to call
@@ -3593,7 +3599,7 @@ This means that it is safe to use the new official types
 @code{mpfr_prec_t} and @code{mpfr_rnd_t} in your programs.
 The types @code{mp_prec_t} and @code{mp_rnd_t} (defined
 in MPFR only) may be removed in the future, as the prefix
-@code{mp_} is reserved by GMP.
+@code{mp_} is reserved by GMP@.
 
 @comment r6787
 The precision type @code{mpfr_prec_t} (@code{mp_prec_t}) was unsigned
@@ -4043,7 +4049,7 @@ Revision of ANSI-IEEE Standard 754-1985,
 approved June 12, 2008: IEEE Standards Board, 70 pages.
 
 @item
-Donald E. Knuth, "The Art of Computer Programming", vol 2,
+Donald E.@: Knuth, "The Art of Computer Programming", vol 2,
 "Seminumerical Algorithms", 2nd edition, Addison-Wesley, 1981.
 
 @item

@@ -27,7 +27,7 @@ nobase_dist_doc_DATA = AUTHORS BUGS COPYING COPYING.LESSER NEWS TODO \
   examples/ReadMe examples/divworst.c examples/rndo-add.c examples/sample.c \
   examples/version.c examples/can_round.c
 
-EXTRA_DIST = PATCHES VERSION \
+EXTRA_DIST = PATCHES VERSION doc/check-typography \
   tools/ck-copyright-notice tools/ck-news tools/ck-version-info \
   tools/get_patches.sh \
   $(DATAFILES)
@@ -45,3 +45,4 @@ dist-hook:
 	cd $(srcdir) && tools/ck-version-info
 	cd $(srcdir) && tools/ck-copyright-notice
 	cd $(srcdir) && tools/ck-news
+	cd $(srcdir)/doc && ./check-typography
