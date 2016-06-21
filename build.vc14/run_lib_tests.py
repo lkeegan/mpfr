@@ -79,6 +79,7 @@ else:
 
 shutil.copy( "..\\tests\\inp_str.dat", test_dir )
 shutil.copy( "..\\tests\\mpfrtest.dat", test_dir )
+shutil.copy( "..\\tests\\mpfrtest2.dat", test_dir )
 shutil.copy( "..\\tests\\tmul.dat", test_dir )
 if (os.path.exists("..\\tests\\data\\")
     and not os.path.exists(test_dir + "\\data\\")):

@@ -26,7 +26,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 ])
 
 dnl Add check-news when it checks for more than 15 lines
-AC_INIT([MPFR],[3.2.0-dev])
+AC_INIT([MPFR],[4.0.0-dev])
 
 dnl Older Automake versions than 1.13 may still be supported, but no longer
 dnl tested, and many things have changed in 1.13. Moreover the INSTALL file
@@ -36,11 +36,6 @@ AM_INIT_AUTOMAKE([1.13 no-define dist-bzip2 dist-xz dist-zip])
 AM_MAINTAINER_MODE(enable)
 
 AC_CONFIG_MACRO_DIR([m4])
-
-dnl FIXME: The AC_ARG_ENABLE(decimal-float...) part does things too
-dnl early, even when this option is not used. In particular, it must
-dnl be put after AC_PROG_CC; another problem is that the GMP CFLAGS
-dnl and CC check may modify the compiler.
 
 dnl FIXME: Several AC_RUN_IFELSE programs can return several values
 dnl (one for each format to be detected), but the Autoconf manual says:
@@ -167,6 +162,17 @@ AC_ARG_ENABLE(thread-safe,
       *)   AC_MSG_ERROR([bad value for --enable-thread-safe: yes or no]) ;;
      esac])
 
+AC_ARG_ENABLE(shared-cache,
+   [  --enable-shared-cache   enable use of caches shared by all threads,
+                          for all MPFR constants.  It usually makes MPFR
+                          dependent on PTHREAD [[default=no]]],
+   [ case $enableval in
+      yes) mpfr_want_shared_cache=yes
+         AC_DEFINE([WANT_SHARED_CACHE],1,[Want shared cache]) ;;
+      no)  ;;
+      *) AC_MSG_ERROR([bad value for --enable-shared-cache: yes or no]) ;;
+     esac])
+
 AC_ARG_ENABLE(warnings,
    [  --enable-warnings       allow MPFR to output warnings to stderr [[default=no]]],
    [ case $enableval in
@@ -280,8 +286,13 @@ AC_PROG_CC
 AC_PROG_CPP
 AC_LANG(C)
 
-dnl Support unusual archivers.
+dnl AM_PROG_AR is needed so that ar-lib (wrapper for Microsoft lib.exe)
+dnl gets installed by "automake -i" (if absent, "automake --warnings=all"
+dnl gives a warning).
 AM_PROG_AR
+
+dnl This must done before MPFR_CONFIGS.
+LT_INIT(win32-dll)
 
 dnl Try to determine the double format
 AC_MSG_CHECKING(format of `double' floating point)
@@ -380,6 +391,18 @@ AC_ARG_ENABLE(debug-prediction,
       *)    AC_MSG_ERROR([bad value for --enable-debug-prediction: yes or no]) ;;
      esac])
 
+AC_ARG_ENABLE(lto,
+   [  --enable-lto            build MPFR with link-time-optimization
+                          (experimental) [[default: no]]],
+   [ case $enableval in
+      yes)  if test "$enable_shared" != "no"; then
+              AC_MSG_ERROR([--enable-lto can only work in static mode (--disable-shared)])
+            fi
+            enable_lto=yes
+            ;;
+      no)   ;;
+      *)    AC_MSG_ERROR([bad value for --enable-lto: yes or no]) ;;
+     esac])
 
 dnl Check if compiler is ICC, and if such a case, disable GCC
 dnl And add some specific flags.
@@ -494,7 +517,6 @@ dnl but it's "ar" format and cannot be used by the MS linker.  There
 dnl doesn't seem to be any GNU tool for generating or converting to .lib.
 AC_SUBST(MPFR_LDFLAGS)
 AC_SUBST(LIBMPFR_LDFLAGS)
-LT_INIT(win32-dll)
 case $host in
   *-*-cygwin* | *-*-mingw* | *-*-pw32* | *-*-os2*)
    AC_MSG_CHECKING(for DLL/static GMP)
