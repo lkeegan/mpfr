@@ -435,6 +435,7 @@
     <ClCompile Include="..\..\src\swap.c" />
     <ClCompile Include="..\..\src\tan.c" />
     <ClCompile Include="..\..\src\tanh.c" />
+    <ClCompile Include="..\..\src\ubf.c" />
     <ClCompile Include="..\..\src\uceil_exp2.c" />
     <ClCompile Include="..\..\src\uceil_log2.c" />
     <ClCompile Include="..\..\src\ufloor_log2.c" />
