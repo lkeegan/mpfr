@@ -57,6 +57,7 @@ test_ext = ["Win32\\Release", "x64\\Release", "Win32\\Debug", "x64\\Debug" ]
 li = []
 for x in test_ext:
   p = lib_loc + x + lib_name
+  print(p)
   if os.path.exists(p):
     s = os.stat(p)
     li += [[s.st_mtime, x]]
