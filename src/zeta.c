@@ -414,6 +414,10 @@ mpfr_zeta (mpfr_t z, mpfr_srcptr s, mpfr_rnd_t rnd_mode)
       /* add = 1 + floor(log(c*c*c*(13 + m1))/log(2)); */
       add = __gmpfr_ceil_log2 (c * c * c * (13.0 + m1));
       prec1 = precz + add;
+      /* FIXME: to avoid that the working precision (prec1) depends on the
+         input precision, one would need to take into account the error made
+         when s1 is not exactly 1-s when computing zeta(s1) and gamma(s1)
+         below, and also in the case y=Inf (i.e. when gamma(s1) overflows). */
       prec1 = MAX (prec1, precs1) + 10;
 
       MPFR_GROUP_INIT_4 (group, prec1, z_pre, s1, y, p);
@@ -426,6 +430,15 @@ mpfr_zeta (mpfr_t z, mpfr_srcptr s, mpfr_rnd_t rnd_mode)
           if (MPFR_IS_INF (y)) /* Zeta(s) < 0 for -4k-2 < s < -4k,
                                   Zeta(s) > 0 for -4k < s < -4k+2 */
             {
+              /* FIXME: An overflow in gamma(s1) does not imply that
+                 Zeta(s) will overflow. In this branch, compute the
+                 log to avoid intermediate overflows? To avoid a
+                 problem at the overflow boundary, a scaling can
+                 also be done without any cost here since the log(2)
+                 already appears in the expression: compute
+                 log(...) - log(2), then the exponential, round
+                 correctly, then multiply by 2 (exact, with possible
+                 overflow generation). */
               mpfr_div_2ui (s1, s, 2, MPFR_RNDN); /* s/4, exact */
               mpfr_frac (s1, s1, MPFR_RNDN); /* exact, -1 < s1 < 0 */
               overflow = (mpfr_cmp_si_2exp (s1, -1, -1) > 0) ? -1 : 1;
