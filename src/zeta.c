@@ -328,10 +328,9 @@ mpfr_zeta (mpfr_t z, mpfr_srcptr s, mpfr_rnd_t rnd_mode)
   /* s is neither Nan, nor Inf, nor Zero */
 
   /* check tiny s: we have zeta(s) = -1/2 - 1/2 log(2 Pi) s + ... around s=0,
-     and for |s| <= 0.074, we have |zeta(s) + 1/2| <= |s|.
-     Thus if |s| <= 1/4*ulp(1/2), we can deduce the correct rounding
-     (the 1/4 covers the case where |zeta(s)| < 1/2 and rounding to nearest).
-     A sufficient condition is that EXP(s) + 1 < -PREC(z). */
+     and for |s| <= 2^(-4), we have |zeta(s) + 1/2| <= |s|.
+     EXP(s) + 1 < -PREC(z) is a sufficient condition to be able to round
+     correctly, for any PREC(z) >= 1 (see algorithms.tex for details). */
   if (MPFR_GET_EXP (s) + 1 < - (mpfr_exp_t) MPFR_PREC(z))
     {
       int signs = MPFR_SIGN(s);
@@ -402,6 +401,11 @@ mpfr_zeta (mpfr_t z, mpfr_srcptr s, mpfr_rnd_t rnd_mode)
       /* Precision precs1 needed to represent 1 - s, and s + 2,
          without any truncation */
       precs1 = precs + 2 + MAX (0, - MPFR_GET_EXP (s));
+      /* FIXME: For the error analysis, use MPFR instead of the native
+         double type. The code below can yield overflows on double's
+         when s is large enough (its precision also needs to be large
+         enough, otherwise s is an even integer, which has already been
+         taken into account). */
       sd = mpfr_get_d (s, MPFR_RNDN) - 1.0;
       if (sd < 0.0)
         sd = -sd; /* now sd = abs(s-1.0) */
@@ -414,31 +418,44 @@ mpfr_zeta (mpfr_t z, mpfr_srcptr s, mpfr_rnd_t rnd_mode)
       /* add = 1 + floor(log(c*c*c*(13 + m1))/log(2)); */
       add = __gmpfr_ceil_log2 (c * c * c * (13.0 + m1));
       prec1 = precz + add;
-      /* FIXME: to avoid that the working precision (prec1) depends on the
+      /* FIXME: To avoid that the working precision (prec1) depends on the
          input precision, one would need to take into account the error made
          when s1 is not exactly 1-s when computing zeta(s1) and gamma(s1)
-         below, and also in the case y=Inf (i.e. when gamma(s1) overflows). */
+         below, and also in the case y=Inf (i.e. when gamma(s1) overflows).
+         Make sure that underflows do not occur in intermediate computations.
+         Due to the limited precision, they are probably not possible
+         in practice; add some MPFR_ASSERTN's to be sure that problems
+         do not remain undetected? */
       prec1 = MAX (prec1, precs1) + 10;
 
       MPFR_GROUP_INIT_4 (group, prec1, z_pre, s1, y, p);
       MPFR_ZIV_INIT (loop, prec1);
       for (;;)
         {
+          mpfr_exp_t ey;
+
           mpfr_sub (s1, __gmpfr_one, s, MPFR_RNDN); /* s1 = 1-s */
           mpfr_zeta_pos (z_pre, s1, MPFR_RNDN);   /* zeta(1-s)  */
           mpfr_gamma (y, s1, MPFR_RNDN);          /* gamma(1-s) */
-          if (MPFR_IS_INF (y)) /* Zeta(s) < 0 for -4k-2 < s < -4k,
-                                  Zeta(s) > 0 for -4k < s < -4k+2 */
+          if (MPFR_IS_INF (y)) /* zeta(s) < 0 for -4k-2 < s < -4k,
+                                  zeta(s) > 0 for -4k < s < -4k+2 */
             {
               /* FIXME: An overflow in gamma(s1) does not imply that
-                 Zeta(s) will overflow. In this branch, compute the
-                 log to avoid intermediate overflows? To avoid a
-                 problem at the overflow boundary, a scaling can
-                 also be done without any cost here since the log(2)
-                 already appears in the expression: compute
-                 log(...) - log(2), then the exponential, round
-                 correctly, then multiply by 2 (exact, with possible
-                 overflow generation). */
+                 zeta(s) will overflow. A solution:
+                 1. Compute
+                   log(|zeta(s)|/2) = (s-1)*log(2*pi) + lngamma(1-s)
+                     + log(abs(sin(Pi*s/2)) * zeta(1-s))
+                 (possibly sharing computations with the normal case)
+                 with a rather good accuracy (see (2)).
+                 Memorize the sign of sin(...) for the final sign.
+                 2. Take the exponential, ~= |zeta(s)|/2. If there is an
+                 overflow, then this means an overflow on the final result
+                 (due to the multiplication by 2, which has not been done
+                 yet).
+                 3. Ziv test.
+                 4. Correct the sign from the sign of sin(...).
+                 5. Round then multiply by 2. Here, an overflow in either
+                 operation means a real overflow. */
               mpfr_div_2ui (s1, s, 2, MPFR_RNDN); /* s/4, exact */
               mpfr_frac (s1, s1, MPFR_RNDN); /* exact, -1 < s1 < 0 */
               overflow = (mpfr_cmp_si_2exp (s1, -1, -1) > 0) ? -1 : 1;
@@ -459,12 +476,18 @@ mpfr_zeta (mpfr_t z, mpfr_srcptr s, mpfr_rnd_t rnd_mode)
           mpfr_mul (y, s, p, MPFR_RNDN);
           mpfr_div_2ui (p, y, 1, MPFR_RNDN);      /* p = s*Pi/2 */
           /* FIXME: sinpi will be available, we should replace the mpfr_sin
-             call below by mpfr_sinpi(s/2), where s/2 will be exact */
+             call below by mpfr_sinpi(s/2), where s/2 will be exact.
+             Can mpfr_sin underflow? Moreover, the code below should be
+             improved so that the "if" condition becomes unlikely, e.g.
+             by taking a slightly larger working precision. */
           mpfr_sin (y, p, MPFR_RNDN);             /* y = sin(Pi*s/2) */
-          if (MPFR_GET_EXP(y) < 0) /* take account of cancellation in sin(p) */
+          ey = MPFR_GET_EXP (y);
+          if (ey < 0) /* take account of cancellation in sin(p) */
             {
               mpfr_t t;
-              mpfr_init2 (t, prec1 - MPFR_GET_EXP(y));
+
+              MPFR_ASSERTN (- ey < MPFR_PREC_MAX - prec1);
+              mpfr_init2 (t, prec1 - ey);
               mpfr_const_pi (t, MPFR_RNDD);
               mpfr_mul (t, s, t, MPFR_RNDN);
               mpfr_div_2ui (t, t, 1, MPFR_RNDN);

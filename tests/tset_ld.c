@@ -119,33 +119,35 @@ print_binary (long double d, int flag)
     printf ("0.");
   if (flag == 2) printf ("3: d=%.36Le e=%.36Le prec=%ld\n", d, e,
                          (long) prec);
-  /* Note: the method we use here to extract the bits of r is the following,
+  /* Note: the method we use here to extract the bits of d is the following,
      to deal with the case where the rounding precision is less than the
-     precision of r:
-     (1) we accumulate the upper bits of r into f
+     precision of d:
+     (1) we accumulate the upper bits of d into f
      (2) when accumulating a new bit into f is not exact, we subtract
-         f from r and reset f to 0
+         f from d and reset f to 0
      This is guaranteed to work only when the rounding precision is at least
-     half the precision of r, since otherwise r-f might not be exact. */
+     half the precision of d, since otherwise d-f might not be exact.
+     This method does not work with flush-to-zero on underflow. */
   f = 0.0; /* will hold accumulated powers of 2 */
-  r = d;   /* invariant: r = d - f */
-  while (r > (long double) 0.0)
+  while (1)
     {
       prec++;
-      if (r >= e)
+      r = f + e;
+      /* r is close to f (in particular in the cases where f+e may
+         not be exact), so that r - f should be exact. */
+      if (r - f != e) /* f+e is not exact */
         {
-          volatile long double g, h;
+          d -= f; /* should be exact */
+          f = 0.0;
+          r = e;
+        }
+      if (d >= r)
+        {
           if (flag == 1)
             printf ("1");
-          g = f + e;
-          h = g - e;
-          if (!(f != g && g != h && f == h)) /* f+e is not exact */
-            {
-              r = d = d - f; /* should be exact */
-              f = 0.0;
-            }
-          f = f + e;
-          r = d - f;
+          if (d == r)
+            break;
+          f = r;
         }
       else
         {
@@ -153,6 +155,7 @@ print_binary (long double d, int flag)
             printf ("0");
         }
       e *= (long double) 0.5;
+      MPFR_ASSERTN (e != 0); /* may fail with flush-to-zero on underflow */
       if (flag == 2) printf ("4: d=%.36Le e=%.36Le prec=%ld\n", d, e,
                              (long) prec);
     }
@@ -545,14 +548,38 @@ main (int argc, char *argv[])
   check_set_get (d);
   check_set_get (-d);
 
-  /* check that 2^i, 2^i+1 and 2^i-1 are correctly converted */
+  /* check that 2^i, 2^i+1, 2^i-1 and 2^i-2^(i-2)-1 are correctly converted */
   d = 1.0;
   for (i = 1; i < MPFR_LDBL_MANT_DIG + 8; i++)
     {
       d = 2.0 * d; /* d = 2^i */
       check_set_get (d);
-      check_set_get (d + 1.0);
-      check_set_get (d - 1.0);
+      if (d + 1.0 != d)
+        check_set_get (d + 1.0);
+      else
+        {
+          mpfr_set_ui_2exp (x, 1, i, MPFR_RNDN);
+          mpfr_add_ui (x, x, 1, MPFR_RNDN);
+          e = mpfr_get_ld (x, MPFR_RNDN);
+          check_set_get (e);
+        }
+      if (d - 1.0 != d)
+        check_set_get (d - 1.0);
+      else
+        {
+          mpfr_set_ui_2exp (x, 1, i, MPFR_RNDN);
+          mpfr_sub_ui (x, x, 1, MPFR_RNDN);
+          e = mpfr_get_ld (x, MPFR_RNDN);
+          check_set_get (e);
+        }
+      if (i < 3)
+        continue;
+      /* The following test triggers a failure in r10844 for i = 56,
+         with gcc -mpc64 on x86 (64-bit ABI). */
+      mpfr_set_ui_2exp (x, 3, i-2, MPFR_RNDN);
+      mpfr_sub_ui (x, x, 1, MPFR_RNDN);
+      e = mpfr_get_ld (x, MPFR_RNDN);
+      check_set_get (e);
     }
 
   for (i = 0; i < 10000; i++)
