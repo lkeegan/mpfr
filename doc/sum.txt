@@ -588,7 +588,7 @@ inequality ensures that the value of the accumulator will not change
 with the updated minexp: shiftq is subtracted from minexp at the same
 time. The reiteration is done with maxexp = maxexp2, as said above.
 
-Example. If there is a additional iteration with maxexp2 = minexp − 4
+Example. If there is an additional iteration with maxexp2 = minexp − 4
 and a shift of 26 bits (due to cancellation), here is the accumulator
 before and after the shift:
 
@@ -895,11 +895,11 @@ All this is done by considering two cases:
         we need to take into account the fact that not all the bits are
         represented).
 
-  * u ≤ minexp. One just has a shift (bit shifted in are 0's, which is
-    what we want) or a copy, and if there are remaining low significant
-    limbs in the destination, they are zeroed with MPN_ZERO. We set
-    rbit to 0 because the rounding bit is not represented, thus its
-    value is 0. If maxexp = MPFR_EXP_MIN, then both inex and tmd are
+  * u ≤ minexp. One just has a shift (bits that are shifted in are 0's,
+    which is what we want) or a copy, and if there are remaining low
+    significant limbs in the destination, they are zeroed with MPN_ZERO.
+    We set rbit to 0 because the rounding bit is not represented, thus
+    its value is 0. If maxexp = MPFR_EXP_MIN, then both inex and tmd are
     set to 0; otherwise they are set to 1 (the bits following the ulp
     bit are not represented, thus are all 0's, implying that the TMD
     occurs on a machine number).
