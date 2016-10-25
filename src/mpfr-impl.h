@@ -223,6 +223,7 @@ typedef struct __gmpfr_cache_s *mpfr_cache_ptr;
 #endif
 
 #if defined(__MPFR_WITHIN_MPFR) || !defined(MPFR_WIN_THREAD_SAFE_DLL)
+# define MPFR_MAKE_VARFCT(T,N)
 extern MPFR_THREAD_ATTR mpfr_flags_t __gmpfr_flags;
 extern MPFR_THREAD_ATTR mpfr_exp_t   __gmpfr_emin;
 extern MPFR_THREAD_ATTR mpfr_exp_t   __gmpfr_emax;
