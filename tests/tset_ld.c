@@ -347,8 +347,35 @@ check_subnormal (void)
           printf ("d=%Le\n", d);
           printf ("x="); mpfr_dump (x);
           printf ("e=%Le\n", e);
+          exit (1);
         }
       d *= 0.5;
+    }
+  mpfr_clear (x);
+}
+
+static void
+check_overflow (void)
+{
+  long double d, e;
+  mpfr_t x;
+  int i;
+
+  mpfr_init2 (x, MPFR_LDBL_MANT_DIG);
+  for (i = 0; i < 2; i++)
+    {
+      d = i == 0 ? LDBL_MAX : -LDBL_MAX;
+      mpfr_set_ld (x, d, MPFR_RNDN);
+      mpfr_mul_2ui (x, x, 1, MPFR_RNDN);
+      e = mpfr_get_ld (x, MPFR_RNDN);
+      if (! DOUBLE_ISINF (e) || (i == 0 ? (e < 0) : (e > 0)))
+        {
+          printf ("Error in check_overflow.\n");
+          printf ("d=%Le\n", d);
+          printf ("x="); mpfr_dump (x);
+          printf ("e=%Le\n", e);
+          exit (1);
+        }
     }
   mpfr_clear (x);
 }
@@ -495,7 +522,7 @@ main (int argc, char *argv[])
   mpfr_set_ld (x, DBL_NEG_ZERO, MPFR_RNDN);
   if (MPFR_IS_POS (x))
     {
-#if _GMP_IEEE_FLOATS
+#if defined(HAVE_SIGNEDZ)
       printf ("Error: sign of -0.0 is not set correctly\n");
       exit (1);
 #else
@@ -606,6 +633,7 @@ main (int argc, char *argv[])
   test_small ();
 
   check_subnormal ();
+  check_overflow ();
 
   test_20140212 ();
   bug_20160907 ();

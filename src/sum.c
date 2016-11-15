@@ -662,7 +662,7 @@ sum_aux (mpfr_ptr sum, mpfr_ptr *const x, unsigned long n, mpfr_rnd_t rnd,
 
         /* Determine the rounding bit, which is represented. */
         td = tq % GMP_NUMB_BITS;
-        lbit = (wp[wi] >> td) & 1;
+        lbit = (wp[wi] >> td) & MPFR_LIMB_ONE;
         rbit = td >= 1 ? ((wp[wi] >> (td - 1)) & MPFR_LIMB_ONE) :
           (MPFR_ASSERTD (wi >= 1), wp[wi-1] >> (GMP_NUMB_BITS - 1));
         MPFR_ASSERTD (rbit == 0 || rbit == 1);
@@ -674,7 +674,14 @@ sum_aux (mpfr_ptr sum, mpfr_ptr *const x, unsigned long n, mpfr_rnd_t rnd,
                inex = 0 if the final sum is exact, else 1, i.e.
                inex = rounding bit || sticky bit. In round to nearest,
                also determine the rounding direction: obtained from
-               the rounding bit possibly except in halfway cases. */
+               the rounding bit possibly except in halfway cases.
+               Halfway cases are rounded toward -inf iff the last bit
+               of the truncated significand in two's complement is 0
+               (in precision > 1, because the parity after rounding is
+               the same in two's complement and sign + magnitude; in
+               precision 1, one checks that the rule works for both
+               positive (lbit == 1) and negative (lbit == 0) numbers,
+               rounding halfway cases away from zero). */
             if (MPFR_LIKELY (rbit == 0 || (rnd == MPFR_RNDN && lbit == 0)))
               {
                 /* We need to determine the sticky bit, either to set inex
@@ -813,7 +820,7 @@ sum_aux (mpfr_ptr sum, mpfr_ptr *const x, unsigned long n, mpfr_rnd_t rnd,
          * not taken into account, and if it occurs, this is
          * necessarily on a machine number (-> tmd = 1).
          */
-        lbit = u == minexp ? wp[0] & 1 : 0;
+        lbit = u == minexp ? wp[0] & MPFR_LIMB_ONE : 0;
         rbit = 0;
         inex = tmd = maxexp != MPFR_EXP_MIN;
       }

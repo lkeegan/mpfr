@@ -119,17 +119,12 @@ mpfr_get_ld (mpfr_srcptr x, mpfr_rnd_t rnd_mode)
 long double
 mpfr_get_ld (mpfr_srcptr x, mpfr_rnd_t rnd_mode)
 {
-
   if (MPFR_UNLIKELY (MPFR_IS_SINGULAR (x)))
     return (long double) mpfr_get_d (x, rnd_mode);
   else /* now x is a normal non-zero number */
     {
       long double r; /* result */
-      long double m;
       double s; /* part of result */
-      mpfr_exp_t sh; /* exponent shift, so that x/2^sh is in the double range */
-      mpfr_t y, z;
-      int sign;
 
 #if defined(HAVE_LDOUBLE_MAYBE_DOUBLE_DOUBLE)
       if (MPFR_LDBL_MANT_DIG == 106)
@@ -137,21 +132,36 @@ mpfr_get_ld (mpfr_srcptr x, mpfr_rnd_t rnd_mode)
           /* Assume double-double format (as found with the PowerPC ABI).
              The generic code below isn't used because numbers with
              precision > 106 would not be supported. */
-          sh = 0; /* force sh to 0 otherwise if say x = 2^1023 + 2^(-1074)
-                     then after shifting mpfr_get_d (y, rnd_mode) will
-                     underflow to 0 */
-          mpfr_init2 (y, mpfr_get_prec (x));
-          mpfr_init2 (z, IEEE_DBL_MANT_DIG); /* keep the precision small */
-          mpfr_set (y, x, rnd_mode); /* exact */
           s = mpfr_get_d (x, MPFR_RNDN); /* high part of x */
-          mpfr_set_d (z, s, MPFR_RNDN);  /* exact */
-          mpfr_sub (y, x, z, MPFR_RNDN); /* exact */
-          /* Add the second part of y (in the correct rounding mode). */
-          r = (long double) s + (long double) mpfr_get_d (y, rnd_mode);
+          /* Let's first consider special cases separately. The test for
+             infinity is really needed to avoid a NaN result. The test
+             for NaN is mainly for optimization. The test for 0 is useful
+             to get the correct sign (assuming mpfr_get_d supports signed
+             zeros on the implementation). */
+          if (s == 0 || DOUBLE_ISNAN (s) || DOUBLE_ISINF (s))
+            r = (long double) s;
+          else
+            {
+              mpfr_t y, z;
+
+              mpfr_init2 (y, mpfr_get_prec (x));
+              mpfr_init2 (z, IEEE_DBL_MANT_DIG); /* keep the precision small */
+              mpfr_set_d (z, s, MPFR_RNDN);  /* exact */
+              mpfr_sub (y, x, z, MPFR_RNDN); /* exact */
+              /* Add the second part of y (in the correct rounding mode). */
+              r = (long double) s + (long double) mpfr_get_d (y, rnd_mode);
+              mpfr_clear (z);
+              mpfr_clear (y);
+            }
         }
       else
 #endif
         {
+          long double m;
+          mpfr_exp_t sh; /* exponent shift -> x/2^sh is in the double range */
+          mpfr_t y, z;
+          int sign;
+
           /* First round x to the target long double precision, so that
              all subsequent operations are exact (this avoids double rounding
              problems). However if the format contains numbers that have more
@@ -181,42 +191,42 @@ mpfr_get_ld (mpfr_srcptr x, mpfr_rnd_t rnd_mode)
               mpfr_sub (y, y, z, MPFR_RNDN); /* exact */
             }
           while (!MPFR_IS_ZERO (y));
+
+          mpfr_clear (z);
+          mpfr_clear (y);
+
+          /* we now have to multiply back by 2^sh */
+          MPFR_ASSERTD (r > 0);
+          if (sh != 0)
+            {
+              /* An overflow may occur (example: 0.5*2^1024) */
+              while (r < 1.0)
+                {
+                  r += r;
+                  sh--;
+                }
+
+              if (sh > 0)
+                m = 2.0;
+              else
+                {
+                  m = 0.5;
+                  sh = -sh;
+                }
+
+              for (;;)
+                {
+                  if (sh % 2)
+                    r = r * m;
+                  sh >>= 1;
+                  if (sh == 0)
+                    break;
+                  m = m * m;
+                }
+            }
+          if (sign < 0)
+            r = -r;
         }
-
-      mpfr_clear (z);
-      mpfr_clear (y);
-
-      /* we now have to multiply back by 2^sh */
-      MPFR_ASSERTD (r > 0);
-      if (sh != 0)
-        {
-          /* An overflow may occur (example: 0.5*2^1024) */
-          while (r < 1.0)
-            {
-              r += r;
-              sh--;
-            }
-
-          if (sh > 0)
-            m = 2.0;
-          else
-            {
-              m = 0.5;
-              sh = -sh;
-            }
-
-          for (;;)
-            {
-              if (sh % 2)
-                r = r * m;
-              sh >>= 1;
-              if (sh == 0)
-                break;
-              m = m * m;
-            }
-        }
-      if (sign < 0)
-        r = -r;
       return r;
     }
 }
