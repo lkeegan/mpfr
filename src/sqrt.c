@@ -207,6 +207,52 @@ mpn_rsqrtrem1 (mp_limb_t a0)
 #endif
 }
 
+#if GMP_NUMB_BITS == 64
+/* The Taylor coefficient of order 0 of sqrt(i/2^8+x) is
+   U[i-64][0]/2^64 + U[i-64][1]/2^128, then the Taylor coefficient of order j is
+   (up to sign) U[i-64][j+1]/2^(64-8*j).
+   The maximal number of bits is:
+   j=1:64 j=2:56 j=3:49 j=4:43 j=5:36 j=6:30 j=7:23
+   The sign is implicit: u[j] < 0 for j even except j=0.
+   The maximal error is < .927e-21 (attained for i=64). */
+
+#include "sqrt_tab.h"
+
+/* Return an approximation of sqrt(2^64*n), with 2^62 <= n < 2^64,
+   and error < 1 ulp (in unknown direction).
+   We use a Taylor polynomial of degree 7. */
+static mp_limb_t
+mpn_sqrtrem2_approx (mp_limb_t n)
+{
+  int i = n >> 56;
+  mp_limb_t x, h, l;
+  const mp_limb_t *u;
+
+  x = n << 8;
+  u = U[i - 64];
+  umul_ppmm (h, l, u[8], x);
+  /* the truncation error on h is at most 1 here */
+  umul_ppmm (h, l, u[7] - h, x);
+  /* the truncation error on h is at most 2 */
+  umul_ppmm (h, l, u[6] - h, x);
+  /* the truncation error on h is at most 3 */
+  umul_ppmm (h, l, u[5] - h, x);
+  /* the truncation error on h is at most 4 */
+  umul_ppmm (h, l, u[4] - h, x);
+  /* the truncation error on h is at most 5 */
+  umul_ppmm (h, l, u[3] - h, x);
+  /* the truncation error on h is at most 6 */
+  umul_ppmm (h, l, u[2] - h, x >> 8); /* here we shift by 8 since u[0] has the
+                                         same weight 1/2^64 as u[2], the truncation
+                                         error on h + l/2^64 is at most 6/2^8 */
+  add_ssaaaa (h, l, h, l, u[0], u[1]);
+  /* Since the above addition is exact, the truncation error on h + l/2^64
+     is still at most 6/2^8. Together with the mathematical error < .927e-21*2^64,
+     the total error on h + l/2^64 is < 0.0406 */
+  return h + (l >> 63); /* round to nearest */
+}
+#endif /* GMP_NUMB_BITS == 64 */
+
 /* Given as input np[0] and np[1], with B/4 <= np[1] (where B = 2^GMP_NUMB_BITS),
    mpn_sqrtrem2 returns a value x, 0 <= x <= 1, and stores values s in sp[0] and
    r in rp[0] such that:
@@ -336,8 +382,8 @@ mpn_sqrtrem2 (mpfr_limb_ptr sp, mpfr_limb_ptr rp, mpfr_limb_srcptr np)
 #endif
 
   /* the correction code below assumes y >= 2^(GMP_NUMB_BITS - 1) */
-  if (y < (MPFR_LIMB_ONE << (GMP_NUMB_BITS - 1)))
-    y = MPFR_LIMB_ONE << (GMP_NUMB_BITS - 1);
+  if (MPFR_UNLIKELY(y < MPFR_LIMB_HIGHBIT))
+    y = MPFR_LIMB_HIGHBIT;
 
   umul_ppmm (x, t, y, y);
   MPFR_ASSERTD(x < np[1] || (x == np[1] && t <= np[0])); /* y should not be too large */
@@ -371,7 +417,7 @@ mpfr_sqrt1 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
 {
   mpfr_prec_t p = MPFR_GET_PREC(r);
   mpfr_prec_t exp_u = MPFR_EXP(u), exp_r, sh = GMP_NUMB_BITS - p;
-  mp_limb_t u0, r0, rb, sb, mask, sp[2];
+  mp_limb_t u0, r0, rb, sb, mask = MPFR_LIMB_MASK(sh), sp[2];
   mpfr_limb_ptr rp = MPFR_MANT(r);
 
   /* first make the exponent even */
@@ -385,12 +431,23 @@ mpfr_sqrt1 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
   exp_r = exp_u / 2;
 
   /* then compute the integer square root of u0*2^GMP_NUMB_BITS */
-  sp[0] = 0;
-  sp[1] = u0;
-  sb |= mpn_sqrtrem2 (&r0, &sb, sp);
+#if GMP_NUMB_BITS == 64
+  r0 = mpn_sqrtrem2_approx (u0);
+  sb = 1; /* when we can round correctly with the approximation, the sticky bit
+             is non-zero */
+
+  /* since the error is at most 1 ulp, we can round correctly except when the last
+     sh-1 bits of r0+sb are <= sb (this includes the case where the last sh-1 bits of
+     r0 are 000...000 since we might have an exact result or not) */
+  if (MPFR_UNLIKELY(((r0 + 1) & (mask >> 1)) <= 1))
+#endif
+    {
+      sp[1] = u0;
+      sp[0] = 0;
+      sb |= mpn_sqrtrem2 (&r0, &sb, sp);
+    }
 
   rb = r0 & (MPFR_LIMB_ONE << (sh - 1));
-  mask = MPFR_LIMB_MASK(sh);
   sb |= (r0 & mask) ^ rb;
   rp[0] = r0 & ~mask;
 
@@ -516,7 +573,7 @@ mpn_sqrtrem4 (mpfr_limb_ptr sp, mpfr_limb_ptr rp, mpfr_limb_srcptr ap)
 {
   mp_limb_t x, r, t;
 
-  x = mpn_sqrtrem2 (sp + 1, rp + 1, ap + 2);
+  x = mpn_sqrtrem2 (sp + 1, rp + 1, ap + 2, 0);
 
   /* now a1 = s1^2 + x*B + r1, with a1 = {ap+2,2}, s1 = sp[1], r1 = rp[1],
      with 0 <= x*B + r1 <= 2*s1 */
