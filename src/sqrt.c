@@ -251,8 +251,72 @@ mpn_sqrtrem2_approx (mp_limb_t n)
      the total error on h + l/2^64 is < 0.0406 */
   return h + (l >> 63); /* round to nearest */
 }
+
+/* put in rh,rl the upper 2 limbs of the product xh,xl * yh,yl,
+   with error less than 3 ulps */
+#define umul_ppmm2(rh,rl,xh,xl,yh,yl)    \
+  {                                      \
+    mp_limb_t _h, _l;                    \
+    umul_ppmm (rh, rl, xh, yh);          \
+    umul_ppmm (_h, _l, xh, yl);          \
+    rl += _h;                            \
+    rh += (rl < _h);                     \
+    umul_ppmm (_h, _l, xl, yh);          \
+    rl += _h;                            \
+    rh += (rl < _h);                     \
+   }
+
+/* Put in rp[1]*2^64+rp[0] an approximation of sqrt(2^128*n),
+   with 2^126 <= n := np[1]*2^64 + np[0] < 2^128.
+   We use a Taylor polynomial of degree 14.
+   The coefficients of degree 0 to 9 are represented by two 64-bit limbs
+   (most significant first), the remaining coefficients by one 64-bit limb,
+   thus the degree-0 coefficient is u[0]/2^64 + u[1]/2^128,
+   the degree-1 coefficient is u[2]/2^64 + u[3]/2^128,
+   ...,
+   the degree-9 coefficient is u[18]/2^64 + u[19]/2^128,
+   the degree-10 coefficient is u[20]/2^64,
+   ...,
+   the degree-14 coefficient is u[24]/2^64. */
+static void
+mpn_sqrtrem4_approx (mpfr_limb_ptr rp, mpfr_limb_srcptr np)
+{
+  int i = np[1] >> 56;
+  mp_limb_t xh, xl, h, l, yh, yl;
+  const mp_limb_t *u;
+
+  xh = (np[1] << 8) | (np[0] >> 56);
+  xl = np[0] << 8;
+  u = V[i - 64];
+  umul_ppmm (h, l, u[24],     xh);
+  umul_ppmm (h, l, u[23] - h, xh);
+  umul_ppmm (h, l, u[22] - h, xh);
+  umul_ppmm (h, l, u[21] - h, xh);
+  umul_ppmm (h, l, u[20] - h, xh);
+  /* now we have to deal with two limbs */
+  sub_ddmmss (yh, yl, u[18], u[19], 0, h);
+  umul_ppmm2 (h, l, yh, yl, xh, xl);
+  sub_ddmmss (yh, yl, u[16], u[17], h, l);
+  umul_ppmm2 (h, l, yh, yl, xh, xl);
+  sub_ddmmss (yh, yl, u[14], u[15], h, l);
+  umul_ppmm2 (h, l, yh, yl, xh, xl);
+  sub_ddmmss (yh, yl, u[12], u[13], h, l);
+  umul_ppmm2 (h, l, yh, yl, xh, xl);
+  sub_ddmmss (yh, yl, u[10], u[11], h, l);
+  umul_ppmm2 (h, l, yh, yl, xh, xl);
+  sub_ddmmss (yh, yl, u[8], u[9], h, l);
+  umul_ppmm2 (h, l, yh, yl, xh, xl);
+  sub_ddmmss (yh, yl, u[6], u[7], h, l);
+  umul_ppmm2 (h, l, yh, yl, xh, xl);
+  sub_ddmmss (yh, yl, u[4], u[5], h, l);
+  umul_ppmm2 (h, l, yh, yl, xh, xl);
+  sub_ddmmss (yh, yl, u[2], u[3], h, l);
+  umul_ppmm2 (h, l, yh, yl, xh, xl);
+  add_ssaaaa (rp[1], rp[0], u[0], u[1], h, l);
+}
 #endif /* GMP_NUMB_BITS == 64 */
 
+#if GMP_NUMB_BITS == 32
 /* Given as input np[0] and np[1], with B/4 <= np[1] (where B = 2^GMP_NUMB_BITS),
    mpn_sqrtrem2 returns a value x, 0 <= x <= 1, and stores values s in sp[0] and
    r in rp[0] such that:
@@ -408,6 +472,7 @@ mpn_sqrtrem2 (mpfr_limb_ptr sp, mpfr_limb_ptr rp, mpfr_limb_srcptr np)
   rp[0] = t;
   return x;
 }
+#endif
 
 /* Special code for prec(r), prec(u) < GMP_NUMB_BITS. We cannot have
    prec(u) = GMP_NUMB_BITS here, since when the exponent of u is odd,
@@ -417,7 +482,7 @@ mpfr_sqrt1 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
 {
   mpfr_prec_t p = MPFR_GET_PREC(r);
   mpfr_prec_t exp_u = MPFR_EXP(u), exp_r, sh = GMP_NUMB_BITS - p;
-  mp_limb_t u0, r0, rb, sb, mask = MPFR_LIMB_MASK(sh), sp[2];
+  mp_limb_t u0, r0, rb, sb, mask = MPFR_LIMB_MASK(sh);
   mpfr_limb_ptr rp = MPFR_MANT(r);
 
   /* first make the exponent even */
@@ -436,16 +501,38 @@ mpfr_sqrt1 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
   sb = 1; /* when we can round correctly with the approximation, the sticky bit
              is non-zero */
 
-  /* since the error is at most 1 ulp, we can round correctly except when the last
-     sh-1 bits of r0+sb are <= sb (this includes the case where the last sh-1 bits of
-     r0 are 000...000 since we might have an exact result or not) */
-  if (MPFR_UNLIKELY(((r0 + 1) & (mask >> 1)) <= 1))
-#endif
+  /* Since the exact square root is in [r0 - 0.5406, r0 + 0.5406], we can round
+     correctly except when the last sh-1 bits of r0 are 000...000. */
+  if (MPFR_UNLIKELY((r0 & (mask >> 1)) == 0))
     {
-      sp[1] = u0;
-      sp[0] = 0;
-      sb |= mpn_sqrtrem2 (&r0, &sb, sp);
+      umul_ppmm (rb, sb, r0, r0);
+      /* for the exact square root, we should have 0 <= (u0-rb)*2^64 - sb <= 2*r0 */
+      if (rb > u0 || (rb == u0 && sb > 0)) /* r0 is too large */
+        {
+          r0 --;
+          umul_ppmm (rb, sb, r0, r0);
+        }
+      /* if u0 <= rb + 1, then (u0-rb)*2^64 - sb <= 2^64 <= 2*r0
+         if u0 >= rb + 3, then (u0-rb)*2^64 - sb > 2*2*64 > 2*r0 */
+      else if (u0 > rb + 2 || (u0 == rb + 2 && -sb > 2 * r0))
+        {
+          r0 ++;
+          umul_ppmm (rb, sb, r0, r0);
+        }
+      sub_ddmmss (rb, sb, u0, 0, rb, sb);
+      /* now we should have rb*2^64 + sb <= 2*r0 */
+      MPFR_ASSERTN(rb == 0 || (rb == 1 && sb <= 2 * r0));
+      sb = rb | sb;
     }
+#else /* 32-bit variant. FIXME: write mpn_sqrtrem2_approx for GMP_NUMB_BITS=32,
+         then use the above code and get rid of mpn_sqrtrem2 */
+  {
+    mp_limb_t sp[2];
+    sp[1] = u0;
+    sp[0] = 0;
+    sb |= mpn_sqrtrem2 (&r0, &sb, sp);
+  }
+#endif
 
   rb = r0 & (MPFR_LIMB_ONE << (sh - 1));
   sb |= (r0 & mask) ^ rb;
@@ -564,71 +651,6 @@ mpn_rsqrtrem2 (mpfr_limb_ptr xp, mpfr_limb_srcptr ap)
   xp[1] = xp[1] >> 24;
 }
 
-#if 0
-/* this code seems to be slightly slower than the one below, for precision
-   113 bits on a 64-bit machine, and in addition it requires GMP internals
-   (for __gmpn_invert_limb) */
-static mp_limb_t
-mpn_sqrtrem4 (mpfr_limb_ptr sp, mpfr_limb_ptr rp, mpfr_limb_srcptr ap)
-{
-  mp_limb_t x, r, t;
-
-  x = mpn_sqrtrem2 (sp + 1, rp + 1, ap + 2, 0);
-
-  /* now a1 = s1^2 + x*B + r1, with a1 = {ap+2,2}, s1 = sp[1], r1 = rp[1],
-     with 0 <= x*B + r1 <= 2*s1 */
-
-  /* use Newton's iteration for the square root, x' = 1/2 * (x + a/x), which
-     rewrites as:
-
-     x' = x + (a - x^2)/(2x)
-
-     Since x' - sqrt(a) = (x-sqrt(a))^2/(2x), we have x' >= sqrt(a).
-     If we round (a - x^2)/(2x) downwards, then we will still get
-     an upper approximation of floor(sqrt(a)). */
-
-  t = rp[1] << (GMP_NUMB_BITS - 1);
-  rp[1] = (x << (GMP_NUMB_BITS - 1)) | (rp[1] >> 1); /* rp[1] = floor((a-x^2)/2) */
-  /* Since x*B + r1 <= 2*s1, we now have rp[1] <= s1, and since __udiv_qrnnd_preinv
-     requires its 3rd argument to be smaller than its 5th argument, we must
-     distinguish the case rp[1] == s1. */
-  if (MPFR_UNLIKELY(rp[1] == sp[1]))
-    {
-      /* Necessarily t=0 since x*B + r1 <= 2*s1 initially.
-         Taking sp[0] = 2^GMP_NUMB_BITS (if representable) would be too large
-         since it would mean sp[1] = sp[1]+1, and the remainder rp[1] would
-         become negative. */
-      sp[0] = MPFR_LIMB_MAX;
-      r = sp[1];
-    }
-  else
-    {
-      r = __gmpn_invert_limb (sp[1]);
-      __udiv_qrnnd_preinv (sp[0], r, rp[1], t, sp[1], r);
-    }
-
-  /* now sp[0] = floor((a-x^2)/(2x)) = floor((x*B+r1)/2/s1) */
-
-  /* r1*B = 2*s1*s0 + 2*r
-     a - s^2 = a1*B^2 + a0 - (s1*B+s0)^2
-     = (s1^2+r1)*B^2 + a0 - s1^2*B^2 - 2*s1*s0*B - s0^2
-     = r1*B^2 + a0 - 2*s1*s0*B - s0^2
-     = 2*r*B + a0 - s0^2 */
-  umul_ppmm (rp[1], rp[0], sp[0], sp[0]); /* s0^2 */
-  t = -mpn_sub_n (rp, ap, rp, 2); /* a0 - s0^2 */
-  t += 2 * (r >> (GMP_NUMB_BITS - 1));
-  r <<= 1;
-  rp[1] += r;
-  t += rp[1] < r;
-  if ((mp_limb_signed_t) t < 0)
-    {
-      mpn_sub_1 (sp, sp, 2, 1);
-      t += mpn_addmul_1 (rp, sp, 2, 2);
-      t += mpn_add_1 (rp, rp, 2, 1);
-    }
-  return t;
-}
-#else
 /* Given as input ap[0-3], with B/4 <= ap[3] (where B = 2^GMP_NUMB_BITS),
    mpn_sqrtrem4 returns a value x, 0 <= x <= 1, and stores values s in sp[0-1] and
    r in rp[0-1] such that:
@@ -747,7 +769,6 @@ mpn_sqrtrem4 (mpfr_limb_ptr sp, mpfr_limb_ptr rp, mpfr_limb_srcptr ap)
 
   return b[2];
 }
-#endif
 
 /* Special code for GMP_NUMB_BITS < prec(r) < 2*GMP_NUMB_BITS,
    and GMP_NUMB_BITS < prec(u) <= 2*GMP_NUMB_BITS.
@@ -777,6 +798,7 @@ mpfr_sqrt2 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
   MPFR_ASSERTD (((unsigned int) exp_u & 1) == 0);
   exp_r = exp_u / 2;
 
+#if 1
   np[0] = 0;
   sb = mpn_sqrtrem4 (rp, tp, np);
   sb |= tp[0] | tp[1];
@@ -784,6 +806,9 @@ mpfr_sqrt2 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
   mask = MPFR_LIMB_MASK(sh);
   sb |= (rp[0] & mask) ^ rb;
   rp[0] = rp[0] & ~mask;
+#else
+  mpn_sqrtrem4_approx (rp, np);
+#endif
 
   /* rounding */
   if (MPFR_UNLIKELY (exp_r > __gmpfr_emax))
