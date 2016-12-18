@@ -344,7 +344,12 @@
     <ClCompile Include="..\..\src\modf.c" />
     <ClCompile Include="..\..\src\mpfr-gmp.c" />
     <ClCompile Include="..\..\src\mpfr-mini-gmp.c" />
-    <ClCompile Include="..\..\src\mp_clz_tab.c" />
+    <ClCompile Include="..\..\src\mp_clz_tab.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\src\mpn_exp.c" />
     <ClCompile Include="..\..\src\mul.c" />
     <ClCompile Include="..\..\src\mul_2exp.c" />
