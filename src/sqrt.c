@@ -1,6 +1,6 @@
 /* mpfr_sqrt -- square root of a floating-point number
 
-Copyright 1999-2016 Free Software Foundation, Inc.
+Copyright 1999-2017 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -39,7 +39,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
    and error < 1 ulp (in unknown direction).
    We use a Taylor polynomial of degree 7. */
 static mp_limb_t
-mpn_sqrtrem2_approx (mp_limb_t n)
+mpfr_sqrt1_approx (mp_limb_t n)
 {
   int i = n >> 56;
   mp_limb_t x, h, l;
@@ -85,18 +85,33 @@ mpn_sqrtrem2_approx (mp_limb_t n)
     }                                    \
   while (0)
 
-/* Put in rp[1]*2^64+rp[0] an approximation of sqrt(2^128*n),
+/* Put in rp[1]*2^64+rp[0] an approximation of floor(sqrt(2^128*n)),
    with 2^126 <= n := np[1]*2^64 + np[0] < 2^128.
-   The error on {rp, 2} is less than 43 ulps (in unknown direction).
+   The error on {rp, 2} is at most 27 ulps, with {rp, 2} <= floor(sqrt(2^128*n)).
 */
 static void
-mpn_sqrtrem4_approx (mpfr_limb_ptr rp, mpfr_limb_srcptr np)
+mpfr_sqrt2_approx (mpfr_limb_ptr rp, mpfr_limb_srcptr np)
 {
-  int i = np[1] >> 56;
+  int i;
   mp_limb_t x, r1, r0, h, l, t;
   const mp_limb_t *u;
+  const mp_limb_t magic = 0xda9fbe76c8b43800; /* ceil(0.854*2^64) */
 
-  x = np[1] << 8 | (np[0] >> 56);
+  /* We round x upward to ensure {np,2} >= r1^2 below. Since we consider also the upper 8
+     bits of np[0] into x, we have to deal separately with the case np[1] = 2^64-1 and the
+     upper 8 bits of np[0] are all 1. */
+  l = np[0] + MPFR_LIMB_MASK(56);
+  h = np[1] + (l < np[0]);
+  i = h >> 56;
+  x = (h << 8) | (l >> 56);
+  if (MPFR_UNLIKELY(i == 0))
+    /* this happens when np[1] = 2^64-1, the upper 8 bits of np[0] are all 1, and the lower
+       56 bits of np[0] are not all zero */
+    {
+      MPFR_ASSERTD(x == MPFR_LIMB_ZERO);
+      goto compute_r1;
+    }
+  MPFR_ASSERTD(64 <= i && i < 256);
   u = V[i - 64];
   umul_ppmm (h, l, u[8], x);
   /* the truncation error on h is at most 1 here */
@@ -115,13 +130,14 @@ mpn_sqrtrem4_approx (mpfr_limb_ptr rp, mpfr_limb_srcptr np)
                                          truncation error on h+l/2^64 is <= 6/2^6 */
   sub_ddmmss (h, l, u[0], u[1], h, l);
   /* Since the mathematical error is < 0.412e-19*2^64, the total error on
-     h + l/2^64 is less than 0.854 */
-  const mp_limb_t magic = 0xda9fbe76c8b43800UL; /* ceil(0.854*2^64) */
+     h + l/2^64 is less than 0.854; magic = ceil(0.854*2^64). We subtract it,
+     while keeping x >= 0. */
   x = h - (l < magic && h != 0);
 
-  /* now 2^64 + x is an approximation of 2^96/sqrt(np[1]),
-     with 2^64 + x < 2^96/sqrt(np[1]) */
-
+  /* now 2^64 + x is an approximation of 2^96/sqrt(np[1]+1),
+     with 2^64 + x <= 2^96/sqrt(np[1]+1) */
+  
+ compute_r1:
   umul_ppmm (r1, l, np[1], x);
   r1 += np[1];
 
@@ -132,11 +148,13 @@ mpn_sqrtrem4_approx (mpfr_limb_ptr rp, mpfr_limb_srcptr np)
     r1 = MPFR_LIMB_HIGHBIT;
 
   umul_ppmm (h, l, r1, r1);
+  MPFR_ASSERTD(h < np[1] || (h == np[1] && l <= np[0]));
   sub_ddmmss (h, l, np[1], np[0], h, l);
+  /* divide by 2 */
   l = (h << 63) | (l >> 1);
   h = h >> 1;
 
-  /* now add (2^64+x) * (h*2^64+l) / 2^64 to r0 */
+  /* now add (2^64+x) * (h*2^64+l) / 2^64 to [r1*2^64, 0] */
 
   umul_ppmm (r0, t, x, l); /* x * l */
   r0 += l;
@@ -147,16 +165,10 @@ mpn_sqrtrem4_approx (mpfr_limb_ptr rp, mpfr_limb_srcptr np)
       r1 += (r0 < x); /* add x */
     }
 
-  if (r1 & MPFR_LIMB_HIGHBIT)
-    {
-      rp[0] = r0;
-      rp[1] = r1;
-    }
-  else /* overflow occurred in r1 */
-    {
-      rp[0] = ~MPFR_LIMB_ZERO;
-      rp[1] = ~MPFR_LIMB_ZERO;
-    }
+  MPFR_ASSERTD(r1 & MPFR_LIMB_HIGHBIT);
+
+  rp[0] = r0;
+  rp[1] = r1;
 }
 
 /* Special code for prec(r), prec(u) < GMP_NUMB_BITS. We cannot have
@@ -171,7 +183,7 @@ mpfr_sqrt1 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
   mp_limb_t u0, r0, rb, sb, mask = MPFR_LIMB_MASK(sh);
   mpfr_limb_ptr rp = MPFR_MANT(r);
 
-  MPFR_ASSERTD(GMP_NUMB_BITS == 64);
+  MPFR_STAT_STATIC_ASSERT (GMP_NUMB_BITS == 64);
 
   /* first make the exponent even */
   u0 = MPFR_MANT(u)[0];
@@ -184,7 +196,7 @@ mpfr_sqrt1 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
   exp_r = exp_u / 2;
 
   /* then compute the integer square root of u0*2^GMP_NUMB_BITS */
-  r0 = mpn_sqrtrem2_approx (u0);
+  r0 = mpfr_sqrt1_approx (u0);
   sb = 1; /* when we can round correctly with the approximation, the sticky bit
              is non-zero */
 
@@ -233,7 +245,7 @@ mpfr_sqrt1 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
           if (exp_r < __gmpfr_emin - 1 || (rp[0] == MPFR_LIMB_HIGHBIT && sb == 0))
             rnd_mode = MPFR_RNDZ;
         }
-      else if (!MPFR_IS_LIKE_RNDZ(rnd_mode, 0))
+      else if (MPFR_IS_LIKE_RNDA(rnd_mode, 0))
         {
           if ((exp_r == __gmpfr_emin - 1) && (rp[0] == ~mask) && (rb | sb))
             goto rounding; /* no underflow */
@@ -292,7 +304,7 @@ mpfr_sqrt2 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
   mp_limb_t np[4], rb, sb, mask;
   mpfr_prec_t exp_u = MPFR_EXP(u), exp_r, sh = 2 * GMP_NUMB_BITS - p;
 
-  MPFR_ASSERTD(GMP_NUMB_BITS == 64);
+  MPFR_STAT_STATIC_ASSERT (GMP_NUMB_BITS == 64);
 
   if (((unsigned int) exp_u & 1) != 0)
     {
@@ -311,9 +323,11 @@ mpfr_sqrt2 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
 
   mask = MPFR_LIMB_MASK(sh);
 
-  mpn_sqrtrem4_approx (rp, np + 2);
-  /* the error is less than 43 ulps on rp[0] */
-  if (((rp[0] + 42) & (mask >> 1)) > 84)
+  mpfr_sqrt2_approx (rp, np + 2);
+  /* the error is at most 27 ulps on rp[0], with {rp, 2} smaller or equal
+     to the exact square root, thus we can round correctly except when the
+     number formed by the last sh-1 bits of rp[0] is 0, -1, -2, ..., -27. */
+  if (((rp[0] + 27) & (mask >> 1)) > 27)
     sb = 1;
   else
     {
@@ -366,7 +380,7 @@ mpfr_sqrt2 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
                                            rp[0] == MPFR_LIMB_ZERO && sb == 0))
             rnd_mode = MPFR_RNDZ;
         }
-      else if (!MPFR_IS_LIKE_RNDZ(rnd_mode, 0))
+      else if (MPFR_IS_LIKE_RNDA(rnd_mode, 0))
         {
           if (exp_r == __gmpfr_emin - 1 && (rp[1] == MPFR_LIMB_MAX &&
                                             rp[0] == ~mask) && (rb | sb))
@@ -478,7 +492,6 @@ mpfr_sqrt (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
     }
   MPFR_SET_POS(r);
 
-  /* See the note at the beginning of this file about __GNUC__. */
 #if !defined(MPFR_GENERIC_ABI) && GMP_NUMB_BITS == 64
   if (MPFR_GET_PREC (r) < GMP_NUMB_BITS && MPFR_GET_PREC (u) < GMP_NUMB_BITS)
     return mpfr_sqrt1 (r, u, rnd_mode);

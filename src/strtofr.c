@@ -1,6 +1,6 @@
 /* mpfr_strtofr -- set a floating-point number from a string
 
-Copyright 2004-2016 Free Software Foundation, Inc.
+Copyright 2004-2017 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -532,7 +532,7 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
           if (real_ysize != ysize)
             {
               if (count == 0)
-                MPN_COPY_DECR (y + ysize - real_ysize, y, real_ysize);
+                mpn_copyd (y + ysize - real_ysize, y, real_ysize);
               MPN_ZERO (y, ysize - real_ysize);
             }
           /* for each bit shift decrease exponent of y */

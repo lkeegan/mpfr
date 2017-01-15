@@ -1,6 +1,6 @@
 /* Uniform Interface to GMP.
 
-Copyright 2004-2016 Free Software Foundation, Inc.
+Copyright 2004-2017 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -126,10 +126,6 @@ void *alloca (size_t);
 
 /* MP_LIMB macros */
 #define MPN_ZERO(dst, n) memset((dst), 0, (n)*MPFR_BYTES_PER_MP_LIMB)
-/* TODO: add MPFR_ASSERTD assertions for MPN_COPY_DECR and MPN_COPY_INCR,
-   even though memmove works with any overlapping. Useful to detect bugs! */
-#define MPN_COPY_DECR(dst,src,n) memmove((dst),(src),(n)*MPFR_BYTES_PER_MP_LIMB)
-#define MPN_COPY_INCR(dst,src,n) memmove((dst),(src),(n)*MPFR_BYTES_PER_MP_LIMB)
 #define MPN_COPY(dst,src,n) \
   do                                                                  \
     {                                                                 \
@@ -454,15 +450,15 @@ typedef struct {mp_limb_t inv32;} mpfr_pi1_t;
   } while (0)
 #endif
 
-/* mpn_copyd is a new exported function in GMP 5.
-   It existed in GMP 4 in the internal header, but still may not be
-   defined if HAVE_NATIVE_mpn_copyd is not defined */
+/* mpn_copyi and mpn_copyd are new exported functions in GMP 5.
+   Defining them to memmove works in overlap cases. */
 #if !__MPFR_GMP(5,0,0)
+# undef  mpn_copyi
+# define mpn_copyi memmove
 # undef  mpn_copyd
-# define mpn_copyd MPN_COPY
+# define mpn_copyd memmove
 #endif
 
-#if defined(WANT_GMP_INTERNALS) && defined(HAVE___GMPN_INVERT_LIMB)
 /* The following macro is copied from GMP-6.1.1, file gmp-impl.h,
    macro udiv_qrnnd_preinv.
    It computes q and r such that nh*2^GMP_NUMB_BITS + nl = q*d + r,
@@ -496,6 +492,20 @@ typedef struct {mp_limb_t inv32;} mpfr_pi1_t;
     (q) = _qh;                                                          \
   } while (0)
 
+#if GMP_NUMB_BITS == 64
+/* specialized version for nl = 0, with di computed inside */
+#define __udiv_qrnd_preinv(q, r, nh, d)                                 \
+  do {                                                                  \
+    mp_limb_t _di;                                                      \
+                                                                        \
+    MPFR_ASSERTD ((d) != 0);                                            \
+    MPFR_ASSERTD ((nh) < (d));                                          \
+    MPFR_ASSERTD ((d) & MPFR_LIMB_HIGHBIT);                             \
+                                                                        \
+    __gmpfr_invert_limb (_di, d);                                       \
+    __udiv_qrnnd_preinv (q, r, nh, 0, d, _di);                          \
+  } while (0)
+#elif defined(WANT_GMP_INTERNALS) && defined(HAVE___GMPN_INVERT_LIMB)
 /* specialized version for nl = 0, with di computed inside */
 #define __udiv_qrnd_preinv(q, r, nh, d)                                 \
   do {                                                                  \

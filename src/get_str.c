@@ -1,6 +1,6 @@
 /* mpfr_get_str -- output a floating-point number to a string
 
-Copyright 1999-2016 Free Software Foundation, Inc.
+Copyright 1999-2017 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -2220,7 +2220,7 @@ mpfr_ceil_mul (mpfr_exp_t e, int beta, int i)
   mp_limb_t tmpmant[MPFR_EXP_LIMB_SIZE];
 
   p = &__gmpfr_l2b[beta-2][i];
-  MPFR_TMP_INIT1(tmpmant, t, sizeof (mpfr_exp_t) * CHAR_BIT);
+  MPFR_TMP_INIT1(tmpmant, t, sizeof (mpfr_exp_t) * CHAR_BIT - 1);
   mpfr_set_exp_t (t, e, MPFR_RNDU);
   mpfr_mul (t, t, p, MPFR_RNDU);
   r = mpfr_get_exp_t (t, MPFR_RNDU);

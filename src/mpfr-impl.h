@@ -1,6 +1,6 @@
 /* Utilities for MPFR developers, not exported.
 
-Copyright 1999-2016 Free Software Foundation, Inc.
+Copyright 1999-2017 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -1022,9 +1022,12 @@ typedef uintmax_t mpfr_ueexp_t;
   (((rnd) + (test)) == MPFR_RNDD)
 
 /* We want to test if rnd = Zero, or Away.
-   'test' is 1 if negative, and 0 if positive. */
-#define MPFR_IS_LIKE_RNDZ(rnd, test) \
-  ((rnd) == MPFR_RNDZ || MPFR_IS_RNDUTEST_OR_RNDDNOTTEST (rnd, test))
+   'neg' is 1 if negative, and 0 if positive. */
+#define MPFR_IS_LIKE_RNDZ(rnd, neg) \
+  ((rnd) == MPFR_RNDZ || MPFR_IS_RNDUTEST_OR_RNDDNOTTEST (rnd, neg))
+
+#define MPFR_IS_LIKE_RNDA(rnd, neg) \
+  ((rnd) == MPFR_RNDA || MPFR_IS_RNDUTEST_OR_RNDDNOTTEST (rnd, (neg) == 0))
 
 #define MPFR_IS_LIKE_RNDU(rnd, sign)                    \
   (((rnd) == MPFR_RNDU) ||                              \
@@ -1441,6 +1444,9 @@ do {                                                                  \
 
 /* Size of an array, as a constant expression. */
 #define numberof_const(x)  (sizeof (x) / sizeof ((x)[0]))
+
+/* Addition with carry (detected by GCC and other good compilers). */
+#define ADD_LIMB(u,v,c) ((u) += (v), (c) = (u) < (v))
 
 
 /******************************************************
@@ -2096,10 +2102,6 @@ __MPFR_DECLSPEC int mpfr_add1sp (mpfr_ptr, mpfr_srcptr,
                                  mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_sub1sp (mpfr_ptr, mpfr_srcptr,
                                  mpfr_srcptr, mpfr_rnd_t);
-__MPFR_DECLSPEC int mpfr_mul_1 (mpfr_ptr, mpfr_srcptr, mpfr_srcptr, mpfr_rnd_t,
-                                mpfr_prec_t);
-__MPFR_DECLSPEC int mpfr_mul_2 (mpfr_ptr, mpfr_srcptr, mpfr_srcptr, mpfr_rnd_t,
-                                mpfr_prec_t);
 __MPFR_DECLSPEC int mpfr_can_round_raw (const mp_limb_t *,
              mp_size_t, int, mpfr_exp_t, mpfr_rnd_t, mpfr_rnd_t, mpfr_prec_t);
 

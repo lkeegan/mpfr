@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 4.0.0-dev
-@set UPDATED-MONTH December 2016
+@set UPDATED-MONTH January 2017
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -19,7 +19,7 @@
 This manual documents how to install and use the Multiple Precision
 Floating-Point Reliable Library, version @value{VERSION}.
 
-Copyright 1991, 1993-2016 Free Software Foundation, Inc.
+Copyright 1991, 1993-2017 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document under
 the terms of the GNU Free Documentation License, Version 1.2 or any later
@@ -2901,14 +2901,14 @@ if @var{rnd} is an invalid rounding mode.
 @deftypefn Macro int mpfr_round_nearest_away (int (@var{foo})(mpfr_t, type1_t, ..., mpfr_rnd_t), mpfr_t @var{rop}, type1_t @var{op}, ...)
 Given a function @var{foo} and one or more values @var{op} (which may be
 a @code{mpfr_t}, a @code{long}, a @code{double}, etc.), put in @var{rop}
-the round-to-nearest-away rounding of @var{foo}(@var{op},...).
+the round-to-nearest-away rounding of @code{@var{foo}(@var{op},...)}.
 This rounding is defined in the same way as round-to-nearest-even,
 except in case of tie, where the value away from zero is returned.
 The function @var{foo} takes as input, from second to
 penultimate argument(s), the argument list given after @var{rop},
 a rounding mode as final argument,
-puts in its first argument the value @var{foo}(@var{op},...) rounded according
-to this rounding mode, and returns the corresponding ternary value
+puts in its first argument the value @code{@var{foo}(@var{op},...)} rounded
+according to this rounding mode, and returns the corresponding ternary value
 (which is expected to be correct, otherwise @code{mpfr_round_nearest_away}
 will not work as desired).
 Due to implementation constraints, this function must not be called when

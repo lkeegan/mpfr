@@ -1,6 +1,6 @@
 /* Sum -- efficiently sum a list of floating-point numbers
 
-Copyright 2014-2016 Free Software Foundation, Inc.
+Copyright 2014-2017 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -473,7 +473,7 @@ sum_raw (mp_limb_t *wp, mp_size_t ws, mpfr_prec_t wq, mpfr_ptr *const x,
                 if (MPFR_LIKELY (shiftc != 0))
                   mpn_lshift (wp + shifts, wp, ws - shifts, shiftc);
                 else
-                  MPN_COPY_DECR (wp + shifts, wp, ws - shifts);
+                  mpn_copyd (wp + shifts, wp, ws - shifts);
                 MPN_ZERO (wp, shifts);
                 /* Compute minexp = minexp - shiftq safely. */
                 SAFE_SUB (minexp, minexp, shiftq);
