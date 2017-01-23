@@ -197,28 +197,20 @@ mpfr_sub1sp1 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
       mask = MPFR_LIMB_MASK(sh);
       if (d < GMP_NUMB_BITS)
         {
-          /* Temporary MPFR_FULLSUB test for testing. In the alternate code,
-             instead of a test on sb, one just does a 2-limb subtraction.
-             GCC and Clang recognize the second line as a subtraction with
-             borrow. */
-#ifndef MPFR_FULLSUB
-          sb = cp[0] << (GMP_NUMB_BITS - d); /* neglected part of c */
-          a0 = bp[0] - (cp[0] >> d);
-          if (sb)
-            {
-              a0 --;
-              /* a0 cannot become zero here since:
-                 a) if d >= 2, then a0 >= 2^(w-1) - (2^(w-2)-1) with
-                    w = GMP_NUMB_BITS, thus a0 - 1 >= 2^(w-2),
-                 b) if d = 1, then since p < GMP_NUMB_BITS we have sb=0.
-              */
-              MPFR_ASSERTD(a0 > 0);
-              sb = -sb;
-            }
-#else
           sb = - (cp[0] << (GMP_NUMB_BITS - d)); /* neglected part of -c */
-          a0 = bp[0] - (cp[0] >> d) - (sb != 0);
-#endif
+          /* Note that "a0 = bp[0] - (cp[0] >> d) - (sb != 0);" is faster
+             on some other machines and has no immediate dependencies for
+             the first subtraction. In the future, make sure that the code
+             is recognized as a *single* subtraction with borrow and/or use
+             a builtin when available (currently provided by Clang, but not
+             by GCC); create a new macro for that. See the TODO later. */
+          a0 = bp[0] - (sb != 0) - (cp[0] >> d);
+          /* a0 cannot be zero here since:
+             a) if d >= 2, then a0 >= 2^(w-1) - (2^(w-2)-1) with
+                w = GMP_NUMB_BITS, thus a0 - 1 >= 2^(w-2),
+             b) if d = 1, then since p < GMP_NUMB_BITS we have sb=0.
+          */
+          MPFR_ASSERTD(a0 > 0);
           count_leading_zeros (cnt, a0);
           if (cnt)
             a0 = (a0 << cnt) | (sb >> (GMP_NUMB_BITS - cnt));
@@ -393,6 +385,13 @@ mpfr_sub1sp2 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
                http://clang.llvm.org/docs/LanguageExtensions.html#multiprecision-arithmetic-builtins
              but the generated code may not be good:
                https://llvm.org/bugs/show_bug.cgi?id=20748
+             With the current source code, Clang generates on x86_64:
+               1. sub %rsi,%rbx for the first subtraction in a1;
+               2. sub %rdi,%rax for the subtraction in a0;
+               3. sbb $0x0,%rbx for the second subtraction in a1, i.e. just
+                  subtracting the borrow out from (2).
+             So, Clang recognizes the borrow, but doesn't merge (1) and (3).
+             For GCC: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=79173
           */
           a0 = bp[0] - t;
           a1 = bp[1] - (cp[1] >> d) - (bp[0] < t);
