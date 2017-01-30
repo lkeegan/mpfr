@@ -28,9 +28,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "invsqrt_limb.h"
 
 /* Put in rp[1]*2^64+rp[0] an approximation of floor(sqrt(2^128*n)),
-   with 2^126 <= n := np[1]*2^64 + np[0] < 2^128.
-   The error on {rp, 2} is at most 27 ulps, with {rp, 2} <= floor(sqrt(2^128*n)).
-*/
+   with 2^126 <= n := np[1]*2^64 + np[0] < 2^128. We have:
+   {rp, 2} - 4 <= floor(sqrt(2^128*n)) <= {rp, 2} + 26. */
 static void
 mpfr_sqrt2_approx (mpfr_limb_ptr rp, mpfr_limb_srcptr np)
 {
@@ -127,7 +126,7 @@ mpfr_sqrt1 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
           sb -= r0;
         }
       /* now we should have rb*2^64 + sb <= 2*r0 */
-      MPFR_ASSERTN(rb == 0 || (rb == 1 && sb <= 2 * r0));
+      MPFR_ASSERTD(rb == 0 || (rb == 1 && sb <= 2 * r0));
       sb = rb | sb;
     }
 
@@ -231,39 +230,52 @@ mpfr_sqrt2 (mpfr_ptr r, mpfr_srcptr u, mpfr_rnd_t rnd_mode)
   mask = MPFR_LIMB_MASK(sh);
 
   mpfr_sqrt2_approx (rp, np + 2);
-  /* the error is at most 27 ulps on rp[0], with {rp, 2} smaller or equal
-     to the exact square root, thus we can round correctly except when the
-     number formed by the last sh-1 bits of rp[0] is 0, -1, -2, ..., -27. */
-  if (((rp[0] + 27) & (mask >> 1)) > 27)
+  /* with n = np[3]*2^64+np[2], we have:
+     {rp, 2} - 4 <= floor(sqrt(2^128*n)) <= {rp, 2} + 26, thus we can round
+     correctly except when the number formed by the last sh-1 bits
+     of rp[0] is in the range [-26, 4]. */
+  if (MPFR_LIKELY(((rp[0] + 26) & (mask >> 1)) > 30))
     sb = 1;
   else
     {
-      mp_limb_t tp[4], cy;
+      mp_limb_t tp[4], h, l;
 
       np[0] = 0;
-      mpn_mul_n (tp, rp, rp, 2);
-      while (mpn_cmp (tp, np, 4) > 0) /* approximation is too large */
+      mpn_sqr (tp, rp, 2);
+      /* since we know s - 26 <= r <= s + 4 and 0 <= n^2 - s <= 2*s, we have
+         -8*s-16 <= n - r^2 <= 54*s - 676, thus it suffices to compute
+         n - r^2 modulo 2^192 */
+      mpn_sub_n (tp, np, tp, 3);
+      /* invariant: h:l = 2 * {rp, 2}, with upper bit implicit */
+      h = (rp[1] << 1) | (rp[0] >> (GMP_NUMB_BITS - 1));
+      l = rp[0] << 1;
+      while ((mp_limb_signed_t) tp[2] < 0) /* approximation was too large */
         {
-          mpn_sub_1 (rp, rp, 2, 1);
-          /* subtract 2*{rp,2}+1 to {tp,4} */
-          cy = mpn_submul_1 (tp, rp, 2, 2);
-          mpn_sub_1 (tp + 2, tp + 2, 2, cy);
-          mpn_sub_1 (tp, tp, 4, 1);
+          /* subtract 1 to {rp, 2}, thus 2 to h:l */
+          h -= (l <= MPFR_LIMB_ONE);
+          l -= 2;
+          /* add (1:h:l)+1 to {tp,3} */
+          tp[0] += l + 1;
+          tp[1] += h + (tp[0] < l);
+          /* necessarily rp[1] has its most significant bit set */
+          tp[2] += MPFR_LIMB_ONE + (tp[1] < h || (tp[1] == h && tp[0] < l));
         }
-      /* now {tp, 4} <= {np, 4} */
-      mpn_sub_n (tp, np, tp, 4);
+      /* now tp[2] >= 0 */
       /* now we want {tp, 4} <= 2 * {rp, 2}, which implies tp[2] <= 1 */
-      MPFR_ASSERTD(tp[3] == 0);
-      while (tp[2] > 1 ||
-             (tp[2] == 1 && tp[1] > ((rp[1] << 1) | (rp[0] >> 63))) ||
-             (tp[2] == 1 && tp[1] == ((rp[1] << 1) | (rp[0] >> 63)) &&
-              tp[0] > (rp[0] << 1)))
+      while (tp[2] > 1 || (tp[2] == 1 && tp[1] > h) ||
+             (tp[2] == 1 && tp[1] == h && tp[0] > l))
         {
-          /* subtract 2*{rp,2}+1 to {tp,3} (we know tp[3] = 0) */
-          tp[2] -= mpn_submul_1 (tp, rp, 2, 2);
-          mpn_sub_1 (tp, tp, 3, 1);
-          mpn_add_1 (rp, rp, 2, 1);
+          /* subtract (1:h:l)+1 from {tp,3} */
+          tp[2] -= MPFR_LIMB_ONE + (tp[1] < h || (tp[1] == h && tp[0] <= l));
+          tp[1] -= h + (tp[0] <= l);
+          tp[0] -= l + 1;
+          /* add 2 to  h:l */
+          l += 2;
+          h += (l <= MPFR_LIMB_ONE);
         }
+      /* restore {rp, 2} from h:l */
+      rp[1] = MPFR_LIMB_HIGHBIT | (h >> 1);
+      rp[0] = (h << (GMP_NUMB_BITS - 1)) | (l >> 1);
       sb = tp[2] | tp[0] | tp[1];
     }
 
