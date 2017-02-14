@@ -329,6 +329,8 @@ decimal (void)
   /* sign or space, decimal point, left justified */
   check_sprintf (" 1.8E+07   ", "%- #11.1RDE", x);
   check_sprintf (" 1.E+07    ", "%- #11.0RDE", x);
+  /* large requested precision */
+  check_sprintf ("18993474.61279296875", "%.2147483647Rg", x);
 
   /* negative numbers */
   mpfr_mul_si (x, x, -1, MPFR_RNDD);
@@ -1315,6 +1317,15 @@ bug21056 (void)
   r = mpfr_snprintf (0, 0, "%.*RDg", ndigits, x);
   /* since trailing zeros are removed with %g, we get less digits */
   MPFR_ASSERTN(r == 309);
+
+  ndigits = INT_MAX;
+  r = mpfr_snprintf (0, 0, "%.*RDg", ndigits, x);
+  /* since trailing zeros are removed with %g, we get less digits */
+  MPFR_ASSERTN(r == 309);
+
+  ndigits = INT_MAX - 1;
+  r = mpfr_snprintf (0, 0, "%#.*RDg", ndigits, x);
+  MPFR_ASSERTN(r == ndigits + 1);
 
   mpfr_clear (x);
 }

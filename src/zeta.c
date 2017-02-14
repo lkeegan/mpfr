@@ -336,6 +336,92 @@ compute_add (mpfr_srcptr s, mpfr_prec_t precz)
   return add;
 }
 
+/* return in z a lower bound (for rnd = RNDD) or upper bound (for rnd = RNDU)
+   of |zeta(s)|/2, using:
+   log(|zeta(s)|/2) = (s-1)*log(2*pi) + lngamma(1-s)
+   + log(abs(sin(Pi*s/2)) * zeta(1-s)).
+   Assumes s < 1/2 and s1 = 1-s exactly, thus s1 > 1/2.
+   y and p are temporary variables.
+   At input, p is pi rounded down.
+   The comments in the code are for rnd = RNDD. */
+static void
+mpfr_reflection_overflow (mpfr_t z, mpfr_t s1, const mpfr_t s, mpfr_t y,
+                          mpfr_t p, mpfr_rnd_t rnd)
+{
+  mpz_t sint;
+
+  MPFR_ASSERTD (rnd == MPFR_RNDD || rnd == MPFR_RNDU);
+
+  /* since log(abs(sin(Pi*s/2)) <= 0, we want to round zeta(1-s) upward
+     and log(abs(sin(Pi*s/2)) toward -infinity */
+  mpz_init (sint);
+  mpfr_get_z (sint, s, MPFR_RNDD); /* sint = floor(s) */
+  /* We first compute a lower bound of abs(sin(Pi*s/2)):
+     if -4k-2 < s < -4k, then -2k-1 < s/2 < -2k, thus sin(Pi*s/2) < 0;
+     if -4k < s < -4k+2, then -2k < s/2 < -2k+1, thus sin(Pi*s/2) > 0.
+     These cases are distinguished by testing bit 1 of floor(s) as if
+     represented in two's complement (or equivalently, as an unsigned
+     integer mod 4):
+     0: sint = {0,1} mod 4, thus -2k < s/2 < -2k+1 and sin(Pi*s/2) > 0;
+     1: sint = {2,3} mod 4, thus -2k-1 < s/2 < -2k and sin(Pi*s/2) < 0. */
+  /* FIXME: The following is not clear, and may be wrong, as s and sin(...)
+     can be positive or negative. Also, what matters is whether
+     abs(sin(Pi*s/2)) increases or decreases, so that the tests
+     should be based on sint mod 2, not sint mod 4. The sign of
+     sin(Pi*s/2) matters only when rounding mpfr_sin. */
+  if (mpz_tstbit (sint, 1) == 0) /* -2k < s/2 < -2k+1; sin(Pi*s/2) > 0 */
+    {
+      if (mpz_tstbit (sint, 0) == 0) /* sin(Pi*x) is increasing: round down */
+        {
+          mpfr_mul (y, p, s, rnd);
+          if (rnd == MPFR_RNDD)
+            mpfr_nextabove (p); /* we will need p rounded above afterwards */
+        }
+      else /* sin(Pi*x) is decreasing: round up */
+        {
+          if (rnd == MPFR_RNDD)
+            mpfr_nextabove (p);
+          mpfr_mul (y, p, s, rnd);
+        }
+    }
+  else /* -2k-1 < s/2 < -2k; sin(Pi*s/2) < 0 */
+    {
+      if (mpz_tstbit (sint, 0) == 0) /* sin(Pi*x) is decreasing: round down */
+        {
+          mpfr_mul (y, p, s, rnd);
+          if (rnd == MPFR_RNDD)
+            mpfr_nextabove (p); /* we will need p rounded above afterwards */
+        }
+      else /* sin(Pi*x) is increasing: round up */
+        {
+          if (rnd == MPFR_RNDD)
+            mpfr_nextabove (p);
+          mpfr_mul (y, p, s, MPFR_INVERT_RND(rnd));
+        }
+    }
+  mpfr_div_2ui (y, y, 1, rnd);
+  mpfr_sin (y, y, rnd); /* FIXME: rnd incorrect when sin(Pi*s/2) < 0. */
+  mpz_clear (sint);
+  mpfr_abs (y, y, rnd);
+  /* now y <= |sin(Pi*s/2)| */
+  mpfr_zeta_pos (z, s1, rnd);   /* zeta(1-s)  */
+  mpfr_mul (z, z, y, rnd);
+  /* now z <= |sin(Pi*s/2)|*zeta(1-s) */
+  mpfr_log (z, z, rnd);
+  /* now z <= log(|sin(Pi*s/2)|*zeta(1-s)) */
+  mpfr_lngamma (y, s1, rnd);
+  mpfr_add (z, z, y, rnd);
+  /* z <= lngamma(1-s) + log(|sin(Pi*s/2)|*zeta(1-s)) */
+  /* since s-1 < 0, we want to round log(2*pi) upwards */
+  mpfr_mul_2ui (y, p, 1, MPFR_INVERT_RND(rnd));
+  mpfr_log (y, y, MPFR_INVERT_RND(rnd));
+  mpfr_mul (y, y, s1, MPFR_INVERT_RND(rnd));
+  mpfr_sub (z, z, y, rnd);
+  mpfr_exp (z, z, rnd);
+  if (rnd == MPFR_RNDD)
+    mpfr_nextbelow (p); /* restore original p */
+}
+
 int
 mpfr_zeta (mpfr_t z, mpfr_srcptr s, mpfr_rnd_t rnd_mode)
 {
@@ -492,9 +578,11 @@ mpfr_zeta (mpfr_t z, mpfr_srcptr s, mpfr_rnd_t rnd_mode)
       for (;;)
         {
           mpfr_exp_t ey;
+          mpfr_t z_up;
+
+          mpfr_const_pi (p, MPFR_RNDD); /* p is Pi */
 
           mpfr_sub (s1, __gmpfr_one, s, MPFR_RNDN); /* s1 = 1-s */
-          mpfr_zeta_pos (z_pre, s1, MPFR_RNDN);   /* zeta(1-s)  */
           mpfr_gamma (y, s1, MPFR_RNDN);          /* gamma(1-s) */
           if (MPFR_IS_INF (y)) /* zeta(s) < 0 for -4k-2 < s < -4k,
                                   zeta(s) > 0 for -4k < s < -4k+2 */
@@ -515,14 +603,51 @@ mpfr_zeta (mpfr_t z, mpfr_srcptr s, mpfr_rnd_t rnd_mode)
                  4. Correct the sign from the sign of sin(...).
                  5. Round then multiply by 2. Here, an overflow in either
                  operation means a real overflow. */
-              mpfr_div_2ui (s1, s, 2, MPFR_RNDN); /* s/4, exact */
-              mpfr_frac (s1, s1, MPFR_RNDN); /* exact, -1 < s1 < 0 */
-              overflow = (mpfr_cmp_si_2exp (s1, -1, -1) > 0) ? -1 : 1;
-              break;
+              mpfr_reflection_overflow (z_pre, s1, s, y, p, MPFR_RNDD);
+              /* z_pre is a lower bound of |zeta(s)|/2, thus if it overflows,
+                 or has exponent emax, then |zeta(s)| overflows too. */
+              if (MPFR_IS_INF (z_pre) || MPFR_GET_EXP(z_pre) == __gmpfr_emax)
+                { /* determine the sign of overflow */
+                  mpfr_div_2ui (s1, s, 2, MPFR_RNDN); /* s/4, exact */
+                  mpfr_frac (s1, s1, MPFR_RNDN); /* exact, -1 < s1 < 0 */
+                  overflow = (mpfr_cmp_si_2exp (s1, -1, -1) > 0) ? -1 : 1;
+                  break;
+                }
+              else /* EXP(z_pre) < __gmpfr_emax */
+                {
+                  int ok = 0;
+                  mpfr_t z_down;
+                  mpfr_init2 (z_up, mpfr_get_prec (z_pre));
+                  mpfr_reflection_overflow (z_up, s1, s, y, p, MPFR_RNDU);
+                  /* if the lower approximation z_pre does not overflow, but
+                     z_up does, we need more precision */
+                  if (MPFR_IS_INF (z_up) || MPFR_GET_EXP(z_up) == __gmpfr_emax)
+                    goto next_loop;
+                  /* check if z_pre and z_up round to the same number */
+                  mpfr_init2 (z_down, precz);
+                  mpfr_set (z_down, z_pre, rnd_mode);
+                  /* Note: it might be that EXP(z_down) = emax here, in that
+                     case we will have overflow below when we multiply by 2 */
+                  mpfr_prec_round (z_up, precz, rnd_mode);
+                  ok = mpfr_cmp (z_down, z_up) == 0;
+                  mpfr_clear (z_up);
+                  mpfr_clear (z_down);
+                  if (ok)
+                    {
+                      /* get correct sign and multiply by 2 */
+                      mpfr_div_2ui (s1, s, 2, MPFR_RNDN); /* s/4, exact */
+                      mpfr_frac (s1, s1, MPFR_RNDN); /* exact, -1 < s1 < 0 */
+                      if (mpfr_cmp_si_2exp (s1, -1, -1) > 0)
+                        mpfr_neg (z_pre, z_pre, rnd_mode);
+                      mpfr_mul_2ui (z_pre, z_pre, 1, rnd_mode);
+                      break;
+                    }
+                  else
+                    goto next_loop;
+                }
             }
+          mpfr_zeta_pos (z_pre, s1, MPFR_RNDN);   /* zeta(1-s)  */
           mpfr_mul (z_pre, z_pre, y, MPFR_RNDN);  /* gamma(1-s)*zeta(1-s) */
-
-          mpfr_const_pi (p, MPFR_RNDD); /* p is Pi */
 
           /* multiply z_pre by 2^s*Pi^(s-1) where p=Pi, s1=1-s */
           mpfr_mul_2ui (y, p, 1, MPFR_RNDN);      /* 2*Pi */
@@ -559,6 +684,7 @@ mpfr_zeta (mpfr_t z, mpfr_srcptr s, mpfr_rnd_t rnd_mode)
                                            rnd_mode)))
             break;
 
+        next_loop:
           MPFR_ZIV_NEXT (loop, prec1);
           MPFR_GROUP_REPREC_4 (group, prec1, z_pre, s1, y, p);
         }

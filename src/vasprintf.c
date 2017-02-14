@@ -999,7 +999,8 @@ regular_ab (struct number_parts *np, mpfr_srcptr p,
          - if no given precision, let mpfr_get_str determine it;
          - if a non-zero precision is specified, then one digit before decimal
          point plus SPEC.PREC after it. */
-      nsd = spec.prec < 0 ? 0 : spec.prec + np->ip_size;
+      MPFR_ASSERTD (np->ip_size == 1); /* thus no integer overflow below */
+      nsd = spec.prec < 0 ? 0 : (size_t) spec.prec + np->ip_size;
       str = mpfr_get_str_aux (&exp, base, nsd, p, spec);
       register_string (np->sl, str);
       np->ip_ptr = MPFR_IS_NEG (p) ? ++str : str;  /* skip sign if any */
@@ -1204,7 +1205,8 @@ regular_eg (struct number_parts *np, mpfr_srcptr p,
          plus SPEC.PREC after it.
          We use the fact here that mpfr_get_str allows us to ask for only one
          significant digit when the base is not a power of 2. */
-      nsd = (spec.prec < 0) ? 0 : spec.prec + np->ip_size;
+      MPFR_ASSERTD (np->ip_size == 1); /* thus no integer overflow below */
+      nsd = spec.prec < 0 ? 0 : (size_t) spec.prec + np->ip_size;
       str = mpfr_get_str_aux (&exp, 10, nsd, p, spec);
       register_string (np->sl, str);
     }
@@ -1418,15 +1420,25 @@ regular_fg (struct number_parts *np, mpfr_srcptr p,
                   np->fp_leading_zeros = spec.prec;
                 }
             }
-          else
+          else  /* exp >= -spec.prec */
             /* the most significant digits are the last
                spec.prec + exp + 1 digits in fractional part */
             {
               char *ptr;
               size_t str_len;
+
+              MPFR_ASSERTD (exp >= -spec.prec);
               if (dec_info == NULL)
                 {
-                  size_t nsd = spec.prec + exp + 1;
+                  size_t nsd;
+
+                  /* Consequences of earlier assertions (in r11307).
+                     They guarantee that the integers are representable
+                     (i.e., no integer overflow), assuming size_t >= int
+                     as usual. */
+                  MPFR_ASSERTD (exp <= -1);
+                  MPFR_ASSERTD (spec.prec + (exp + 1) >= 0);
+                  nsd = spec.prec + (exp + 1);
                   /* WARNING: nsd may equal 1, but here we use the
                      fact that mpfr_get_str can return one digit with
                      base ten (undocumented feature, see comments in
@@ -1751,6 +1763,15 @@ partition_number (struct number_parts *np, mpfr_srcptr p,
           threshold = (spec.prec < 0) ? 6 : (spec.prec == 0) ? 1 : spec.prec;
           /* here we cannot call mpfr_get_str_aux since we need the full
              significand in dec_info.str */
+          /* FIXME: It may happen that in practical cases, the number of
+             output digits remains limited (this is the case when the
+             input number has a limited precision and a limited exponent
+             in absolute value, e.g. for numbers representable in the
+             IEEE 754-2008 basic formats), even though the requested
+             precision is huge. We should be able to determine a bound
+             on the number of digits and use it for mpfr_get_str. Even
+             when there is plenty of memory, this should also greatly
+             improve the performance. */
           dec_info.str = mpfr_get_str (NULL, &dec_info.exp, 10, threshold,
                                        p, spec.rnd_mode);
           register_string (np->sl, dec_info.str);
