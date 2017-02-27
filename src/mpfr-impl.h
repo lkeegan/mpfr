@@ -2104,6 +2104,8 @@ __MPFR_DECLSPEC int mpfr_sub1sp (mpfr_ptr, mpfr_srcptr, mpfr_srcptr,
 __MPFR_DECLSPEC int mpfr_can_round_raw (const mp_limb_t *,
              mp_size_t, int, mpfr_exp_t, mpfr_rnd_t, mpfr_rnd_t, mpfr_prec_t);
 
+__MPFR_DECLSPEC int mpfr_set_1_2 (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t, int);
+
 __MPFR_DECLSPEC int mpfr_cmp2 (mpfr_srcptr, mpfr_srcptr, mpfr_prec_t *);
 
 __MPFR_DECLSPEC long          __gmpfr_ceil_log2     (double);
@@ -2207,6 +2209,8 @@ __MPFR_DECLSPEC void mpfr_gamma_one_and_two_third (mpfr_ptr, mpfr_ptr,
 __MPFR_DECLSPEC void mpfr_mpz_init (mpz_ptr);
 __MPFR_DECLSPEC void mpfr_mpz_init2 (mpz_t, mp_bitcnt_t);
 __MPFR_DECLSPEC void mpfr_mpz_clear (mpz_ptr);
+
+__MPFR_DECLSPEC int mpfr_odd_p (mpfr_srcptr);
 
 #ifdef _MPFR_H_HAVE_VA_LIST
 /* Declared only if <stdarg.h> has been included. */

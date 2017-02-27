@@ -225,6 +225,7 @@
     <ClCompile Include="..\..\src\atan2.c" />
     <ClCompile Include="..\..\src\atanh.c" />
     <ClCompile Include="..\..\src\bernoulli.c" />
+    <ClCompile Include="..\..\src\beta.c" />
     <ClCompile Include="..\..\src\buildopt.c" />
     <ClCompile Include="..\..\src\cache.c" />
     <ClCompile Include="..\..\src\cbrt.c" />
@@ -361,6 +362,7 @@
     <ClCompile Include="..\..\src\neg.c" />
     <ClCompile Include="..\..\src\next.c" />
     <ClCompile Include="..\..\src\nrandom.c" />
+    <ClCompile Include="..\..\src\odd_p.c" />
     <ClCompile Include="..\..\src\out_str.c" />
     <ClCompile Include="..\..\src\pow.c" />
     <ClCompile Include="..\..\src\pow_si.c" />
