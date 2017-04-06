@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 4.0.0-dev
-@set UPDATED-MONTH March 2017
+@set UPDATED-MONTH April 2017
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -1022,8 +1022,10 @@ As a consequence, if two variables are used to store
 only a few significant bits, and their product is stored in a variable with large
 precision, then MPFR will still compute the result with full precision.
 
-The value of the standard C macro @code{errno} may be set to non-zero by
-any MPFR function or macro, whether or not there is an error.
+The value of the standard C macro @code{errno} may be set to non-zero after
+calling any MPFR function or macro, whether or not there is an error. Except
+when documented, MPFR will not set @code{errno}, but functions called by the
+MPFR code (libc functions, memory allocator, etc.) may do so.
 
 @menu
 * Initialization Functions::
@@ -2584,8 +2586,9 @@ specifiers @samp{f}, @samp{F}, @samp{g}, and @samp{G} is 6.
 For all the following functions, if the number of characters which ought to be
 written appears to exceed the maximum limit for an @code{int}, nothing is
 written in the stream (resp.@: to @code{stdout}, to @var{buf}, to @var{str}),
-the function returns @minus{}1, sets the @emph{erange} flag, and (in
-POSIX system only) @code{errno} is set to @code{EOVERFLOW}.
+the function returns @minus{}1, sets the @emph{erange} flag, and @code{errno}
+is set to @code{EOVERFLOW} if the @code{EOVERFLOW} macro is defined (such as
+in POSIX systems).
 
 @deftypefun int mpfr_fprintf (FILE *@var{stream}, const char *@var{template}, @dots{})
 @deftypefunx int mpfr_vfprintf (FILE *@var{stream}, const char *@var{template}, va_list @var{ap})
