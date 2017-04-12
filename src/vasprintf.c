@@ -21,17 +21,17 @@ along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
 http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
-  /* If the number of output characters is larger than INT_MAX, the
-     ISO C99 standard is silent, but POSIX says concerning the snprintf()
-     function:
-     "[EOVERFLOW] The value of n is greater than {INT_MAX} or the
-     number of bytes needed to hold the output excluding the
-     terminating null is greater than {INT_MAX}." See:
-     http://www.opengroup.org/onlinepubs/009695399/functions/fprintf.html
-     But it doesn't say anything concerning the other printf-like functions.
-     A defect report has been submitted to austin-review-l (item 2532).
-     So, for the time being, we return a negative value and set the erange
-     flag, and set errno to EOVERFLOW in POSIX system. */
+/* If the number of output characters is larger than INT_MAX, the
+   ISO C99 standard is silent, but POSIX says concerning the snprintf()
+   function:
+   "[EOVERFLOW] The value of n is greater than {INT_MAX} or the
+   number of bytes needed to hold the output excluding the
+   terminating null is greater than {INT_MAX}." See:
+   http://www.opengroup.org/onlinepubs/009695399/functions/fprintf.html
+   But it doesn't say anything concerning the other printf-like functions.
+   A defect report has been submitted to austin-review-l (item 2532).
+   So, for the time being, we return a negative value and set the erange
+   flag, and set errno to EOVERFLOW in POSIX system. */
 
 /* Note: Due to limitations from the C standard and GMP, if
    size_t < unsigned int (which is allowed by the C standard but unlikely
@@ -176,7 +176,7 @@ struct printf_spec
 
   int width;                    /* Width */
   int prec;                     /* Precision */
-  int size;                     /* Wanted size (0 iff snprintf with size=0) */
+  size_t size;                  /* Wanted size (0 iff snprintf with size=0) */
 
   enum arg_t arg_type;          /* Type of argument */
   mpfr_rnd_t rnd_mode;          /* Rounding mode */
@@ -544,7 +544,7 @@ buffer_init (struct string_buffer *b, size_t s)
   b->len = 0;
 }
 
-/* Increase the len field of the buffer. Return non-zero if overflow. */
+/* Increase the len field of the buffer. Return non-zero iff overflow. */
 static int
 buffer_incr_len (struct string_buffer *b, size_t len)
 {
@@ -552,7 +552,10 @@ buffer_incr_len (struct string_buffer *b, size_t len)
     return 1;
   else
     {
-      size_t newlen = b->len + len;
+      size_t newlen = (size_t) b->len + len;
+
+      /* size_t is unsigned, thus the above is valid, but one has
+         newlen < len in case of overflow. */
 
       if (MPFR_UNLIKELY (newlen < len || newlen > INT_MAX))
         return 1;
