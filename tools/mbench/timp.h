@@ -53,6 +53,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #if !defined(corei7) && !defined(__core_avx2__)
 
+/* the following implements Section 3.2.3 of the article cited below */
 #define timp_rdtsc_before(time)           \
         __asm__ __volatile__(             \
                 ".align 64\n\t"           \
@@ -81,7 +82,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
                 : "eax", "ebx", "ecx", "edx", "memory")
 #else
 
-/* corei7 and corei5 offer newer instruction rdtscp, which should be better */
+/* corei7 and corei5 offer newer instruction rdtscp, which should be better,
+   see https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/ia-32-ia-64-benchmark-code-execution-paper.pdf */
 #define timp_rdtsc_before(time)           \
         __asm__ __volatile__(             \
                 ".align 64\n\t"           \
@@ -145,10 +147,10 @@ static unsigned long long int timp_overhead = 0;
 #define TIMP_NUM_TRY  4327
 #define TIMP_MAX_WAIT_FOR_MEASURE 10000000ULL
 
-#define TIMP_MEASURE(CODE)                                            \
+#define TIMP_MEASURE_AUX(CODE)                                        \
   ({                                                                  \
   volatile unsigned long long int num_cycle, num_cycle2;              \
-  unsigned long long min_num_cycle, start_num_cycle;                  \
+  unsigned long long int min_num_cycle, start_num_cycle;              \
   int _i;                                                             \
   timp_rdtsc_before (start_num_cycle);                                \
   min_num_cycle = 0xFFFFFFFFFFFFFFFFLL;                               \
@@ -156,15 +158,27 @@ static unsigned long long int timp_overhead = 0;
     timp_rdtsc_before(num_cycle);                                     \
     CODE;                                                             \
     timp_rdtsc_after(num_cycle2);                                     \
-    num_cycle =  num_cycle2 - num_cycle;                              \
+    num_cycle = num_cycle2 < num_cycle ? 0 /* shouldn't happen */     \
+      : num_cycle2 - num_cycle;                                       \
     if (num_cycle < min_num_cycle)                                    \
       min_num_cycle = num_cycle;                                      \
     if (num_cycle2 - start_num_cycle > TIMP_MAX_WAIT_FOR_MEASURE)     \
       break;                                                          \
   }                                                                   \
-  min_num_cycle - timp_overhead; })
+  min_num_cycle < timp_overhead ? 0 : min_num_cycle - timp_overhead; })
+
+/* If the return value of TIMP_MEASURE_AUX() is 0, this probably means
+   that timp_overhead was too large and incorrect; this can occur just
+   after starting the process. In this case, TIMP_OVERHEAD() is called
+   again to recompute timp_overhead and the timing is redone. */
+#define TIMP_MEASURE(CODE)                                            \
+  ({                                                                  \
+    unsigned long long int _m;                                        \
+    while ((_m = TIMP_MEASURE_AUX(CODE)) == 0)                        \
+      TIMP_OVERHEAD();                                                \
+    _m; })
 
 #define TIMP_OVERHEAD()                                               \
-  (timp_overhead = 0, timp_overhead = TIMP_MEASURE((void) 0) )
+  (timp_overhead = 0, timp_overhead = TIMP_MEASURE_AUX((void) 0) )
 
 #endif /* __TIMP__H__ */
