@@ -1,9 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26507.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dll_mpfr_tests", "dll_mpfr_tests", "{FED52033-9973-40F8-9300-E2EBE7D76A09}"
+	ProjectSection(SolutionItems) = preProject
+		dll_mpfr_tests\tcan_round\tcan_round.vcxproj = dll_mpfr_tests\tcan_round\tcan_round.vcxproj
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dll_mpfr", "dll_mpfr\dll_mpfr.vcxproj", "{8A1EB575-B721-4891-B5BD-17CC45D0103C}"
 EndProject
