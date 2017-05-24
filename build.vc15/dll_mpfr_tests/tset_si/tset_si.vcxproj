@@ -22,6 +22,7 @@
     <ProjectGuid>{32C0D774-5C56-46A3-B14A-625691E3B626}</ProjectGuid>
     <RootNamespace>tset_si</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

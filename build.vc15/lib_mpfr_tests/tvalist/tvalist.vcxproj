@@ -22,6 +22,7 @@
     <RootNamespace>tvalist</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{73F41343-D63E-CF15-D549-DF9483F260B9}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

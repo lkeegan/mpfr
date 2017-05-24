@@ -22,6 +22,7 @@
     <ProjectGuid>{4C3B7646-88AC-4915-A92D-7C4096EDAE24}</ProjectGuid>
     <RootNamespace>tset_sj</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

@@ -22,6 +22,7 @@
     <ProjectGuid>{FE6341F9-E211-45EA-92B4-D5784A53447B}</ProjectGuid>
     <RootNamespace>tatanh</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

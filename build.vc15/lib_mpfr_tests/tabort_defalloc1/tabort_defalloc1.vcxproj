@@ -22,6 +22,7 @@
     <RootNamespace>tabort_defalloc1</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{AE57384E-BA9D-D3FB-9F69-043F9BF618CE}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

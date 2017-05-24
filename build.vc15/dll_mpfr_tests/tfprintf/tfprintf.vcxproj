@@ -22,6 +22,7 @@
     <ProjectGuid>{EDA93DE7-D2C9-496A-A6E5-960A067D9772}</ProjectGuid>
     <RootNamespace>tfprintf</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

@@ -22,6 +22,7 @@
     <ProjectGuid>{18D3EF75-6C36-46C0-B102-377B37F6C3E2}</ProjectGuid>
     <RootNamespace>ttrunc</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

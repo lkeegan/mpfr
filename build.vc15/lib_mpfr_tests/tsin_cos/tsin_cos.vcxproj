@@ -22,6 +22,7 @@
     <ProjectGuid>{92B49C5E-5F18-445C-B290-92AB03B27A6B}</ProjectGuid>
     <RootNamespace>tsin_cos</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

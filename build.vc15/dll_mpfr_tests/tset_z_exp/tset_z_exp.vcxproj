@@ -22,6 +22,7 @@
     <ProjectGuid>{5CDB1EEE-8222-4A53-8D32-3660ABAEEDBB}</ProjectGuid>
     <RootNamespace>tset_z_exp</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

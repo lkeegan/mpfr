@@ -22,6 +22,7 @@
     <ProjectGuid>{165E9831-B8EF-4857-ACA4-261677950214}</ProjectGuid>
     <RootNamespace>tset_ld</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

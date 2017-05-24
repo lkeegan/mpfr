@@ -22,6 +22,7 @@
     <ProjectGuid>{C94BF7C7-CEDD-4CAF-9371-BDAABB419E8C}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>tuneup</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

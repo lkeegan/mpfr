@@ -22,6 +22,7 @@
     <ProjectGuid>{555FE755-B744-4C13-9A7D-0F9D8FDEC132}</ProjectGuid>
     <RootNamespace>texceptions</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
