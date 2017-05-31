@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.6
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lib_mpfr_tests", "lib_mpfr_tests", "{610C8F32-024C-4868-B514-3F2C9AFCE83F}"
 EndProject
@@ -886,6 +886,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "talloc", "lib_mpfr_tests\talloc\talloc.vcxproj", "{541BB0AF-2A9D-4254-AEA2-C4AF64B072AE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tbeta", "lib_mpfr_tests\tbeta\tbeta.vcxproj", "{94535CF0-A2CB-4A1B-88F6-B9883D209B81}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bench_lib", "bench_lib\bench_lib.vcxproj", "{324BFA7D-8AF3-4F2B-8B3E-1D2E3EE2BB19}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -2335,6 +2337,14 @@ Global
 		{94535CF0-A2CB-4A1B-88F6-B9883D209B81}.Release|Win32.Build.0 = Release|Win32
 		{94535CF0-A2CB-4A1B-88F6-B9883D209B81}.Release|x64.ActiveCfg = Release|x64
 		{94535CF0-A2CB-4A1B-88F6-B9883D209B81}.Release|x64.Build.0 = Release|x64
+		{324BFA7D-8AF3-4F2B-8B3E-1D2E3EE2BB19}.Debug|Win32.ActiveCfg = Debug|Win32
+		{324BFA7D-8AF3-4F2B-8B3E-1D2E3EE2BB19}.Debug|Win32.Build.0 = Debug|Win32
+		{324BFA7D-8AF3-4F2B-8B3E-1D2E3EE2BB19}.Debug|x64.ActiveCfg = Debug|x64
+		{324BFA7D-8AF3-4F2B-8B3E-1D2E3EE2BB19}.Debug|x64.Build.0 = Debug|x64
+		{324BFA7D-8AF3-4F2B-8B3E-1D2E3EE2BB19}.Release|Win32.ActiveCfg = Release|Win32
+		{324BFA7D-8AF3-4F2B-8B3E-1D2E3EE2BB19}.Release|Win32.Build.0 = Release|Win32
+		{324BFA7D-8AF3-4F2B-8B3E-1D2E3EE2BB19}.Release|x64.ActiveCfg = Release|x64
+		{324BFA7D-8AF3-4F2B-8B3E-1D2E3EE2BB19}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
