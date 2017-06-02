@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 4.0.0-dev
-@set UPDATED-MONTH May 2017
+@set UPDATED-MONTH June 2017
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -751,6 +751,9 @@ The following rounding modes are supported:
 @item @code{MPFR_RNDD}: round toward minus infinity (roundTowardNegative in IEEE 754-2008),
 @item @code{MPFR_RNDA}: round away from zero.
 @item @code{MPFR_RNDF}: faithful rounding.
+@c FIXME: MPFR_RNDF is supported partially. Either the whole code is
+@c checked manually (in particular comparisons on rounding modes) and
+@c fixed, or it should be documented which functions are supported.
 @end itemize
 
 The @samp{round to nearest} mode works as in the IEEE 754 standard: in
@@ -1560,6 +1563,12 @@ value is zero when @var{rop} is equal to @var{op} (i.e., when @var{op}
 is an integer), positive when it is greater than @var{op}, and negative
 when it is smaller than @var{op}; moreover, if @var{rop} differs from
 @var{op}, i.e., if @var{op} is not an integer, the inexact flag is set.
+@end deftypefun
+
+@deftypefun void mpfr_get_q (mpq_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t)
+Convert @var{op} to a @code{mpq_t}.
+If @var{op} is NaN or an infinity, the @emph{erange} flag is
+set, @var{rop} is set to 0. Otherwise the conversion is always exact.
 @end deftypefun
 
 @deftypefun int mpfr_get_f (mpf_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})

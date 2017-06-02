@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.6
+VisualStudioVersion = 15.0.26430.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dll_mpfr_tests", "dll_mpfr_tests", "{FED52033-9973-40F8-9300-E2EBE7D76A09}"
 	ProjectSection(SolutionItems) = preProject
@@ -886,6 +886,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tbeta", "dll_mpfr_tests\tbeta\tbeta.vcxproj", "{40C6BD24-50C1-4B8D-B7A1-C07146E37ECA}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bench_dll", "bench_dll\bench_dll.vcxproj", "{E7D548AF-7D8A-4791-A66E-C78D689CD8FF}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tget_q", "dll_mpfr_tests\tget_q\tget_q.vcxproj", "{F9BE5409-FAED-4AF2-9A8A-19A229FF4975}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -2335,6 +2337,14 @@ Global
 		{E7D548AF-7D8A-4791-A66E-C78D689CD8FF}.Release|Win32.Build.0 = Release|Win32
 		{E7D548AF-7D8A-4791-A66E-C78D689CD8FF}.Release|x64.ActiveCfg = Release|x64
 		{E7D548AF-7D8A-4791-A66E-C78D689CD8FF}.Release|x64.Build.0 = Release|x64
+		{F9BE5409-FAED-4AF2-9A8A-19A229FF4975}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F9BE5409-FAED-4AF2-9A8A-19A229FF4975}.Debug|Win32.Build.0 = Debug|Win32
+		{F9BE5409-FAED-4AF2-9A8A-19A229FF4975}.Debug|x64.ActiveCfg = Debug|x64
+		{F9BE5409-FAED-4AF2-9A8A-19A229FF4975}.Debug|x64.Build.0 = Debug|x64
+		{F9BE5409-FAED-4AF2-9A8A-19A229FF4975}.Release|Win32.ActiveCfg = Release|Win32
+		{F9BE5409-FAED-4AF2-9A8A-19A229FF4975}.Release|Win32.Build.0 = Release|Win32
+		{F9BE5409-FAED-4AF2-9A8A-19A229FF4975}.Release|x64.ActiveCfg = Release|x64
+		{F9BE5409-FAED-4AF2-9A8A-19A229FF4975}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -2518,5 +2528,6 @@ Global
 		{787B8A15-9157-4545-90E5-AD31EC9F919D} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
 		{618382D4-2E23-47D0-95D1-B58E7B7C89C9} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
 		{40C6BD24-50C1-4B8D-B7A1-C07146E37ECA} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
+		{F9BE5409-FAED-4AF2-9A8A-19A229FF4975} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
 	EndGlobalSection
 EndGlobal

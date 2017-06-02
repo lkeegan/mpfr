@@ -27,6 +27,7 @@ Changes from versions 3.1.* to version 4.0.0:
 - The minimum precision MPFR_PREC_MIN is now 1, with rounding defined as
   in the next IEEE 754 revision (ties rounded away from zero).
 - Shared caches for multithread applications.
+- Partial support of MPFR_RNDF (faithful rounding).
 - New functions: mpfr_fpif_export and mpfr_fpif_import to export and import
   numbers in a floating-point interchange format, independent both on the
   number of bits per word and on the endianness.
@@ -48,6 +49,7 @@ Changes from versions 3.1.* to version 4.0.0:
 - New functions mpfr_log_ui to compute the logarithm of an integer,
   mpfr_gamma_inc for the incomplete Gamma function, and mpfr_beta for the
   Beta function.
+- New function mpfr_get_q to convert a floating-point number into rational.
 - The mpfr_eint function now returns the value of the E1/eint1 function
   for negative argument.
 - The behavior of the mpfr_set_exp function changed, as it could easily
@@ -73,13 +75,11 @@ Changes from versions 3.1.* to version 4.0.0:
 - Improved MPFR manual.
 - New MPFRbench program (see the tools/bench directory).
 - Major speedup in mpfr_add, mpfr_sub, mpfr_mul, mpfr_div and mpfr_sqrt when
-  all operands have the same precision and this precision is less than the
-  number of bits per word, e.g., less than 64 on a 64-bit computer.
-- Major speedup in mpfr_add, mpfr_sub and mpfr_mul when all operands have the
-  same precision and this precision is less than two words, e.g., at most 127
-  on a 64-bit computer.
+  all operands have the same precision and this precision is less than twice
+  the number of bits per word, e.g., less than 128 on a 64-bit computer.
 - Speedup by a factor of almost 2 in the double <--> mpfr conversions
   (mpfr_set_d and mpfr_get_d).
+- Speedup in mpfr_log1p and mpfr_atanh for small arguments.
 - Speedup in the mpfr_const_euler function (contributed by Fredrik Johansson),
   in the computation of Bernoulli numbers (used in mpfr_gamma, mpfr_li2,
   mpfr_digamma, mpfr_lngamma and mpfr_lgamma), in mpfr_div, in mpfr_fma

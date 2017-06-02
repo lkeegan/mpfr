@@ -323,6 +323,7 @@
     <ClCompile Include="..\..\src\get_float128.c" />
     <ClCompile Include="..\..\src\get_flt.c" />
     <ClCompile Include="..\..\src\get_ld.c" />
+    <ClCompile Include="..\..\src\get_q.c" />
     <ClCompile Include="..\..\src\get_si.c" />
     <ClCompile Include="..\..\src\get_sj.c" />
     <ClCompile Include="..\..\src\get_str.c" />
