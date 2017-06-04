@@ -1565,10 +1565,10 @@ when it is smaller than @var{op}; moreover, if @var{rop} differs from
 @var{op}, i.e., if @var{op} is not an integer, the inexact flag is set.
 @end deftypefun
 
-@deftypefun void mpfr_get_q (mpq_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t)
+@deftypefun void mpfr_get_q (mpq_t @var{rop}, mpfr_t @var{op})
 Convert @var{op} to a @code{mpq_t}.
 If @var{op} is NaN or an infinity, the @emph{erange} flag is
-set, @var{rop} is set to 0. Otherwise the conversion is always exact.
+set and @var{rop} is set to 0. Otherwise the conversion is always exact.
 @end deftypefun
 
 @deftypefun int mpfr_get_f (mpf_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -3858,6 +3858,8 @@ in MPFR 4.0.
 @item @code{mpfr_get_flt} in MPFR 3.0.
 
 @item @code{mpfr_get_patches} in MPFR 2.3.
+
+@item @code{mpfr_get_q} in MPFR 4.0.
 
 @item @code{mpfr_get_z_2exp} in MPFR 3.0.
 This function was named @code{mpfr_get_z_exp} in previous versions;
