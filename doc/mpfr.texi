@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 4.0.0-dev
-@set UPDATED-MONTH June 2017
+@set UPDATED-MONTH August 2017
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -548,6 +548,7 @@ the language needs to be improved, please send a note to the same address.
 * Floating-Point Values on Special Numbers::
 * Exceptions::
 * Memory Handling::
+* Getting the Best Efficiency Out of MPFR::
 @end menu
 
 @node Headers and Libraries, Nomenclature and Types, MPFR Basics, MPFR Basics
@@ -971,7 +972,7 @@ a range error in MPFR@.
 
 @end itemize
 
-@node Memory Handling, , Exceptions, MPFR Basics
+@node Memory Handling, Getting the Best Efficiency Out of MPFR, Exceptions, MPFR Basics
 @comment  node-name,  next,  previous,  up
 @section Memory Handling
 
@@ -987,6 +988,15 @@ At any time, the user can free various caches with @code{mpfr_free_cache}
 and @code{mpfr_free_cache2}. It is strongly advised to free thread-local
 caches before terminating a thread and global caches before exiting when
 using tools like @samp{valgrind} (to avoid memory leaks being reported).
+
+@c FIXME: explain how memory allocation is done (once the issues are fixed
+@c to allow the allocation functions to be changed). Give a reference to:
+@c @ifinfo
+@c @pxref{Custom Allocation,,, gmp.info,GNU MP}.
+@c @end ifinfo
+@c @ifnotinfo
+@c see Section ``Custom Allocation'' in @cite{GNU MP}.
+@c @end ifnotinfo
 
 MPFR internal data such as flags, the exponent range, the default
 precision and rounding mode, and caches (i.e., data that are not
@@ -1012,6 +1022,31 @@ the purpose of the function is to do such a change). Writers of software
 using MPFR should also be careful when changing such a value if they use
 a library using MPFR (directly or indirectly), in order to make sure that
 such a change is compatible with the library.
+
+@node Getting the Best Efficiency Out of MPFR, , Memory Handling, MPFR Basics
+@comment  node-name,  next,  previous,  up
+@section Getting the Best Efficiency Out of MPFR
+
+Here are a few hints to get the best efficiency out of MPFR:
+
+@itemize @bullet
+
+@item you should avoid allocating and clearing variables. Reuse variables
+      whenever possible, allocate or clear outside of loops, pass
+      temporary variables to subroutines instead of allocating them inside
+      the subroutines;
+
+@item use @code{mpfr_swap} instead of @code{mpfr_set} whenever possible.
+      This will avoid copying the significands;
+
+@item avoid using MPFR from C++, or make sure your C++ interface does not
+      perform unnecessary allocations or copies;
+
+@item MPFR functions work in-place: to compute @code{a = a + b} you don't
+      need an auxiliary variable, you can directly write
+      @code{mpfr_add (a, a, b, ...)}.
+
+@end itemize
 
 @node MPFR Interface, API Compatibility, MPFR Basics, Top
 @comment  node-name,  next,  previous,  up
@@ -2576,9 +2611,9 @@ The output @samp{conv} specifiers allowed with @code{mpfr_t} parameter are:
 @multitable {(space)} {MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM}
 @item @samp{a} @samp{A} @tab hex float, C99 style
 @item @samp{b}          @tab binary output
-@item @samp{e} @samp{E} @tab scientific format float
-@item @samp{f} @samp{F} @tab fixed point float
-@item @samp{g} @samp{G} @tab fixed or scientific float
+@item @samp{e} @samp{E} @tab scientific-format float
+@item @samp{f} @samp{F} @tab fixed-point float
+@item @samp{g} @samp{G} @tab fixed-point or scientific float
 @end multitable
 @end quotation
 
@@ -2621,12 +2656,14 @@ specifiers @samp{f}, @samp{F}, @samp{g}, and @samp{G} is 6.
 
 @subsection Functions
 
-For all the following functions, if the number of characters which ought to be
-written appears to exceed the maximum limit for an @code{int}, nothing is
+For all the following functions, if the number of characters that ought to be
+written exceeds the maximum limit @code{INT_MAX} for an @code{int}, nothing is
 written in the stream (resp.@: to @code{stdout}, to @var{buf}, to @var{str}),
 the function returns @minus{}1, sets the @emph{erange} flag, and @code{errno}
 is set to @code{EOVERFLOW} if the @code{EOVERFLOW} macro is defined (such as
-in POSIX systems).
+on POSIX systems). Note, however, that @code{errno} might be changed to
+another value by some internal library call if another error occurs there
+(currently, this would come from the unallocation function).
 
 @deftypefun int mpfr_fprintf (FILE *@var{stream}, const char *@var{template}, @dots{})
 @deftypefunx int mpfr_vfprintf (FILE *@var{stream}, const char *@var{template}, va_list @var{ap})
@@ -2634,10 +2671,6 @@ Print to the stream @var{stream} the optional arguments under the control of
 the template string @var{template}.
 Return the number of characters written or a negative value if an error
 occurred.
-@c If the number of characters which ought to be written appears
-@c to exceed the maximum limit for an @code{int}, nothing is written in the
-@c stream, the function returns @minus{}1, sets the @emph{erange} flag, and (in
-@c POSIX system only) @code{errno} is set to @code{EOVERFLOW}.
 @end deftypefun
 
 @deftypefun  int mpfr_printf (const char *@var{template}, @dots{})
@@ -2646,10 +2679,6 @@ Print to @code{stdout} the optional arguments under the control of the
 template string @var{template}.
 Return the number of characters written or a negative value if an error
 occurred.
-@c If the number of characters which ought to be written appears
-@c to exceed the maximum limit for an @code{int}, nothing is written in
-@c @code{stdout}, the function returns @minus{}1, sets the @emph{erange} flag,
-@c and (in POSIX system only) @code{errno} is set to @code{EOVERFLOW}.
 @end deftypefun
 
 @deftypefun int mpfr_sprintf (char *@var{buf}, const char *@var{template}, @dots{})
@@ -2661,10 +2690,6 @@ the control of the template string @var{template}, and print it in
 Return the number of characters written in the array @var{buf}
 @emph{not counting}
 the terminating null character or a negative value if an error occurred.
-@c If the number of characters which ought to be written appears to exceed the
-@c maximum limit for an @code{int}, nothing is written in @var{buf}, the function
-@c returns @minus{}1, sets the @emph{erange} flag, and (in POSIX system only)
-@c code{errno} is set to @code{EOVERFLOW}.
 @end deftypefun
 
 @deftypefun int mpfr_snprintf (char *@var{buf}, size_t @var{n}, const char *@var{template}, @dots{})
@@ -2677,11 +2702,6 @@ first characters are written in @var{buf} and the @var{n}-th is a null character
 Return the number of characters that would have been written had @var{n} been
 sufficiently large, @emph{not counting}
 the terminating null character, or a negative value if an error occurred.
-@c If the number of characters produced by the
-@c optional arguments under the control of the template string @var{template}
-@c appears to exceed the maximum limit for an @code{int}, nothing is written in
-@c @var{buf}, the function returns @minus{}1, sets the @emph{erange} flag, and
-@c (in POSIX system only) @code{errno} is set to @code{EOVERFLOW}.
 @end deftypefun
 
 @deftypefun int mpfr_asprintf (char **@var{str}, const char *@var{template}, @dots{})
@@ -2692,12 +2712,6 @@ using the current allocation function. A pointer to the block is stored in
 The return value is the number of characters written in the string, excluding
 the null-terminator, or a negative value if an error occurred, in which case
 the contents of @var{str} are undefined.
-@c If the number of
-@c characters produced by the optional arguments under the control of the
-@c template string @var{template} appears to exceed the maximum limit for an
-@c @code{int}, @var{str} is a null pointer, the function returns @minus{}1, sets
-@c the @emph{erange} flag, and (in POSIX system only) @code{errno} is set to
-@c @code{EOVERFLOW}.
 @end deftypefun
 
 @node Integer and Remainder Related Functions, Rounding-Related Functions, Formatted Output Functions, MPFR Interface
@@ -3372,9 +3386,31 @@ This is an example of how to emulate binary double IEEE 754 arithmetic
 Note that @code{mpfr_set_emin} and @code{mpfr_set_emax} are called early
 enough in order to make sure that all computed values are in the current
 exponent range.
-
 Warning! This emulates a double IEEE 754 arithmetic with correct rounding
 in the subnormal range, which may not be the case for your hardware.
+
+Below is another example showing how to emulate fixed-point arithmetic
+in a specific case.
+Here we compute the sine of the integers 1 to 17 with a result in a
+fixed-point arithmetic rounded at @m{2^{-42}, 2 power -42} (using the
+fact that the result is at most 1 in absolute value):
+
+@example
+@{
+  mpfr_t x; int i, inex;
+
+  mpfr_set_emin (-41);
+  mpfr_init2 (x, 42);
+  for (i = 1; i <= 17; i++)
+    @{
+      mpfr_set_ui (x, i, MPFR_RNDN);
+      inex = mpfr_sin (x, x, MPFR_RNDZ);
+      mpfr_subnormalize (x, inex, MPFR_RNDZ);
+      mpfr_dump (x);
+    @}
+  mpfr_clear (x);
+@}
+@end example
 
 @deftypefun void mpfr_clear_underflow (void)
 @deftypefunx void mpfr_clear_overflow (void)

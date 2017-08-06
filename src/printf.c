@@ -1,4 +1,4 @@
-/* mpfr_printf -- printf function and friends.
+/* Formatted output functions (printf functions family).
 
 Copyright 2007-2017 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
@@ -45,12 +45,12 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #ifdef _MPFR_H_HAVE_FILE
 
-/* Each printf-like function calls mpfr_vasprintf which
-   - returns the number of characters in the returned string excluding the
-   terminating null
-   - returns -1 and sets the erange flag if the number of produced characters
-   exceeds INT_MAX (in that case, also sets errno to EOVERFLOW in POSIX
-   systems) */
+/* Each printf-like function calls mpfr_vasnprintf_aux (directly or
+   via mpfr_vasprintf), which
+   - returns the number of characters to be written excluding the
+     terminating null character (disregarding the size argument);
+   - returns -1 and sets the erange flag if this number exceeds INT_MAX
+     (in that case, also sets errno to EOVERFLOW on POSIX systems). */
 
 #define GET_STR_VA(sz, str, fmt, ap)            \
   do                                            \
@@ -187,6 +187,12 @@ mpfr_asprintf (char **pp, const char *fmt, ...)
   GET_STR (ret, *pp, fmt);
 
   return ret;
+}
+
+int
+mpfr_vasprintf (char **ptr, const char *fmt, va_list ap)
+{
+  return mpfr_vasnprintf_aux (ptr, NULL, 0, fmt, ap);
 }
 
 #else /* HAVE_STDARG */

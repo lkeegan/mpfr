@@ -1,5 +1,5 @@
-/* mpfr_vasprintf -- main function for the printf functions family
-   plus helper macros & functions.
+/* mpfr_vasnprintf_aux -- helper function for the formatted output functions
+   (printf functions family).
 
 Copyright 2007-2017 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
@@ -1960,11 +1960,14 @@ sprnt_fp (struct string_buffer *buf, mpfr_srcptr p,
   return buf->len == -1 ? -1 : length;
 }
 
-/* the following internal function implements both mpfr_vasprintf and
+/* The following internal function implements both mpfr_vasprintf and
    mpfr_vsnprintf:
    (a) either ptr <> NULL, and then Buf and size are not used, and it
        implements mpfr_vasprintf (ptr, fmt, ap)
    (b) or ptr = NULL, and it implements mpfr_vsnprintf (Buf, size, fmt, ap)
+   It returns the number of characters that would have been written had 'size'
+   been sufficiently large, not counting the terminating null character, or -1
+   if this number is too large for the return type 'int' (overflow).
 */
 int
 mpfr_vasnprintf_aux (char **ptr, char *Buf, size_t size, const char *fmt,
@@ -2247,6 +2250,7 @@ mpfr_vasnprintf_aux (char **ptr, char *Buf, size_t size, const char *fmt,
   if (buf.len != -1)
     {
       nbchar = buf.len;
+      MPFR_ASSERTD (nbchar >= 0);
 
       if (ptr != NULL)  /* implement mpfr_vasprintf */
         {
@@ -2271,7 +2275,7 @@ mpfr_vasnprintf_aux (char **ptr, char *Buf, size_t size, const char *fmt,
 
       MPFR_SAVE_EXPO_FREE (expo);
       return nbchar; /* return the number of characters that would have
-                        been written had 'size' be sufficiently large,
+                        been written had 'size' been sufficiently large,
                         not counting the terminating null character */
     }
 
@@ -2291,12 +2295,6 @@ mpfr_vasnprintf_aux (char **ptr, char *Buf, size_t size, const char *fmt,
   (*__gmp_free_func) (buf.start, buf.size);
 
   return -1;
-}
-
-int
-mpfr_vasprintf (char **ptr, const char *fmt, va_list ap)
-{
-  return mpfr_vasnprintf_aux (ptr, NULL, 0, fmt, ap);
 }
 
 #else /* HAVE_STDARG */
