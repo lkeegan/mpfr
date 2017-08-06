@@ -13,8 +13,16 @@ provided under the terms of the LGPL version 2.1
 Compiling MPFR with the Visual Studio 2017
 ------------------------------------------
 
-The project files are intended for use with any version of Visual
-Studio 2017.  The build projects are based on MPIR 2.7 and MPFR-3.1.2. 
+The project files provided in this repository are intended for use with
+any version of Visual Studio 2017;  they are designed for use with the
+the development version of MPFR located at:
+
+    https://gforge.inria.fr/scm/viewvc.php/mpfr/trunk/
+
+and my deveopment version of MPIR at:
+
+    https://github.com/BrianGladman/mpir
+
 It is assumed that MPIR has already been built and that the directories
 containing MPIR and MPFR are at the same level in the directory 
 structure:
@@ -40,14 +48,16 @@ The full MPFR source distribution together with the Visual Studio
     https://github.com/BrianGladman/mpfr
  
 Alternatively the MPFR source distribution can be obtained from the
-MPFR site at:
+main MPFR development repository at:
 
-    http://www.mpfr.org/
+    https://gforge.inria.fr/scm/viewvc.php/mpfr/trunk/
 
-and expanded into the MPFR root directory. The build project files
-should then be added so that the build.vc15 sub-directory is in the
-MPFR root directory as shown earlier. After this the root directory 
-should be renamed to 'mpfr' (if different).
+
+(see http://www.mpfr.org/ for more information).
+
+After the MPFR source code has been placed into the MPFR root directory,
+the build files should then be added by copying the sub-directory 
+build.vc15 into the root directory as shown earlier. 
 
 The root directory names 'mpir' and 'mpfr' are used because this makes 
 it easier to use the latest version of MPIR and MPFR without having to 
