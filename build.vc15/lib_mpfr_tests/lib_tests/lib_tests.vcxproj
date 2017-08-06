@@ -27,26 +27,18 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <CharacterSet>NotSet</CharacterSet>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <CharacterSet>NotSet</CharacterSet>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <CharacterSet>NotSet</CharacterSet>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <CharacterSet>NotSet</CharacterSet>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -82,13 +74,11 @@
       <AdditionalIncludeDirectories>..\..\;..\..\..\src\;..\..\..\..\mpir\lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;HAVE_CONFIG_H;_DEBUG;_LIB;MPFR_HAVE_GMP_IMPL</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <FloatingPointModel>Strict</FloatingPointModel>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Lib />
     <Lib>
@@ -104,13 +94,11 @@
       <AdditionalIncludeDirectories>..\..\;..\..\..\src\;..\..\..\..\mpir\lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;HAVE_CONFIG_H;_WIN64;_DEBUG;_LIB;MPFR_HAVE_GMP_IMPL</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <FloatingPointModel>Strict</FloatingPointModel>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Lib />
   </ItemDefinitionGroup>
@@ -119,14 +107,12 @@
       <Optimization>Full</Optimization>
       <AdditionalIncludeDirectories>..\..\;..\..\..\src\;..\..\..\..\mpir\lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;HAVE_CONFIG_H;NDEBUG;_LIB;MPFR_HAVE_GMP_IMPL</PreprocessorDefinitions>
-      <FloatingPointModel>Strict</FloatingPointModel>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Lib />
     <Lib>
@@ -141,14 +127,12 @@
       <Optimization>Full</Optimization>
       <AdditionalIncludeDirectories>..\..\;..\..\..\src\;..\..\..\..\mpir\lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;HAVE_CONFIG_H;_WIN64;NDEBUG;_LIB;MPFR_HAVE_GMP_IMPL</PreprocessorDefinitions>
-      <FloatingPointModel>Strict</FloatingPointModel>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Lib />
   </ItemDefinitionGroup>

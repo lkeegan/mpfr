@@ -83,23 +83,18 @@
     </CustomBuildStep>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>..\;..\..\;..\..\..\mpir\dll\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN32;HAVE_CONFIG_H;_DEBUG;_LIB;__MPFR_WITHIN_MPFR;_GMP_IEEE_FLOATS;_CRT_SECURE_NO_WARNINGS;HAVE_STDINT_H;__GMP_LIBGMP_DLL;MPFR_USE_THREAD_SAFE;MPFR_HAVE_GMP_IMPL</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <FloatingPointModel>Strict</FloatingPointModel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ProjectReference />
     <Link>
       <AdditionalDependencies>..\..\..\mpir\dll\$(IntDir)mpir.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
@@ -123,23 +118,18 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>..\;..\..\;..\..\..\mpir\dll\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN32;HAVE_CONFIG_H;_DEBUG;_LIB;__MPFR_WITHIN_MPFR;_GMP_IEEE_FLOATS;_CRT_SECURE_NO_WARNINGS;HAVE_STDINT_H;__GMP_LIBGMP_DLL;MPFR_USE_THREAD_SAFE;MPFR_HAVE_GMP_IMPL</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <FloatingPointModel>Strict</FloatingPointModel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ProjectReference />
     <Link>
       <AdditionalDependencies>..\..\..\mpir\dll\$(IntDir)mpir.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
     </Link>
@@ -159,24 +149,19 @@
     </CustomBuildStep>
     <ClCompile>
       <Optimization>Full</Optimization>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>..\;..\..\;..\..\..\mpir\dll\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN32;HAVE_CONFIG_H;NDEBUG;_LIB;__MPFR_WITHIN_MPFR;_GMP_IEEE_FLOATS;_CRT_SECURE_NO_WARNINGS;HAVE_STDINT_H;__GMP_LIBGMP_DLL;MPFR_USE_THREAD_SAFE;MPFR_HAVE_GMP_IMPL</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <FloatingPointModel>Strict</FloatingPointModel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ProjectReference />
     <Link>
       <AdditionalDependencies>..\..\..\mpir\dll\$(IntDir)mpir.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -202,23 +187,18 @@
     </Midl>
     <ClCompile>
       <Optimization>Full</Optimization>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>..\;..\..\;..\..\..\mpir\dll\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN32;HAVE_CONFIG_H;NDEBUG;_LIB;__MPFR_WITHIN_MPFR;_GMP_IEEE_FLOATS;_CRT_SECURE_NO_WARNINGS;HAVE_STDINT_H;__GMP_LIBGMP_DLL;MPFR_USE_THREAD_SAFE;MPFR_HAVE_GMP_IMPL</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <FloatingPointModel>Strict</FloatingPointModel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ProjectReference />
     <Link>
       <AdditionalDependencies>..\..\..\mpir\dll\$(IntDir)mpir.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <DataExecutionPrevention>
