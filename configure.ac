@@ -515,6 +515,10 @@ dnl
 dnl Incidentally, libtool does generate an import library libmpfr.dll.a,
 dnl but it's "ar" format and cannot be used by the MS linker.  There
 dnl doesn't seem to be any GNU tool for generating or converting to .lib.
+dnl
+dnl The DLL version (the number in libmpfr-*.dll.def below) must be the
+dnl version of the oldest supported interface (i.e. CURRENT - AGE in
+dnl src/Makefile.am).
 AC_SUBST(MPFR_LDFLAGS)
 AC_SUBST(LIBMPFR_LDFLAGS)
 case $host in
@@ -522,7 +526,7 @@ case $host in
    AC_MSG_CHECKING(for DLL/static GMP)
    if test "$enable_shared" = yes; then
      MPFR_LDFLAGS="$MPFR_LDFLAGS -no-undefined"
-     LIBMPFR_LDFLAGS="$LIBMPFR_LDFLAGS -Wl,--output-def,.libs/libmpfr-4.dll.def"
+     LIBMPFR_LDFLAGS="$LIBMPFR_LDFLAGS -Wl,--output-def,.libs/libmpfr-6.dll.def"
      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include "gmp.h"
 #if !__GMP_LIBGMP_DLL
