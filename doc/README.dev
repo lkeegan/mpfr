@@ -335,9 +335,13 @@ To make a release (for the MPFR team):
   9) * For the release itself (not the release candidates):
      Create a web page for the MPFR release and add the documentation
      (for mpfr.html, use "makeinfo --html --no-split mpfr.texi" from
-     the doc directory).
+     the doc directory). WARNING! Make sure that the .ps file has an
+     a4 papersize; there's a bug in texinfo(?):
+       https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=874632
      Upload the tarballs and the signatures to the MPFR web server
-     (via svn), to InriaForge and to the GNU FTP site.
+     (via a svn working copy) and to InriaForge.
+     Prepare the files for the GNU FTP site with the gnu-sigdir script
+     in the /misc directory and upload them.
      Update the mpfr-current symbolic link and the history page.
      Update the old current page to point to the new release; see
      examples for 3.0.1 (latest version of the branch) and 3.1.0

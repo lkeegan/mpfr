@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 4.0.0-dev
-@set UPDATED-MONTH August 2017
+@set UPDATED-MONTH September 2017
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -489,7 +489,7 @@ MPFR 4.0.0 web page @url{http://www.mpfr.org/mpfr-4.0.0/}.
 @section Getting the Latest Version of MPFR
 
 The latest version of MPFR is available from
-@url{ftp://ftp.gnu.org/gnu/mpfr/} or @url{http://www.mpfr.org/}.
+@url{https://ftp.gnu.org/gnu/mpfr/} or @url{http://www.mpfr.org/}.
 
 @node Reporting Bugs, MPFR Basics, Installing MPFR, Top
 @comment  node-name,  next,  previous,  up
@@ -1813,14 +1813,29 @@ is @minus{}Inf instead of +Inf.
 @end deftypefun
 
 @deftypefun int mpfr_cbrt (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_root (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long int @var{k}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_rootn_ui (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long int @var{k}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to the cubic root (resp.@: the @var{k}th root)
 of @var{op} rounded in the direction @var{rnd}.
 For @var{k} = 0, set @var{rop} to NaN@.
 For @var{k} odd (resp.@: even) and @var{op} negative (including @minus{}Inf),
 set @var{rop} to a negative number (resp.@: NaN)@.
-The @var{k}th root of @minus{}0 is defined to be @minus{}0,
-whatever the parity of @var{k} (different from zero).
+If @var{op} is zero, set @var{rop} to zero with the sign obtained by the
+usual limit rules, i.e., the same sign as @var{op} if @var{k} is odd, and
+positive if @var{k} is even.
+
+These functions agree with the rootn function of the IEEE 754-2008 standard
+(Section 9.2).
+@end deftypefun
+
+@deftypefun int mpfr_root (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long int @var{k}, mpfr_rnd_t @var{rnd})
+This function is the same as @code{mpfr_rootn_ui} except when @var{op}
+is @minus{}0 and @var{k} is even: the result is @minus{}0 instead of +0
+(the reason was to be consistent with @code{mpfr_sqrt}). Said otherwise,
+if @var{op} is zero, set @var{rop} to @var{op}.
+
+This function predates the IEEE 754-2008 standard and behaves differently
+from its rootn function. It is marked as deprecated and will be removed in
+a future release.
 @end deftypefun
 
 @deftypefun int mpfr_pow (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_rnd_t @var{rnd})
@@ -1984,8 +1999,8 @@ Important note: in some domains, computing special functions (even more
 with correct rounding) is expensive, even for small precision,
 for example the trigonometric and Bessel functions for large argument.
 For some functions, the memory usage might depend not only on the output
-precision: it is the case of the @code{mpfr_root} function where the memory
-usage is also linear in the argument @var{k},
+precision: it is the case of the @code{mpfr_rootn_ui} function where the
+memory usage is also linear in the argument @var{k},
 and of the incomplete Gamma function (dependence on the precision of @var{op}).
 
 @deftypefun int mpfr_log (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -3940,6 +3955,8 @@ use @code{mpfr_get_z_exp}.
 
 @item @code{mpfr_round_nearest_away} in MPFR 4.0.
 
+@item @code{mpfr_rootn_ui} in MPFR 4.0.
+
 @item @code{mpfr_set_divby0} in MPFR 3.1 (new divide-by-zero exception).
 
 @item @code{mpfr_set_float128} in MPFR 4.0 if configured with
@@ -4107,6 +4124,10 @@ MPFR 3.0 or later).
 (The function @code{mpfr_random} had been deprecated since at least MPFR 2.2.0,
 and @code{mpfr_random2} since MPFR 2.4.0.)
 
+Macros @code{mpfr_add_one_ulp} and @code{mpfr_sub_one_ulp} have been
+removed in MPFR 4.0. They were no longer documented since MPFR 2.1.0
+and were announced as deprecated since MPFR 3.1.0.
+
 Function @code{mpfr_grandom} is marked as deprecated in MPFR 4.0.
 It will be removed in a future release.
 
@@ -4227,7 +4248,7 @@ volume 33, issue 2, article 13, 15 pages, 2007,
 
 @item
 Torbj@"orn Granlund, "GNU MP: The GNU Multiple Precision Arithmetic Library",
-  version 5.0.1, 2010, @url{http://gmplib.org}.
+  version 5.0.1, 2010, @url{https://gmplib.org/}.
 
 @item
 IEEE standard for binary floating-point arithmetic, Technical Report

@@ -669,8 +669,11 @@ __MPFR_DECLSPEC int mpfr_hypot (mpfr_ptr, mpfr_srcptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_erf (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_erfc (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_cbrt (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
+MPFR_DEPRECATED
 __MPFR_DECLSPEC int mpfr_root (mpfr_ptr, mpfr_srcptr, unsigned long,
                                mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_rootn_ui (mpfr_ptr, mpfr_srcptr, unsigned long,
+                                   mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_gamma (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_gamma_inc (mpfr_ptr, mpfr_srcptr, mpfr_srcptr,
                                     mpfr_rnd_t);
@@ -987,10 +990,6 @@ __MPFR_DECLSPEC int    mpfr_custom_get_kind (mpfr_srcptr);
 #ifndef mpz_set_fr
 # define mpz_set_fr mpfr_get_z
 #endif
-#define mpfr_add_one_ulp(x,r) \
- (mpfr_sgn (x) > 0 ? mpfr_nextabove (x) : mpfr_nextbelow (x))
-#define mpfr_sub_one_ulp(x,r) \
- (mpfr_sgn (x) > 0 ? mpfr_nextbelow (x) : mpfr_nextabove (x))
 #define mpfr_get_z_exp mpfr_get_z_2exp
 #define mpfr_custom_get_mantissa mpfr_custom_get_significand
 
