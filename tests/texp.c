@@ -192,14 +192,11 @@ compare_exp2_exp3 (mpfr_prec_t p0, mpfr_prec_t p1)
         {
           printf ("mpfr_exp_2 and mpfr_exp_3 disagree for rnd=%s and\nx=",
                   mpfr_print_rnd_mode (rnd));
-          mpfr_print_binary (x);
-          puts ("");
+          mpfr_dump (x);
           printf ("mpfr_exp_2 gives ");
-          mpfr_print_binary (y);
-          puts ("");
+          mpfr_dump (y);
           printf ("mpfr_exp_3 gives ");
-          mpfr_print_binary (z);
-          puts ("");
+          mpfr_dump (z);
           exit (1);
         }
   }
@@ -266,7 +263,7 @@ check_special (void)
   /* check exp(-inf) = +0 */
   mpfr_set_inf (x, -1);
   test_exp (y, x, MPFR_RNDN);
-  if (mpfr_cmp_ui (y, 0) || mpfr_sgn (y) < 0)
+  if (MPFR_NOTZERO (y) || MPFR_IS_NEG (y))
     {
       printf ("Error for exp(-inf)\n");
       exit (1);
@@ -357,7 +354,7 @@ check_special (void)
   set_emin (-10);
   mpfr_set_si (x, -9, MPFR_RNDN);
   test_exp (y, x, MPFR_RNDN);
-  if (mpfr_cmp_ui (y, 0) || mpfr_sgn (y) < 0)
+  if (MPFR_NOTZERO (y) || MPFR_IS_NEG (y))
     {
       printf ("Error for exp(-9) for emin=-10\n");
       printf ("Expected +0\n");
@@ -570,10 +567,10 @@ overflowed_exp0 (void)
                 if (! mpfr_equal_p (x, y))
                   {
                     printf ("Error in overflowed_exp0 (i = %d, rnd = %s):\n"
-                            "  Got ", i,
+                            "  Got        ", i,
                             mpfr_print_rnd_mode ((mpfr_rnd_t) rnd));
-                    mpfr_print_binary (x);
-                    printf (" instead of 0.11111111E%d.\n", emax);
+                    mpfr_dump (x);
+                    printf ("  instead of 0.11111111E%d.\n", emax);
                     err = 1;
                   }
               }
@@ -589,10 +586,10 @@ overflowed_exp0 (void)
                 if (! (mpfr_inf_p (x) && MPFR_IS_POS (x)))
                   {
                     printf ("Error in overflowed_exp0 (i = %d, rnd = %s):\n"
-                            "  Got ", i,
+                            "  Got        ", i,
                             mpfr_print_rnd_mode ((mpfr_rnd_t) rnd));
-                    mpfr_print_binary (x);
-                    printf (" instead of +Inf.\n");
+                    mpfr_dump (x);
+                    printf ("  instead of +Inf.\n");
                     err = 1;
                   }
               }

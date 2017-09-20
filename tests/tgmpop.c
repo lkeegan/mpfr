@@ -276,7 +276,7 @@ test_cmp_z (mpfr_prec_t pmin, mpfr_prec_t pmax, int nmax)
           if (!MPFR_IS_SINGULAR (x))
             {
               mpfr_sub_z (z, x, y, MPFR_RNDN);
-              res1 = mpfr_sgn (z);
+              res1 = (mpfr_sgn) (z);
               res2 = mpfr_cmp_z (x, y);
               if (res1 != res2)
                 {
@@ -328,7 +328,7 @@ test_cmp_q (mpfr_prec_t pmin, mpfr_prec_t pmax, int nmax)
           if (!MPFR_IS_SINGULAR (x))
             {
               mpfr_sub_q (z, x, y, MPFR_RNDN);
-              res1 = mpfr_sgn (z);
+              res1 = (mpfr_sgn) (z);
               res2 = mpfr_cmp_q (x, y);
               if (res1 != res2)
                 {
@@ -382,7 +382,7 @@ test_cmp_f (mpfr_prec_t pmin, mpfr_prec_t pmax, int nmax)
             {
               mpfr_set_f (z, y, MPFR_RNDN);
               mpfr_sub   (z, x, z, MPFR_RNDN);
-              res1 = mpfr_sgn (z);
+              res1 = (mpfr_sgn) (z);
               res2 = mpfr_cmp_f (x, y);
               if (res1 != res2)
                 {
@@ -1199,11 +1199,12 @@ coverage_mpfr_mul_q_20110218 (void)
   mpfr_set_inf (cmp, -1);
   if ((status != 0) || (mpfr_cmp(res, cmp) != 0))
     {
-      printf ("mpfr_mul_q 1 * (-1/0) returned a wrong value :\n waiting for ");
-      mpfr_print_binary (cmp);
-      printf (" got ");
+      printf ("mpfr_mul_q 1 * (-1/0) returned a wrong value:\n");
+      printf ("  expected ");
+      mpfr_dump (cmp);
+      printf ("  got      ");
       mpfr_dump (res);
-      printf ("ternary value is %d\n", status);
+      printf ("  ternary value is %d\n", status);
       exit (1);
     }
 

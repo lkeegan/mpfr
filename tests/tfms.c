@@ -66,7 +66,7 @@ test_exact (void)
                         i, j, k, rnd);
                 exit (1);
               }
-            if (mpfr_cmp (r1, r2) || MPFR_SIGN (r1) != MPFR_SIGN (r2))
+            if (! mpfr_equal_p (r1, r2) || MPFR_SIGN (r1) != MPFR_SIGN (r2))
               {
                 printf ("test_exact(%d,%d,%d,%d):\nexpected ", i, j, k, rnd);
                 mpfr_out_str (stdout, 10, 0, r1, MPFR_RNDN);
@@ -245,12 +245,11 @@ test_underflow1 (void)
                 }
               if (! mpfr_equal_p (r, z))
                 {
-                  printf (STRTU1 "got ", signy, signz,
+                  printf (STRTU1 "got        ", signy, signz,
                           mpfr_print_rnd_mode ((mpfr_rnd_t) rnd));
-                  mpfr_print_binary (r);
-                  printf (" instead of ");
-                  mpfr_print_binary (z);
-                  printf ("\n");
+                  mpfr_dump (r);
+                  printf ("  instead of ");
+                  mpfr_dump (z);
                   err = 1;
                 }
               if (inex >= 0 && (rnd == MPFR_RNDD ||
@@ -526,7 +525,7 @@ main (int argc, char *argv[])
   mpfr_urandomb (z, RANDS);
   mpfr_fms (s, x, y, z, MPFR_RNDN);
   mpfr_neg (z, z, MPFR_RNDN);
-  if (mpfr_cmp (s, z))
+  if (! mpfr_equal_p (s, z))
     {
       printf ("evaluation of function in x=0 does not return -z\n");
       exit (1);
@@ -537,7 +536,7 @@ main (int argc, char *argv[])
   mpfr_urandomb (z, RANDS);
   mpfr_fms (s, x, y, z, MPFR_RNDN);
   mpfr_neg (z, z, MPFR_RNDN);
-  if (mpfr_cmp (s, z))
+  if (! mpfr_equal_p (s, z))
     {
       printf ("evaluation of function in y=0 does not return -z\n");
       exit (1);
@@ -550,82 +549,76 @@ main (int argc, char *argv[])
     int inexact, compare;
     unsigned int n;
 
-    mpfr_prec_t p0=2, p1=200;
-    unsigned int N=200;
+    mpfr_prec_t p0 = 2, p1 = 200;
+    unsigned int N = 200;
 
     mpfr_init (t);
     mpfr_init (slong);
 
     /* generic test */
     for (prec = p0; prec <= p1; prec++)
-    {
-      mpfr_set_prec (x, prec);
-      mpfr_set_prec (y, prec);
-      mpfr_set_prec (z, prec);
-      mpfr_set_prec (s, prec);
-      mpfr_set_prec (t, prec);
+      {
+        mpfr_set_prec (x, prec);
+        mpfr_set_prec (y, prec);
+        mpfr_set_prec (z, prec);
+        mpfr_set_prec (s, prec);
+        mpfr_set_prec (t, prec);
 
-      for (n=0; n<N; n++)
-        {
-          mpfr_urandomb (x, RANDS);
-          mpfr_urandomb (y, RANDS);
-          mpfr_urandomb (z, RANDS);
+        for (n = 0; n < N; n++)
+          {
+            mpfr_urandomb (x, RANDS);
+            mpfr_urandomb (y, RANDS);
+            mpfr_urandomb (z, RANDS);
 
-          if (randlimb () % 2)
-            mpfr_neg (x, x, MPFR_RNDN);
-          if (randlimb () % 2)
-            mpfr_neg (y, y, MPFR_RNDN);
-          if (randlimb () % 2)
-            mpfr_neg (z, z, MPFR_RNDN);
+            if (randlimb () % 2)
+              mpfr_neg (x, x, MPFR_RNDN);
+            if (randlimb () % 2)
+              mpfr_neg (y, y, MPFR_RNDN);
+            if (randlimb () % 2)
+              mpfr_neg (z, z, MPFR_RNDN);
 
-          rnd = RND_RAND_NO_RNDF ();
-          mpfr_set_prec (slong, 2 * prec);
-          if (mpfr_mul (slong, x, y, rnd))
-            {
-              printf ("x*y should be exact\n");
-              exit (1);
-            }
-          compare = mpfr_sub (t, slong, z, rnd);
-          inexact = mpfr_fms (s, x, y, z, rnd);
-          if (mpfr_cmp (s, t))
-            {
-              printf ("results differ for x=");
-              mpfr_out_str (stdout, 2, prec, x, MPFR_RNDN);
-              printf ("  y=");
-              mpfr_out_str (stdout, 2, prec, y, MPFR_RNDN);
-              printf ("  z=");
-              mpfr_out_str (stdout, 2, prec, z, MPFR_RNDN);
-              printf (" prec=%u rnd_mode=%s\n", (unsigned int) prec,
-                      mpfr_print_rnd_mode ((mpfr_rnd_t) rnd));
-              printf ("got      ");
-              mpfr_out_str (stdout, 2, prec, s, MPFR_RNDN);
-              puts ("");
-              printf ("expected ");
-              mpfr_out_str (stdout, 2, prec, t, MPFR_RNDN);
-              puts ("");
-              printf ("approx  ");
-              mpfr_print_binary (slong);
-              puts ("");
-              exit (1);
-            }
-          if (((inexact == 0) && (compare != 0)) ||
-              ((inexact < 0) && (compare >= 0)) ||
-              ((inexact > 0) && (compare <= 0)))
-            {
-              printf ("Wrong inexact flag for rnd=%s: expected %d, got %d\n",
-                      mpfr_print_rnd_mode ((mpfr_rnd_t) rnd),
-                      compare, inexact);
-              printf (" x="); mpfr_out_str (stdout, 2, 0, x, MPFR_RNDN);
-              printf (" y="); mpfr_out_str (stdout, 2, 0, y, MPFR_RNDN);
-              printf (" z="); mpfr_out_str (stdout, 2, 0, z, MPFR_RNDN);
-              printf (" s="); mpfr_out_str (stdout, 2, 0, s, MPFR_RNDN);
-              printf ("\n");
-              exit (1);
-            }
-        }
-    }
-  mpfr_clear (t);
-  mpfr_clear (slong);
+            rnd = RND_RAND_NO_RNDF ();
+            mpfr_set_prec (slong, 2 * prec);
+            if (mpfr_mul (slong, x, y, rnd))
+              {
+                printf ("x*y should be exact\n");
+                exit (1);
+              }
+            compare = mpfr_sub (t, slong, z, rnd);
+            inexact = mpfr_fms (s, x, y, z, rnd);
+            if (! mpfr_equal_p (s, t))
+              {
+                printf ("results differ for\n");
+                printf ("  x=");
+                mpfr_dump (x);
+                printf ("  y=");
+                mpfr_dump (y);
+                printf ("  z=");
+                mpfr_dump (z);
+                printf ("  with prec=%u rnd_mode=%s\n", (unsigned int) prec,
+                        mpfr_print_rnd_mode (rnd));
+                printf ("got      ");
+                mpfr_dump (s);
+                printf ("expected ");
+                mpfr_dump (t);
+                printf ("approx   ");
+                mpfr_dump (slong);
+                exit (1);
+              }
+            if (! SAME_SIGN (inexact, compare))
+              {
+                printf ("Wrong inexact flag for rnd=%s: expected %d, got %d\n",
+                        mpfr_print_rnd_mode (rnd), compare, inexact);
+                printf (" x="); mpfr_dump (x);
+                printf (" y="); mpfr_dump (y);
+                printf (" z="); mpfr_dump (z);
+                printf (" s="); mpfr_dump (s);
+                exit (1);
+              }
+          }
+      }
+    mpfr_clear (t);
+    mpfr_clear (slong);
 
   }
   mpfr_clear (x);
