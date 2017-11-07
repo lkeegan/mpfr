@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 4.0.0-dev
-@set UPDATED-MONTH October 2017
+@set UPDATED-MONTH November 2017
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -984,10 +984,18 @@ When more precision is needed, the value is automatically recomputed;
 a minimum of 10% increase of the precision is guaranteed to avoid too
 many recomputations.
 
-At any time, the user can free various caches with @code{mpfr_free_cache}
-and @code{mpfr_free_cache2}. It is strongly advised to free thread-local
-caches before terminating a thread and global caches before exiting when
-using tools like @samp{valgrind} (to avoid memory leaks being reported).
+MPFR functions may also create pools for internal use to avoid the cost
+of memory allocation.
+@c FIXME: Say a bit more about the mpz_t pool. Make it configurable at
+@c run time, with a compile-time bound on the number of entries? Pools
+@c may be a bad idea if the allocator is fast and/or if there are many
+@c threads (since they are thread-local).
+
+At any time, the user can free various caches and pools with
+@code{mpfr_free_cache} and @code{mpfr_free_cache2}. It is strongly advised
+to free thread-local caches before terminating a thread and global caches
+before exiting when using tools like @samp{valgrind} (to avoid memory leaks
+being reported).
 
 @c FIXME: explain how memory allocation is done (once the issues are fixed
 @c to allow the allocation functions to be changed). Give a reference to:
@@ -2224,6 +2232,8 @@ When @var{op} is a negative integer, set @var{rop} to NaN@.
 @deftypefun int mpfr_beta (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to the value of the Beta function at arguments @var{op1} and
 @var{op2}.
+Note: the current code does not try to avoid internal overflow or underflow,
+and might use a huge internal precision in some cases.
 @end deftypefun
 
 @deftypefun int mpfr_zeta (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -2350,8 +2360,8 @@ use @code{mpfr_free_cache} or @code{mpfr_free_cache2}.
 @c while mpfr_free_cache (or the dedicated function) would not touch
 @c them.
 @deftypefun void mpfr_free_cache (void)
-Free various caches used by MPFR internally (thoses local to the
-current thread and shared by all threads).
+Free all caches and pools used by MPFR internally (thoses local to the
+current thread and those shared by all threads).
 In addition to clearing all MPFR variables,
 you should call this function before terminating a thread, of before calling
 @code{mp_set_memory_functions}, even if you did
@@ -2360,11 +2370,19 @@ internally).
 @end deftypefun
 
 @deftypefun void mpfr_free_cache2 (mpfr_free_cache_t @var{way})
-Free various caches used by MPFR internally,
-either the caches local to the current thread (if @var{way} is
-@code{MPFR_FREE_LOCAL_CACHE})
-or the caches common to all threads (if @var{way} is
-@code{MPFR_FREE_GLOBAL_CACHE}).
+Free various caches and pools used by MPFR internally,
+as specified by @var{way}, which is a set of flags:
+@itemize @bullet
+@item those local to the current thread if flag @code{MPFR_FREE_LOCAL_CACHE}
+is set;
+@item those shared by all threads if flag @code{MPFR_FREE_GLOBAL_CACHE}
+is set.
+@end itemize
+The other bits of @var{way} are currently ignored and are reserved for
+future use; they should be zero.
+
+Note: @code{mpfr_free_cache2(MPFR_FREE_LOCAL_CACHE|MPFR_FREE_GLOBAL_CACHE)}
+is currently equivalent to @code{mpfr_free_cache()}.
 @end deftypefun
 
 @deftypefun int mpfr_sum (mpfr_t @var{rop}, const mpfr_ptr @var{tab}[], unsigned long int @var{n}, mpfr_rnd_t @var{rnd})
@@ -3061,14 +3079,16 @@ int i = mpfr_round_nearest_away (mpfr_add_ui, r, f, ul);
 @section Miscellaneous Functions
 
 @deftypefun void mpfr_nexttoward (mpfr_t @var{x}, mpfr_t @var{y})
-If @var{x} or @var{y} is NaN, set @var{x} to NaN@. If @var{x} and @var{y}
-are equal, @var{x} is unchanged. Otherwise, if @var{x}
-is different from @var{y}, replace @var{x} by the next floating-point
-number (with the precision of @var{x} and the current exponent range)
-in the direction of @var{y}
+If @var{x} or @var{y} is NaN, set @var{x} to NaN; note that the NaN flag
+is set as usual.
+If @var{x} and @var{y} are equal, @var{x} is unchanged.
+Otherwise, if @var{x} is different from @var{y}, replace @var{x} by the
+next floating-point number (with the precision of @var{x} and the current
+exponent range) in the direction of @var{y}
 (the infinite values are seen as the smallest and largest floating-point
-numbers). If the result is zero, it keeps the same sign. No underflow or
-overflow is generated.
+numbers). If the result is zero, it keeps the same sign. No underflow,
+overflow, or inexact exception is raised.
+@c For NaN, the behavior is like IEEE 754-2008 with sNaN.
 @end deftypefun
 
 @deftypefun void mpfr_nextabove (mpfr_t @var{x})
@@ -3860,7 +3880,7 @@ that were added after MPFR 2.2, and in which MPFR version.
 
 @item @code{mpfr_asprintf} in MPFR 2.4.
 
-@item @code{mpfr_beta} in MPFR 4.0.
+@item @code{mpfr_beta} in MPFR 4.0 (incomplete, experimental).
 
 @item @code{mpfr_buildopt_decimal_p} in MPFR 3.0.
 
@@ -3917,6 +3937,8 @@ in MPFR 4.0.
 @item @code{mpfr_fpif_export} and @code{mpfr_fpif_import} in MPFR 4.0.
 
 @item @code{mpfr_fprintf} in MPFR 2.4.
+
+@item @code{mpfr_free_cache2} in MPFR 4.0.
 
 @item @code{mpfr_frexp} in MPFR 3.1.
 

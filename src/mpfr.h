@@ -240,14 +240,16 @@ typedef const __mpfr_struct *mpfr_srcptr;
 
 /* Stack interface */
 typedef enum {
-  MPFR_NAN_KIND = 0,
-  MPFR_INF_KIND = 1, MPFR_ZERO_KIND = 2, MPFR_REGULAR_KIND = 3
+  MPFR_NAN_KIND     = 0,
+  MPFR_INF_KIND     = 1,
+  MPFR_ZERO_KIND    = 2,
+  MPFR_REGULAR_KIND = 3
 } mpfr_kind_t;
 
 /* Free cache policy */
 typedef enum {
-  MPFR_FREE_LOCAL_CACHE = 1,
-  MPFR_FREE_GLOBAL_CACHE = 2
+  MPFR_FREE_LOCAL_CACHE  = 1,  /* 1 << 0 */
+  MPFR_FREE_GLOBAL_CACHE = 2   /* 1 << 1 */
 } mpfr_free_cache_t;
 
 /* GMP defines:
