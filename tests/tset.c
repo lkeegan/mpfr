@@ -22,7 +22,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include "mpfr-test.h"
 
-int error;
+static int error;
 
 #define PRINT_ERROR_IF(condition, text)         \
   do {                                          \
@@ -34,18 +34,62 @@ int error;
   } while (0)
 
 
-/* Maybe better create its own test file ? */
+/* Maybe better create its own test file? */
 static void
 check_neg_special (void)
 {
-  mpfr_t x;
-  mpfr_init (x);
+  mpfr_t x, y;
+  int inexact;
+  int s1, s2, s3;
+
+  mpfr_inits2 (53, x, y, (mpfr_ptr) 0);
+
   MPFR_SET_NAN (x);
+  s1 = mpfr_signbit (x) != 0;
+
   mpfr_clear_nanflag ();
-  mpfr_neg (x, x, MPFR_RNDN);
+  inexact = mpfr_neg (y, x, MPFR_RNDN);
+  s2 = mpfr_signbit (y) != 0;
   PRINT_ERROR_IF (!mpfr_nanflag_p (),
-                  "ERROR: neg (NaN) doesn't set Nan flag.\n");
-  mpfr_clear (x);
+                  "ERROR: neg (NaN) doesn't set Nan flag (1).\n");
+  PRINT_ERROR_IF (!mpfr_nan_p (y) || inexact != 0,
+                  "ERROR: neg (NaN) failed to set variable to NaN (1).\n");
+  PRINT_ERROR_IF (s1 == s2,
+                  "ERROR: neg (NaN) doesn't correctly flip sign bit (1).\n");
+
+  mpfr_clear_nanflag ();
+  inexact = mpfr_neg (x, x, MPFR_RNDN);
+  s2 = mpfr_signbit (x) != 0;
+  PRINT_ERROR_IF (!mpfr_nanflag_p (),
+                  "ERROR: neg (NaN) doesn't set Nan flag (2).\n");
+  PRINT_ERROR_IF (!mpfr_nan_p (x) || inexact != 0,
+                  "ERROR: neg (NaN) failed to set variable to NaN (2).\n");
+  /* check following "bug" is fixed:
+     https://sympa.inria.fr/sympa/arc/mpfr/2017-11/msg00003.html */
+  PRINT_ERROR_IF (s1 == s2,
+                  "ERROR: neg (NaN) doesn't correctly flip sign bit (2).\n");
+
+  mpfr_clear_nanflag ();
+  inexact = mpfr_neg (y, x, MPFR_RNDN);
+  s3 = mpfr_signbit (y) != 0;
+  PRINT_ERROR_IF (!mpfr_nanflag_p (),
+                  "ERROR: neg (NaN) doesn't set Nan flag (3).\n");
+  PRINT_ERROR_IF (!mpfr_nan_p (y) || inexact != 0,
+                  "ERROR: neg (NaN) failed to set variable to NaN (3).\n");
+  PRINT_ERROR_IF (s2 == s3,
+                  "ERROR: neg (NaN) doesn't correctly flip sign bit (3).\n");
+
+  mpfr_clear_nanflag ();
+  inexact = mpfr_neg (x, x, MPFR_RNDN);
+  s3 = mpfr_signbit (x) != 0;
+  PRINT_ERROR_IF (!mpfr_nanflag_p (),
+                  "ERROR: neg (NaN) doesn't set Nan flag (4).\n");
+  PRINT_ERROR_IF (!mpfr_nan_p (x) || inexact != 0,
+                  "ERROR: neg (NaN) failed to set variable to NaN (4).\n");
+  PRINT_ERROR_IF (s2 == s3,
+                  "ERROR: neg (NaN) doesn't correctly flip sign bit (4).\n");
+
+  mpfr_clears (x, y, (mpfr_ptr) 0);
 }
 
 static void
@@ -53,9 +97,9 @@ check_special (void)
 {
   mpfr_t x, y;
   int inexact;
+  int s1, s2;
 
-  mpfr_init (x);
-  mpfr_init (y);
+  mpfr_inits2 (53, x, y, (mpfr_ptr) 0);
 
   mpfr_set_inf (x, 1);
   PRINT_ERROR_IF (!mpfr_inf_p (x) || mpfr_sgn (x) < 0,
@@ -107,15 +151,57 @@ check_special (void)
   PRINT_ERROR_IF (MPFR_NOTZERO (y) || MPFR_IS_POS (y) || inexact != 0,
                   "ERROR: mpfr_set failed to set variable to -0.\n");
 
+  /* NaN tests */
+
   mpfr_set_nan (x);
   PRINT_ERROR_IF (!mpfr_nan_p (x),
                   "ERROR: mpfr_set_nan failed to set variable to NaN.\n");
-  inexact = mpfr_set (y, x, MPFR_RNDN);
-  PRINT_ERROR_IF (!mpfr_nan_p (y) || inexact != 0,
-                  "ERROR: mpfr_set failed to set variable to NaN.\n");
+  s1 = mpfr_signbit (x) != 0;
 
-  mpfr_clear (x);
-  mpfr_clear (y);
+  mpfr_clear_nanflag ();
+  inexact = mpfr_set (y, x, MPFR_RNDN);
+  s2 = mpfr_signbit (y) != 0;
+  PRINT_ERROR_IF (!mpfr_nanflag_p (),
+                  "ERROR: mpfr_set doesn't set Nan flag (1).\n");
+  PRINT_ERROR_IF (!mpfr_nan_p (y) || inexact != 0,
+                  "ERROR: mpfr_set failed to set variable to NaN (1).\n");
+  PRINT_ERROR_IF (s1 != s2,
+                  "ERROR: mpfr_set doesn't preserve the sign bit (1).\n");
+
+  mpfr_clear_nanflag ();
+  inexact = mpfr_set (x, x, MPFR_RNDN);
+  s2 = mpfr_signbit (x) != 0;
+  PRINT_ERROR_IF (!mpfr_nanflag_p (),
+                  "ERROR: mpfr_set doesn't set Nan flag (2).\n");
+  PRINT_ERROR_IF (!mpfr_nan_p (x) || inexact != 0,
+                  "ERROR: mpfr_set failed to set variable to NaN (2).\n");
+  PRINT_ERROR_IF (s1 != s2,
+                  "ERROR: mpfr_set doesn't preserve the sign bit (2).\n");
+
+  MPFR_CHANGE_SIGN (x);
+  s1 = !s1;
+
+  mpfr_clear_nanflag ();
+  inexact = mpfr_set (y, x, MPFR_RNDN);
+  s2 = mpfr_signbit (y) != 0;
+  PRINT_ERROR_IF (!mpfr_nanflag_p (),
+                  "ERROR: mpfr_set doesn't set Nan flag (3).\n");
+  PRINT_ERROR_IF (!mpfr_nan_p (y) || inexact != 0,
+                  "ERROR: mpfr_set failed to set variable to NaN (3).\n");
+  PRINT_ERROR_IF (s1 != s2,
+                  "ERROR: mpfr_set doesn't preserve the sign bit (3).\n");
+
+  mpfr_clear_nanflag ();
+  inexact = mpfr_set (x, x, MPFR_RNDN);
+  s2 = mpfr_signbit (x) != 0;
+  PRINT_ERROR_IF (!mpfr_nanflag_p (),
+                  "ERROR: mpfr_set doesn't set Nan flag (4).\n");
+  PRINT_ERROR_IF (!mpfr_nan_p (x) || inexact != 0,
+                  "ERROR: mpfr_set failed to set variable to NaN (4).\n");
+  PRINT_ERROR_IF (s1 != s2,
+                  "ERROR: mpfr_set doesn't preserve the sign bit (4).\n");
+
+  mpfr_clears (x, y, (mpfr_ptr) 0);
 }
 
 static void
