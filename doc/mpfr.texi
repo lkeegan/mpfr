@@ -107,6 +107,7 @@ floating-point arithmetic, version @value{VERSION}.
 * MPFR Basics::                 What every MPFR user should now.
 * MPFR Interface::              MPFR functions and macros.
 * API Compatibility::           API compatibility with previous MPFR versions.
+* MPFR and the IEEE 754 Standard::
 * Contributors::
 * References::
 * GNU Free Documentation License::
@@ -284,8 +285,8 @@ for each variable (including very small precision);
 
 @item MPFR provides the four rounding modes from the IEEE 754-1985
 standard, plus away-from-zero, as well as for basic operations as for other
-mathematical functions. Faithful rounding is provided too, but the results
-may no longer be reproducible.
+mathematical functions. Faithful rounding (partially supported) is provided
+too, but the results may no longer be reproducible.
 
 @end itemize
 
@@ -751,10 +752,15 @@ The following rounding modes are supported:
 @item @code{MPFR_RNDU}: round toward plus infinity (roundTowardPositive in IEEE 754-2008),
 @item @code{MPFR_RNDD}: round toward minus infinity (roundTowardNegative in IEEE 754-2008),
 @item @code{MPFR_RNDA}: round away from zero.
-@item @code{MPFR_RNDF}: faithful rounding.
-@c FIXME: MPFR_RNDF is supported partially. Either the whole code is
-@c checked manually (in particular comparisons on rounding modes) and
-@c fixed, or it should be documented which functions are supported.
+@item @code{MPFR_RNDF}: faithful rounding. This feature is currently
+experimental. Specific support for this rounding mode has been added
+to some functions, such as the basic operations (addition, subtraction,
+multiplication, square, division, square root) or when explicitly
+documented. It might also work with other functions, as it is possible that
+they do not need modification in their code; even though a correct behavior
+is not guaranteed yet (corrections were done when failures occurred in the
+test suite, but almost nothing has been checked manually), failures should
+be regarded as bugs and reported, so that they can be fixed.
 @end itemize
 
 The @samp{round to nearest} mode works as in the IEEE 754 standard: in
@@ -1360,7 +1366,7 @@ to use @code{mpfr_set_decimal64}, one should define the macro
 denominator) can not be represented as a @code{mpfr_t}.
 
 For @code{mpfr_set}, the sign of a NaN is propagated in order to mimic the
-IEEE-754 @code{copy} operation. But contrary to IEEE-754, the NaN flag is
+IEEE 754 @code{copy} operation. But contrary to IEEE 754, the NaN flag is
 set as usual.
 
 Note: If you want to store a floating-point constant to a @code{mpfr_t},
@@ -1766,7 +1772,7 @@ non-zero for a non-negative number less or equal to @code{ULONG_MAX}.
 @deftypefunx int mpfr_add_z (mpfr_t @var{rop}, mpfr_t @var{op1}, mpz_t @var{op2}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_add_q (mpfr_t @var{rop}, mpfr_t @var{op1}, mpq_t @var{op2}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to @math{@var{op1} + @var{op2}} rounded in the direction
-@var{rnd}.  The IEEE-754 rules are used, in particular for signed zeros.
+@var{rnd}.  The IEEE 754 rules are used, in particular for signed zeros.
 But for types having no signed zeros, 0 is considered unsigned
 (i.e., (+0) + 0 = (+0) and (@minus{}0) + 0 = (@minus{}0)).
 The @code{mpfr_add_d} function assumes that the radix of the @code{double} type
@@ -1785,7 +1791,7 @@ is a power of 2, with a precision at most that declared by the C implementation
 @deftypefunx int mpfr_sub_z (mpfr_t @var{rop}, mpfr_t @var{op1}, mpz_t @var{op2}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_sub_q (mpfr_t @var{rop}, mpfr_t @var{op1}, mpq_t @var{op2}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to @math{@var{op1} - @var{op2}} rounded in the direction
-@var{rnd}.  The IEEE-754 rules are used, in particular for signed zeros.
+@var{rnd}.  The IEEE 754 rules are used, in particular for signed zeros.
 But for types having no signed zeros, 0 is considered unsigned
 (i.e., (+0) @minus{} 0 = (+0), (@minus{}0) @minus{} 0 = (@minus{}0),
 0 @minus{} (+0) = (@minus{}0) and 0 @minus{} (@minus{}0) = (+0)).
@@ -1908,10 +1914,10 @@ the sign if @var{rop} and @var{op} are the same variable,
 otherwise a rounding might occur if the precision of @var{rop} is less than
 that of @var{op}.
 
-The sign rule also applies to NaN in order to mimic the IEEE-754
+The sign rule also applies to NaN in order to mimic the IEEE 754
 @code{negate} and @code{abs} operations, i.e., for @code{mpfr_neg}, the
 sign is reversed, and for @code{mpfr_abs}, the sign is set to positive.
-But contrary to IEEE-754, the NaN flag is set as usual.
+But contrary to IEEE 754, the NaN flag is set as usual.
 @end deftypefun
 
 @deftypefun int mpfr_dim (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_rnd_t @var{rnd})
@@ -2401,9 +2407,12 @@ Note: @code{mpfr_free_cache2(MPFR_FREE_LOCAL_CACHE|MPFR_FREE_GLOBAL_CACHE)}
 is currently equivalent to @code{mpfr_free_cache()}.
 @end deftypefun
 
-@deftypefun void mpfr_mp_memory_cleanup (void)
+@deftypefun int mpfr_mp_memory_cleanup (void)
 This function should be called before calling @code{mp_set_memory_functions}.
 @xref{Memory Handling}, for more information.
+Zero is returned in case of success, non-zero in case of error.
+Errors are currently not possible, but checking the return value
+is recommended for future compatibility.
 @end deftypefun
 
 @deftypefun int mpfr_sum (mpfr_t @var{rop}, const mpfr_ptr @var{tab}[], unsigned long int @var{n}, mpfr_rnd_t @var{rnd})
@@ -3018,16 +3027,14 @@ the call @code{mpfr_set (y, b, rnd3)} with @var{y} of precision @var{prec},
 @c would be lost by making the user recompute everything in a larger
 @c precision if one could have returned non-zero instead of 0.
 
-@c FIXME: This is still incorrect as inex can be 0. But the note can
-@c be simplified if one replaces rnd1 by MPFR_RNDN as this is usually
-@c the case.
 Note: The @ref{ternary value} cannot be determined in general with this
 function. However, if it is known that the exact value is not exactly
 representable in precision @var{prec}, then one can use the following
-trick to determine the (non-zero) @ref{ternary value} in any rounding
-mode (@code{MPFR_RNDZ} can be replaced by any directed rounding mode):
+trick to determine the (non-zero) ternary value in any rounding mode
+@var{rnd2} (note that @code{MPFR_RNDZ} below can be replaced by any
+directed rounding mode):
 @example
-if (mpfr_can_round (b, err, rnd1, MPFR_RNDZ,
+if (mpfr_can_round (b, err, MPFR_RNDN, MPFR_RNDZ,
                     prec + (rnd2 == MPFR_RNDN)))
   @{
     /* round the approximation 'b' to the result 'r' of 'prec' bits
@@ -3773,7 +3780,7 @@ whole number of limbs, the excess bits at the low end of the data are zeros.
 
 @end itemize
 
-@node API Compatibility, Contributors, MPFR Interface, Top
+@node API Compatibility, MPFR and the IEEE 754 Standard, MPFR Interface, Top
 @chapter API Compatibility
 
 The goal of this section is to describe some API changes that occurred
@@ -3881,6 +3888,11 @@ compatibility (this might change in future versions), using:
 @end example
 The rounding mode ``round away from zero'' (@code{MPFR_RNDA}) was added in
 MPFR 3.0 (however no rounding mode @code{GMP_RNDA} exists).
+Faithful rounding (@code{MPFR_RNDF}) was added in MPFR 4.0, but currently,
+it is partially supported.
+@c That's sufficient information for now. More should be said in future
+@c versions (for instance, a user of 4.1 may want to know if this works
+@c in 4.0).
 
 The flags-related macros, whose name starts with @code{MPFR_FLAGS_},
 were added in MPFR 4.0 (for the new functions @code{mpfr_flags_clear},
@@ -4239,7 +4251,58 @@ while still supporting optional functions (@pxref{Headers and Libraries}).
 The way memory is allocated by MPFR should be regarded as well-specified
 only as of MPFR 4.0.
 
-@node Contributors, References, API Compatibility, Top
+@node MPFR and the IEEE 754 Standard, Contributors, API Compatibility, Top
+@chapter MPFR and the IEEE 754 Standard
+
+This section describes differences between MPFR and the IEEE 754 standard,
+and behaviors that are not specified yet in IEEE 754.
+
+The MPFR numbers do not include subnormals. The reason is that subnormals
+are less useful than in IEEE 754 as the default exponent range in MPFR is
+large and they would have made the implementation more complex.
+However, subnormals can be emulated using @code{mpfr_subnormalize}.
+
+MPFR has a single NaN@. The behavior is similar either to a signaling NaN or
+to a quiet NaN, depending on the context. For any function returning a NaN
+(either produced or propagated), the NaN flag is set, while in IEEE 754,
+some operations are quiet (even on a signaling NaN)@.
+
+The @code{mpfr_rec_sqrt} function differs from IEEE 754 on @minus{}0,
+where it gives +Inf (like for +0), following the usual limit rules,
+instead of @minus{}Inf.
+
+The @code{mpfr_root} function predates IEEE 754-2008 and behaves differently
+from its rootn operation.
+It is deprecated and @code{mpfr_rootn_ui} should be used instead.
+
+@c The following paragraph should cover functions like mpfr_div_ui and
+@c mpfr_log_ui. There are no issues with mpfr_pow_{ui,si,z} because the
+@c IEEE 754 pown operation agrees with mpfr_pow.
+@c FIXME: What about mpfr_ui_pow?
+
+Operations with an unsigned zero: For functions taking an argument of
+integer or rational type, a zero of such a type is unsigned unlike the
+floating-point zero (this includes the zero of type @code{unsigned long},
+which is a mathematical, exact zero, as opposed to a floating-point zero,
+which may come from an underflow and whose sign would correspond to the
+sign of the real non-zero value). Then the usual limit rules are used,
+as if the operation were defined on the extended real numbers. Thus, for
+the division by an unsigned zero, NaN is returned, and for the logarithm
+of an unsigned zero, @minus{}Inf is returned. This concerns at least the
+functions @code{mpfr_div_ui}, @code{mpfr_div_si}, @code{mpfr_div_q},
+@code{mpfr_div_z}, and @code{mpfr_log_ui}.
+Such operations are currently out of the scope of the IEEE 754 standard,
+and at the time of specification in MPFR, the Floating-Point Working Group
+in charge of the revision of IEEE 754 did not want to discuss issues with
+non-floating-point types in general.
+
+Note also that some obvious differences may come from the fact that in
+MPFR, each variable has its own precision. For instance, a subtraction
+of two numbers of the same sign may yield an overflow; idem for a call
+to @code{mpfr_set}, @code{mpfr_neg} or @code{mpfr_abs}, if the destination
+variable has a smaller precision.
+
+@node Contributors, References, MPFR and the IEEE 754 Standard, Top
 @comment  node-name,  next,  previous,  up
 @unnumbered Contributors
 
