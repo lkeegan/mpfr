@@ -27,10 +27,48 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #error "Endianness is unknown. Not supported yet."
 #endif
 
+/* The format is described as follows. Any multi-byte number is encoded
+   in little endian.
+
+   1. We first store the precision p (this format is able to represent
+      any precision from 1 to 2^64 + 248).
+      Let B be the first byte (0 <= B <= 255).
+        * If B >= 8, the precision p is B-7.
+          Here, the condition is equivalent to 1 <= p <= 248.
+        * If B <= 7, the next B+1 bytes contain p-249.
+          Here, the condition is equivalent to 249 <= p <= 2^64 + 248.
+      We will use the following macros:
+        * MPFR_MAX_PRECSIZE = 7
+        * MPFR_MAX_EMBEDDED_PRECISION = 255 - 7 = 248
+
+   2. Then we store the sign bit and exponent related information
+      (possibly a special value). We first have byte A = [seeeeeee],
+      where s is the sign bit and E = [eeeeeee] such that:
+        * If 0 <= E <= 94, then the exponent e is E-47 (-47 <= e <= 47).
+        * If 95 <= E <= 110, the exponent is stored in the next E-94 bytes
+          (1 to 16 bytes).
+        * If 111 <= E <= 118, the exponent size S is stored in the next
+          E-110 bytes (1 to 8), then the exponent itself is stored in the
+          next S bytes.
+        * If 119 <= E <= 127, we have a special value:
+          E = 119 (MPFR_KIND_ZERO) for a signed zero;
+          E = 120 (MPFR_KIND_INF) for a signed infinity;
+          E = 121 (MPFR_KIND_NAN) for NaN.
+          *** FIXME *** Decide whether the sign of NaN matters here.
+          This is currently not the case for import, but it wouldn't
+          hurt. Moreover, it seems important that for export, the
+          sign of NaN be specified in some way (to ease things like
+          binary diffs or hashes).
+
+   3. Then we store the significand.
+*/
+
+#define MPFR_MAX_PRECSIZE 7
+#define MPFR_MAX_EMBEDDED_PRECISION (255 - MPFR_MAX_PRECSIZE)
+
 #define MPFR_KIND_ZERO 119
 #define MPFR_KIND_INF 120
 #define MPFR_KIND_NAN 121
-#define MPFR_MAX_EMBEDDED_PRECISION 248
 #define MPFR_MAX_EMBEDDED_EXPONENT 47
 #define MPFR_EXTERNAL_EXPONENT 94
 
@@ -151,6 +189,7 @@ mpfr_fpif_store_precision (unsigned char *buffer, size_t *buffer_size,
   unsigned char *result;
   size_t size_precision;
 
+  MPFR_ASSERTD (precision >= 1);
   size_precision = 0;
 
   if (precision > MPFR_MAX_EMBEDDED_PRECISION)
@@ -172,7 +211,7 @@ mpfr_fpif_store_precision (unsigned char *buffer, size_t *buffer_size,
                            sizeof(mpfr_prec_t), size_precision);
     }
   else
-    result[0] = precision + 7;
+    result[0] = precision + MPFR_MAX_PRECSIZE;
 
   return result;
 }
@@ -326,7 +365,10 @@ mpfr_fpif_read_exponent_from_file (mpfr_t x, FILE * fh)
   if (fread (buffer, 1, 1, fh) != 1)
     return 1;
 
-  sign = (buffer[0] & 0x80) ? -1 : 1;
+  /* sign value that can be used with MPFR_SET_SIGN,
+     mpfr_set_zero and mpfr_set_inf */
+  sign = (buffer[0] & 0x80) ? MPFR_SIGN_NEG : MPFR_SIGN_POS;
+
   exponent = buffer[0] & 0x7F;
   exponent_size = 1;
 
@@ -551,8 +593,17 @@ mpfr_fpif_import (mpfr_t x, FILE *fh)
   if (status != 0)
     return -1;
 
-  if (mpfr_regular_p (x))
+  /* Warning! The significand of x is not set yet. Thus use MPFR_IS_SINGULAR
+     for the test. */
+  if (!MPFR_IS_SINGULAR (x))
     {
+      /* For portability, we need to consider bytes with only 8 significant
+         bits in the interchange format. That's OK because CHAR_BIT >= 8.
+         But the implementation is currently not clear when CHAR_BIT > 8.
+         This may have never been tested. For safety, require CHAR_BIT == 8,
+         and test/adapt the code if this ever fails. */
+      MPFR_STAT_STATIC_ASSERT (CHAR_BIT == 8);
+      MPFR_STAT_STATIC_ASSERT ((MPFR_PREC_MAX + 7) >> 3 <= (size_t) -1);
       used_size = (precision + 7) >> 3; /* ceil(precision/8) */
       buffer = (unsigned char*) mpfr_allocate_func (used_size);
       if (buffer == NULL)
