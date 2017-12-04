@@ -2240,7 +2240,7 @@ mpfr_ceil_mul (mpfr_exp_t e, int beta, int i)
    (thus m+1 or m+2 characters).
 
    Important: when you call this function with s=NULL, don't forget to free
-   the memory space allocated, with free(s, strlen(s)).
+   the memory space allocated, with mpfr_free_str.
 */
 char*
 mpfr_get_str (char *s, mpfr_exp_t *e, int b, size_t m, mpfr_srcptr x,
@@ -2331,7 +2331,8 @@ mpfr_get_str (char *s, mpfr_exp_t *e, int b, size_t m, mpfr_srcptr x,
 
   MPFR_LOG_MSG (("m=%zu\n", m));
 
-  /* the code below for non-power-of-two bases works for m=1 */
+  /* The code below for non-power-of-two bases works for m=1;
+     this is important for the internal use of mpfr_get_str. */
   MPFR_ASSERTN (m >= 2 || (!IS_POW2(b) && m >= 1));
 
   /* x is a floating-point number */

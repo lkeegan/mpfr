@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 4.0.0-dev
-@set UPDATED-MONTH November 2017
+@set UPDATED-MONTH December 2017
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -14,6 +14,10 @@
 @c Note: avoid using non-ASCII characters directly when possible,
 @c as the "info" utility cannot currently handle them.
 @c   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=212549
+
+@c texinfo.tex 2017-12-01.13 or later is needed to support @var{} in exponent.
+@c See thread at
+@c   http://lists.gnu.org/archive/html/bug-texinfo/2017-11/msg00019.html
 
 @copying
 This manual documents how to install and use the Multiple Precision
@@ -27,19 +31,6 @@ version published by the Free Software Foundation; with no Invariant Sections,
 with no Front-Cover Texts, and with no Back-Cover Texts.  A copy of the
 license is included in @ref{GNU Free Documentation License}.
 @end copying
-
-
-@c  Texinfo version 4.2 or later will be needed to process this file.
-@c  Texinfo version 5.0 or later should be used since the formatting
-@c  has been modified for this version (tested with 5.2).
-@c
-@c  A suitable texinfo.tex is supplied, a newer one should work
-@c  equally well.
-@c
-@c  The edition number is in the VERSION variable above and should be
-@c  updated where appropriate.  Also, update the month and year in
-@c  UPDATED-MONTH.
-
 
 @dircategory Software libraries
 @direntry
@@ -1701,39 +1692,35 @@ minimal precision @math{m} depending only on @var{p} = PREC(@var{op}) and
 m = 1 + ceil(@var{p}*log(2)/log(@var{b})),
 @end ifnottex
 @tex
-$m = 1 + \lceil p {\log 2 \over \log b} \rceil$,
+$m = 1 + \left\lceil @var{p} {\log 2 \over \log @var{b}} \right\rceil$,
 @end tex
 with @var{p} replaced by @var{p}@minus{}1 if @var{b} is a power of 2,
 but in some very rare cases, it might be @math{m+1}
 (the smallest case for bases up to 62 is when @var{p} equals 186564318007
 for bases 7 and 49).
+@c In the source src/get_str.c, this is due to the approximate mpfr_ceil_mul,
+@c but also m = 1 is changed to 2.
 
 If @var{str} is a null pointer, space for the significand is allocated using
-the current allocation function and a pointer to the string is returned
-(unless the base is invalid).
+the allocation function (@pxref{Memory Handling}) and a pointer to the string
+is returned (unless the base is invalid).
 To free the returned string, you must use @code{mpfr_free_str}.
 
 If @var{str} is not a null pointer, it should point to a block of storage
-large enough for the significand, i.e., at least @code{max(@var{n} + 2, 7)}.
-The extra two bytes are for a possible minus sign, and for the terminating null
-character, and the value 7 accounts for @samp{-@@Inf@@}
-plus the terminating null character. The pointer to the string @var{str}
-is returned (unless the base is invalid).
+large enough for the significand. A safe block size (sufficient for any
+value) is @code{max(@var{n} + 2, 7)} if @var{n} is not zero; if @var{n} is
+zero, replace it by @math{m+1}, as discussed above. The extra two bytes are
+for a possible minus sign, and for the terminating null character, and the
+value 7 accounts for @samp{-@@Inf@@} plus the terminating null character.
+The pointer to the string @var{str} is returned (unless the base is invalid).
 
 Like in usual functions, the inexact flag is set iff the result is inexact.
 @end deftypefun
 
 @deftypefun void mpfr_free_str (char *@var{str})
-Free a string allocated by @code{mpfr_get_str} using the current unallocation
-function.
+Free a string allocated by @code{mpfr_get_str} using the unallocation
+function (@pxref{Memory Handling}).
 The block is assumed to be @code{strlen(@var{str})+1} bytes.
-For more information about how it is done:
-@ifinfo
-@pxref{Custom Allocation,,, gmp.info,GNU MP}.
-@end ifinfo
-@ifnotinfo
-see Section ``Custom Allocation'' in @cite{GNU MP}.
-@end ifnotinfo
 @end deftypefun
 
 @deftypefun int mpfr_fits_ulong_p (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -1974,7 +1961,7 @@ or both arguments are NaN@. But only floating-point numbers can be compared
 
 @deftypefun int mpfr_cmp_ui_2exp (mpfr_t @var{op1}, unsigned long int @var{op2}, mpfr_exp_t @var{e})
 @deftypefunx int mpfr_cmp_si_2exp (mpfr_t @var{op1}, long int @var{op2}, mpfr_exp_t @var{e})
-Compare @var{op1} and @m{@var{op2} \times 2^e, @var{op2} multiplied by two to
+Compare @var{op1} and @m{@var{op2} \times 2^{@var{e}}, @var{op2} multiplied by two to
 the power @var{e}}. Similar as above.
 @end deftypefun
 
@@ -2214,14 +2201,8 @@ at @minus{}@var{op} (formula 5.1.1 from the same reference).
 @deftypefun int mpfr_li2 (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to real part of the dilogarithm of @var{op}, rounded in the
 direction @var{rnd}. MPFR defines the dilogarithm function as
-@m{-\int_{t=0}^{op} \log(1-t)/t\ dt,the integral of -log(1-t)/t from 0
+@m{-\int_{t=0}^{@var{op}} \log(1-t)/t\ dt,the integral of -log(1-t)/t from 0
 to @var{op}}.
-@c Note: It should be {@var{op}} instead of {op} above, but pdftex fails
-@c on the correct form with the error "\scriptfont 5 is undefined" on
-@c characters o and p. The correct form is typographically important as
-@c as the font is slanted instead of italic and kerning must be avoided
-@c (for instance, see "@var{foo}" vs "foo"). Bug report:
-@c   http://lists.gnu.org/archive/html/bug-texinfo/2017-11/msg00019.html
 @end deftypefun
 
 @deftypefun int mpfr_gamma (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -2520,11 +2501,11 @@ versions.
 Import the number @var{op} from the stream @var{stream} in a floating-point
 interchange format (see @code{mpfr_fpif_export}).
 The precision of @var{op} is read from the stream.
-@c Commented out since with MPFR_PREC_MIN=1 this is void.
-@c If the precision is less
-@c than @code{MPFR_PREC_MIN}, it is set to @code{MPFR_PREC_MIN}.
-If the stored precision is greater than @code{MPFR_PREC_MAX}, the function
-fails (it returns non-zero and @var{op} is unchanged).
+If the stored precision is zero or greater than @code{MPFR_PREC_MAX}, the
+function fails (it returns non-zero) and @var{op} is unchanged. If the
+function fails for another reason, @var{op} is set to NaN and it is
+unspecified whether the precision of @var{op} has changed to the one
+read from the file.
 Return 0 iff the import was successful.
 
 Note: this function is experimental and its interface might change in future
@@ -2789,7 +2770,8 @@ the terminating null character, or a negative value if an error occurred.
 @deftypefun int mpfr_asprintf (char **@var{str}, const char *@var{template}, @dots{})
 @deftypefunx int mpfr_vasprintf (char **@var{str}, const char *@var{template}, va_list @var{ap})
 Write their output as a null terminated string in a block of memory allocated
-using the current allocation function. A pointer to the block is stored in
+using the allocation function (@pxref{Memory Handling}). A pointer to the
+block is stored in
 @var{str}. The block of memory must be freed using @code{mpfr_free_str}.
 The return value is the number of characters written in the string, excluding
 the null-terminator, or a negative value if an error occurred, in which case

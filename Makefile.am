@@ -47,3 +47,11 @@ dist-hook:
 	cd $(srcdir) && tools/ck-news
 	cd $(srcdir) && tools/ck-clz_tab
 	cd $(srcdir)/doc && ./check-typography
+
+# Check that MPFR does not use GMP internal symbols. Of course, do not run
+# this rule if you use --with-gmp-build or --enable-gmp-internals. This
+# test does nothing if --disable-shared has been used.
+check-gmp-symbols:
+	cd src && $(MAKE) check-gmp-symbols
+
+.PHONY: check-gmp-symbols
