@@ -26,7 +26,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "gmp.h"
 #include "mpfr.h"
 
-#if defined (USG) || defined (__SVR4) || defined (_UNICOS) || defined(HPUX)
+#if defined (USG) || defined (__SVR4) || defined (_UNICOS) || defined(HPUX) || defined(_MSC_VER)
 #include <time.h>
 
 int

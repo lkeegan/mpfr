@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.12
+VisualStudioVersion = 15.0.27130.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lib_mpfr_tests", "lib_mpfr_tests", "{610C8F32-024C-4868-B514-3F2C9AFCE83F}"
 EndProject
@@ -1091,6 +1091,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tget_q", "lib_mpfr_tests\tg
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "trootn_ui", "lib_mpfr_tests\trootn_ui\trootn_ui.vcxproj", "{1BA5CA1A-2CFD-44B6-8FEF-34A20D4E533C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "timing", "timing\timing.vcxproj", "{F937F792-25ED-4DE4-AA9F-104163DB24DF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -2564,6 +2566,14 @@ Global
 		{1BA5CA1A-2CFD-44B6-8FEF-34A20D4E533C}.Release|Win32.Build.0 = Release|Win32
 		{1BA5CA1A-2CFD-44B6-8FEF-34A20D4E533C}.Release|x64.ActiveCfg = Release|x64
 		{1BA5CA1A-2CFD-44B6-8FEF-34A20D4E533C}.Release|x64.Build.0 = Release|x64
+		{F937F792-25ED-4DE4-AA9F-104163DB24DF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F937F792-25ED-4DE4-AA9F-104163DB24DF}.Debug|Win32.Build.0 = Debug|Win32
+		{F937F792-25ED-4DE4-AA9F-104163DB24DF}.Debug|x64.ActiveCfg = Debug|x64
+		{F937F792-25ED-4DE4-AA9F-104163DB24DF}.Debug|x64.Build.0 = Debug|x64
+		{F937F792-25ED-4DE4-AA9F-104163DB24DF}.Release|Win32.ActiveCfg = Release|Win32
+		{F937F792-25ED-4DE4-AA9F-104163DB24DF}.Release|Win32.Build.0 = Release|Win32
+		{F937F792-25ED-4DE4-AA9F-104163DB24DF}.Release|x64.ActiveCfg = Release|x64
+		{F937F792-25ED-4DE4-AA9F-104163DB24DF}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
