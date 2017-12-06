@@ -981,16 +981,14 @@ When more precision is needed, the value is automatically recomputed;
 a minimum of 10% increase of the precision is guaranteed to avoid too
 many recomputations.
 
-MPFR functions may also create pools for internal use to avoid the cost
-of memory allocation.
-@c FIXME: Say a bit more about the mpz_t pool. Make it configurable at
-@c run time, with a compile-time bound on the number of entries? Pools
-@c may be a bad idea if the allocator is fast and/or if there are many
-@c threads (since they are thread-local).
+MPFR functions may also create thread-local pools for internal use
+to avoid the cost of memory allocation. The pools can be freed with
+@code{mpfr_free_pool} (but with a default MPFR build, they should not
+take much memory, as the allocation size is limited).
 
 At any time, the user can free various caches and pools with
 @code{mpfr_free_cache} and @code{mpfr_free_cache2}. It is strongly advised
-to free thread-local caches before terminating a thread and global caches
+to free thread-local caches before terminating a thread, and all caches
 before exiting when using tools like @samp{valgrind} (to avoid memory leaks
 being reported).
 
@@ -1814,8 +1812,11 @@ rounded in the direction @var{rnd}.
 @deftypefunx int mpfr_div_z (mpfr_t @var{rop}, mpfr_t @var{op1}, mpz_t @var{op2}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_div_q (mpfr_t @var{rop}, mpfr_t @var{op1}, mpq_t @var{op2}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to @math{@var{op1}/@var{op2}} rounded in the direction @var{rnd}.
-When a result is zero, its sign is the product of the signs of the operands
-(for types having no signed zeros, 0 is considered positive).
+When a result is zero, its sign is the product of the signs of the operands.
+For types having no signed zeros, 0 is considered positive; but note that if
+@var{op1} is non-zero and @var{op2} is zero, the result might change from
+@pom{}Inf to NaN in future MPFR versions if there is an opposite decision
+on the IEEE 754 side.
 The same restrictions than for @code{mpfr_add_d} apply to @code{mpfr_d_div}
 and @code{mpfr_div_d}.
 @end deftypefun
@@ -1890,6 +1891,9 @@ standards for the @code{pow} function:
 @item @code{pow(-Inf, @var{y})} returns plus infinity for @var{y} positive and not an odd integer.
 @item @code{pow(+Inf, @var{y})} returns plus zero for @var{y} negative, and plus infinity for @var{y} positive.
 @end itemize
+Note: When 0 is of integer type, it is regarded as +0 by these functions.
+We do not use the usual limit rules in this case, as these rules are not
+used for @code{pow}.
 @end deftypefun
 
 @deftypefun int mpfr_neg (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -2392,6 +2396,12 @@ Note: @code{mpfr_free_cache2(MPFR_FREE_LOCAL_CACHE|MPFR_FREE_GLOBAL_CACHE)}
 is currently equivalent to @code{mpfr_free_cache()}.
 @end deftypefun
 
+@deftypefun void mpfr_free_pool (void)
+Free the pools used by MPFR internally.
+Note: This function is automatically called after the thread-local caches
+are freed (with @code{mpfr_free_cache} or @code{mpfr_free_cache2}).
+@end deftypefun
+
 @deftypefun int mpfr_mp_memory_cleanup (void)
 This function should be called before calling @code{mp_set_memory_functions}.
 @xref{Memory Handling}, for more information.
@@ -2490,7 +2500,7 @@ interchange format.
 In particular one can export on a 32-bit computer and import on a 64-bit
 computer, or export on a little-endian computer and import on a big-endian
 computer.
-The precision of @var{op} is stored too.
+The precision of @var{op} and the sign bit of a NaN are stored too.
 Return 0 iff the export was successful.
 
 Note: this function is experimental and its interface might change in future
@@ -2500,7 +2510,8 @@ versions.
 @deftypefun int mpfr_fpif_import (mpfr_t @var{op}, FILE *@var{stream})
 Import the number @var{op} from the stream @var{stream} in a floating-point
 interchange format (see @code{mpfr_fpif_export}).
-The precision of @var{op} is read from the stream.
+Note that the precision of @var{op} is set to the one read from the stream,
+and the sign bit is always retrieved (even for NaN)@.
 If the stored precision is zero or greater than @code{MPFR_PREC_MAX}, the
 function fails (it returns non-zero) and @var{op} is unchanged. If the
 function fails for another reason, @var{op} is set to NaN and it is
@@ -3960,6 +3971,8 @@ in MPFR 4.0.
 
 @item @code{mpfr_free_cache2} in MPFR 4.0.
 
+@item @code{mpfr_free_pool} in MPFR 4.0.
+
 @item @code{mpfr_frexp} in MPFR 3.1.
 
 @item @code{mpfr_gamma_inc} in MPFR 4.0.
@@ -4261,19 +4274,23 @@ It is deprecated and @code{mpfr_rootn_ui} should be used instead.
 @c The following paragraph should cover functions like mpfr_div_ui and
 @c mpfr_log_ui. There are no issues with mpfr_pow_{ui,si,z} because the
 @c IEEE 754 pown operation agrees with mpfr_pow.
-@c FIXME: What about mpfr_ui_pow?
+@c Discussions:
+@c   https://sympa.inria.fr/sympa/arc/mpfr/2017-04/msg00019.html
+@c   https://sympa.inria.fr/sympa/arc/mpfr/2017-11/msg00009.html
+@c   https://sympa.inria.fr/sympa/arc/mpfr/2017-12/msg00008.html
 
 Operations with an unsigned zero: For functions taking an argument of
 integer or rational type, a zero of such a type is unsigned unlike the
 floating-point zero (this includes the zero of type @code{unsigned long},
 which is a mathematical, exact zero, as opposed to a floating-point zero,
 which may come from an underflow and whose sign would correspond to the
-sign of the real non-zero value). Then the usual limit rules are used,
-as if the operation were defined on the extended real numbers. Thus, for
-the division by an unsigned zero, NaN is returned, and for the logarithm
-of an unsigned zero, @minus{}Inf is returned. This concerns at least the
-functions @code{mpfr_div_ui}, @code{mpfr_div_si}, @code{mpfr_div_q},
-@code{mpfr_div_z}, and @code{mpfr_log_ui}.
+sign of the real non-zero value). Unless documented otherwise, this zero
+is regarded as +0, as if it were first converted to a MPFR number with
+@code{mpfr_set_ui} or @code{mpfr_set_si} (thus the result may not agree
+with the usual limit rules applied to a mathematical zero). This is not
+the case of addition and subtraction (@code{mpfr_add_ui}, etc.), but for
+these functions, only the sign of a zero result would be affected, with
++0 and @minus{}0 considered equal.
 Such operations are currently out of the scope of the IEEE 754 standard,
 and at the time of specification in MPFR, the Floating-Point Working Group
 in charge of the revision of IEEE 754 did not want to discuss issues with
@@ -4353,8 +4370,11 @@ Fredrik Johannsson a faster version of @code{mpfr_const_euler}.
 @item
 Richard Brent and Paul Zimmermann,
 "Modern Computer Arithmetic",
-Cambridge University Press (to appear),
-also available from the authors' web pages.
+Cambridge University Press,
+Cambridge Monographs on Applied and Computational Mathematics,
+Number 18, 2010.
+Electronic version freely available at
+@url{https://members.loria.fr/PZimmermann/mca/pub226.html}.
 
 @item
 Laurent Fousse, Guillaume Hanrot, Vincent Lef@`evre,
@@ -4366,7 +4386,7 @@ volume 33, issue 2, article 13, 15 pages, 2007,
 
 @item
 Torbj@"orn Granlund, "GNU MP: The GNU Multiple Precision Arithmetic Library",
-  version 5.0.1, 2010, @url{https://gmplib.org/}.
+  version 6.1.2, 2016, @url{https://gmplib.org/}.
 
 @item
 IEEE standard for binary floating-point arithmetic, Technical Report
@@ -4386,7 +4406,7 @@ Donald E.@: Knuth, "The Art of Computer Programming", vol 2,
 
 @item
 Jean-Michel Muller, "Elementary Functions, Algorithms and Implementation",
-Birkh@"auser, Boston, 2nd edition, 2006.
+Birkh@"auser, Boston, 3rd edition, 2016.
 
 @item
 Jean-Michel Muller, Nicolas Brisebarre, Florent de Dinechin,

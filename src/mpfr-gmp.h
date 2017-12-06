@@ -431,15 +431,6 @@ typedef struct {mp_limb_t inv32;} mpfr_pi1_t;
   } while (0)
 #endif
 
-/* mpn_copyi and mpn_copyd are new exported functions in GMP 5.
-   Defining them to memmove works in overlap cases. */
-#if !__MPFR_GMP(5,0,0)
-# undef  mpn_copyi
-# define mpn_copyi memmove
-# undef  mpn_copyd
-# define mpn_copyd memmove
-#endif
-
 /* The following macro is copied from GMP-6.1.1, file gmp-impl.h,
    macro udiv_qrnnd_preinv.
    It computes q and r such that nh*2^GMP_NUMB_BITS + nl = q*d + r,
@@ -569,10 +560,6 @@ typedef struct {mp_limb_t inv32;} mpfr_pi1_t;
 /******************************************************
  ************* GMP Basic Pointer Types ****************
  ******************************************************/
-/* Compatibility with old GMP versions. */
-#if !__MPFR_GMP(5,0,0)
-typedef unsigned long mp_bitcnt_t;
-#endif
 
 typedef mp_limb_t *mpfr_limb_ptr;
 typedef const mp_limb_t *mpfr_limb_srcptr;

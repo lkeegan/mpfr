@@ -20,6 +20,7 @@ along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
 http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
+#define _MPFR_NO_DEPRECATED_GRANDOM
 #include "mpfr-test.h"
 
 static void
@@ -52,7 +53,6 @@ test_grandom (long nbtests, mpfr_prec_t prec, mpfr_rnd_t rnd,
               int verbose)
 {
   mpfr_t *t;
-  mpfr_t av, va, tmp;
   int i, inexact;
 
   nbtests = (nbtests & 1) ? (nbtests + 1) : nbtests;
@@ -75,6 +75,8 @@ test_grandom (long nbtests, mpfr_prec_t prec, mpfr_rnd_t rnd,
 #if defined(HAVE_STDARG) && !defined(MPFR_USE_MINI_GMP)
   if (verbose)
     {
+      mpfr_t av, va, tmp;
+
       mpfr_init2 (av, prec);
       mpfr_init2 (va, prec);
       mpfr_init2 (tmp, prec);

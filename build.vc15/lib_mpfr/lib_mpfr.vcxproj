@@ -346,6 +346,7 @@
     <ClCompile Include="..\..\src\nrandom.c" />
     <ClCompile Include="..\..\src\odd_p.c" />
     <ClCompile Include="..\..\src\out_str.c" />
+    <ClCompile Include="..\..\src\pool.c" />
     <ClCompile Include="..\..\src\pow.c" />
     <ClCompile Include="..\..\src\pow_si.c" />
     <ClCompile Include="..\..\src\pow_ui.c" />

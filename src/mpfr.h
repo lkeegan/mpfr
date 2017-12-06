@@ -306,7 +306,21 @@ typedef enum {
    deprecated. Code inspired by Apache Subversion's svn_types.h file.
    For compatibility with MSVC, MPFR_DEPRECATED must be put before
    __MPFR_DECLSPEC (not at the end of the function declaration as
-   documented in the GCC manual); GCC does not seem to care. */
+   documented in the GCC manual); GCC does not seem to care.
+   Moreover, in order to avoid a warning when testing such functions,
+   do something like:
+     +------------------------------------------
+     |#ifndef _MPFR_NO_DEPRECATED_funcname
+     |MPFR_DEPRECATED
+     |#endif
+     |__MPFR_DECLSPEC int mpfr_funcname (...);
+     +------------------------------------------
+   and in the corresponding test program:
+     +------------------------------------------
+     |#define _MPFR_NO_DEPRECATED_funcname
+     |#include "mpfr-test.h"
+     +------------------------------------------
+*/
 #if defined(__GNUC__) && \
   (__GNUC__ >= 4 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1))
 # define MPFR_DEPRECATED __attribute__ ((deprecated))
@@ -448,6 +462,7 @@ __MPFR_DECLSPEC int mpfr_div_q (mpfr_ptr, mpfr_srcptr, mpq_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_add_q (mpfr_ptr, mpfr_srcptr, mpq_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_sub_q (mpfr_ptr, mpfr_srcptr, mpq_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_cmp_q (mpfr_srcptr, mpq_srcptr);
+__MPFR_DECLSPEC void mpfr_get_q (mpq_ptr q, mpfr_srcptr f);
 #endif
 __MPFR_DECLSPEC int mpfr_set_str (mpfr_ptr, const char *, int, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_init_set_str (mpfr_ptr, const char *, int,
@@ -477,12 +492,13 @@ __MPFR_DECLSPEC unsigned long mpfr_get_ui (mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC char * mpfr_get_str (char*, mpfr_exp_t*, int, size_t,
                                      mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_get_z (mpz_ptr z, mpfr_srcptr f, mpfr_rnd_t);
-__MPFR_DECLSPEC void mpfr_get_q (mpq_ptr q, mpfr_srcptr f);
 
 __MPFR_DECLSPEC void mpfr_free_str (char *);
 
 __MPFR_DECLSPEC int mpfr_urandom (mpfr_ptr, gmp_randstate_t, mpfr_rnd_t);
+#ifndef _MPFR_NO_DEPRECATED_GRANDOM /* for the test of this function */
 MPFR_DEPRECATED
+#endif
 __MPFR_DECLSPEC int mpfr_grandom (mpfr_ptr, mpfr_ptr, gmp_randstate_t,
                                   mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_nrandom (mpfr_ptr, gmp_randstate_t, mpfr_rnd_t);
@@ -671,7 +687,9 @@ __MPFR_DECLSPEC int mpfr_hypot (mpfr_ptr, mpfr_srcptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_erf (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_erfc (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_cbrt (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
+#ifndef _MPFR_NO_DEPRECATED_ROOT /* for the test of this function */
 MPFR_DEPRECATED
+#endif
 __MPFR_DECLSPEC int mpfr_root (mpfr_ptr, mpfr_srcptr, unsigned long,
                                mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_rootn_ui (mpfr_ptr, mpfr_srcptr, unsigned long,
@@ -719,6 +737,7 @@ __MPFR_DECLSPEC int mpfr_sum (mpfr_ptr, const mpfr_ptr *, unsigned long,
 
 __MPFR_DECLSPEC void mpfr_free_cache (void);
 __MPFR_DECLSPEC void mpfr_free_cache2 (mpfr_free_cache_t);
+__MPFR_DECLSPEC void mpfr_free_pool (void);
 __MPFR_DECLSPEC int mpfr_mp_memory_cleanup (void);
 
 __MPFR_DECLSPEC int mpfr_subnormalize (mpfr_ptr, int, mpfr_rnd_t);
