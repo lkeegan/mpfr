@@ -18,6 +18,9 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\tools\timings-mpfr.c" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{F937F792-25ED-4DE4-AA9F-104163DB24DF}</ProjectGuid>
@@ -137,9 +140,6 @@
       <AdditionalDependencies>..\..\lib\$(IntDir)mpfr.lib;..\..\..\mpir\lib\$(IntDir)mpir.lib;..\..\..\mpir\build.vc15\$(IntDir)lib_speed.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\tests\timings-mpfr.c" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -11,7 +11,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\tests\timings-mpfr.c">
+    <ClCompile Include="..\..\tools\timings-mpfr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
