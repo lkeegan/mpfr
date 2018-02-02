@@ -302,6 +302,7 @@
     <ClCompile Include="..\..\src\get_float128.c" />
     <ClCompile Include="..\..\src\get_flt.c" />
     <ClCompile Include="..\..\src\get_ld.c" />
+    <ClCompile Include="..\..\src\get_q.c" />
     <ClCompile Include="..\..\src\get_si.c" />
     <ClCompile Include="..\..\src\get_sj.c" />
     <ClCompile Include="..\..\src\get_str.c" />
@@ -364,6 +365,7 @@
     <ClCompile Include="..\..\src\nrandom.c" />
     <ClCompile Include="..\..\src\odd_p.c" />
     <ClCompile Include="..\..\src\out_str.c" />
+    <ClCompile Include="..\..\src\pool.c" />
     <ClCompile Include="..\..\src\pow.c" />
     <ClCompile Include="..\..\src\pow_si.c" />
     <ClCompile Include="..\..\src\pow_ui.c" />
