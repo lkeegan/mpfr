@@ -21,6 +21,7 @@
   <PropertyGroup Label="Globals">
     <RootNamespace>trootn_ui</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
     <ProjectGuid>{6767E7F0-DA67-4D90-95C7-033C9971F01B}</ProjectGuid>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
