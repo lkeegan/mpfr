@@ -196,6 +196,47 @@ test_overflow2 (void)
 }
 
 static void
+test_overflow3 (void)
+{
+  mpfr_t x, y, z, r;
+  int inex;
+  mpfr_prec_t p = 8;
+  mpfr_flags_t ex_flags = MPFR_FLAGS_OVERFLOW | MPFR_FLAGS_INEXACT, flags;
+  int i;
+
+  mpfr_inits2 (p, x, y, z, (mpfr_ptr) 0);
+  for (i = 0; i < 2; i++)
+    {
+      mpfr_init2 (r, 2 * p + i);
+      mpfr_set_ui_2exp (x, 1, mpfr_get_emax () - 1, MPFR_RNDN);
+      mpfr_set_ui (y, 2, MPFR_RNDN);       /* y = 2 */
+      mpfr_set_si_2exp (z, -1, mpfr_get_emax () - mpfr_get_prec (r) - 2,
+                        MPFR_RNDN);
+      mpfr_nextabove (z);
+      mpfr_clear_flags ();
+      /* We have x*y = 2^emax and z = -2^(emax-2p-2-i)*(1-2^(-p)) thus
+         x*y+z = 2^emax - 2^(emax-2p-2-i) + 2^(emax-3p-2-i) should overflow,
+         since it is closest to 2^emax than to 2^emax - 2^(emax-2p-i). */
+      inex = mpfr_fma (r, x, y, z, MPFR_RNDN);
+      flags = __gmpfr_flags;
+      if (inex <= 0 || ! mpfr_inf_p (r) || MPFR_IS_NEG (r) ||
+          flags != ex_flags)
+        {
+          printf ("Error in test_overflow3 for i=%d\n", i);
+          printf ("Expected @Inf@\n  with inex > 0 and flags:");
+          flags_out (ex_flags);
+          printf ("Got      ");
+          mpfr_dump (r);
+          printf ("  with inex = %d and flags:", inex);
+          flags_out (flags);
+          exit (1);
+        }
+      mpfr_clear (r);
+    }
+  mpfr_clears (x, y, z, (mpfr_ptr) 0);
+}
+
+static void
 test_underflow1 (void)
 {
   mpfr_t x, y, z, r;
@@ -528,6 +569,51 @@ bug20171219 (void)
   mpfr_clear (u);
 }
 
+/* coverage test for mpfr_set_1_2, case prec < GMP_NUMB_BITS,
+   inex > 0, rb <> 0, sb = 0 */
+static void
+coverage (void)
+{
+  mpfr_t x, y, z, s;
+  int inex;
+  mpfr_exp_t emax;
+
+  mpfr_inits2 (GMP_NUMB_BITS - 1, x, y, z, s, (mpfr_ptr) 0);
+
+  /* set x to 2^(GMP_NUMB_BITS/2) + 1, y to 2^(GMP_NUMB_BITS/2) - 1 */
+  MPFR_ASSERTN((GMP_NUMB_BITS % 2) == 0);
+  mpfr_set_ui_2exp (x, 1, GMP_NUMB_BITS / 2, MPFR_RNDN);
+  mpfr_sub_ui (y, x, 1, MPFR_RNDN);
+  mpfr_add_ui (x, x, 1, MPFR_RNDN);
+  /* we have x*y = 2^GMP_NUMB_BITS - 1, thus has exponent GMP_NUMB_BITS */
+  /* set z to 2^(1-GMP_NUMB_BITS), with exponent 2-GMP_NUMB_BITS */
+  mpfr_set_ui_2exp (z, 1, 1 - GMP_NUMB_BITS, MPFR_RNDN);
+  inex = mpfr_fms (s, x, y, z, MPFR_RNDN);
+  /* s should be 2^GMP_NUMB_BITS-2 */
+  MPFR_ASSERTN(inex < 0);
+  inex = mpfr_add_ui (s, s, 2, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_cmp_ui_2exp (s, 1, GMP_NUMB_BITS) == 0);
+
+  /* same example, but with overflow */
+  emax = mpfr_get_emax ();
+  mpfr_set_emax (GMP_NUMB_BITS + 1);
+  mpfr_set_ui_2exp (z, 1, mpfr_get_emax () - 1, MPFR_RNDZ);
+  mpfr_clear_flags ();
+  inex = mpfr_fma (s, x, y, z, MPFR_RNDN);
+  /* x*y = 2^GMP_NUMB_BITS - 1, z = 2^GMP_NUMB_BITS, thus
+     x*y+z = 2^(GMP_NUMB_BITS+1) - 1 should round to 2^(GMP_NUMB_BITS+1),
+     thus give an overflow */
+  MPFR_ASSERTN(inex > 0);
+  MPFR_ASSERTN(mpfr_inf_p (s) && mpfr_sgn (s) > 0);
+  MPFR_ASSERTN(mpfr_overflow_p ());
+  mpfr_set_emax (emax);
+
+  mpfr_clear (x);
+  mpfr_clear (y);
+  mpfr_clear (z);
+  mpfr_clear (s);
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -535,6 +621,8 @@ main (int argc, char *argv[])
   mpfr_exp_t emin, emax;
 
   tests_start_mpfr ();
+
+  coverage ();
 
   emin = mpfr_get_emin ();
   emax = mpfr_get_emax ();
@@ -825,6 +913,7 @@ main (int argc, char *argv[])
 
   test_overflow1 ();
   test_overflow2 ();
+  test_overflow3 ();
   test_underflow1 ();
   test_underflow2 ();
   test_underflow3 (1);
@@ -833,6 +922,7 @@ main (int argc, char *argv[])
   set_emax (MPFR_EMAX_MAX);
   test_overflow1 ();
   test_overflow2 ();
+  test_overflow3 ();
   test_underflow1 ();
   test_underflow2 ();
   test_underflow3 (2);

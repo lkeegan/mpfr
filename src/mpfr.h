@@ -136,7 +136,11 @@ typedef enum {
 
 /* Let's make mpfr_prec_t signed in order to avoid problems due to the
    usual arithmetic conversions when mixing mpfr_prec_t and mpfr_exp_t
-   in an expression (for error analysis) if casts are forgotten. */
+   in an expression (for error analysis) if casts are forgotten.
+   Note: mpfr_prec_t is currently limited to "long". This means that
+   under MS Windows, the precisions are limited to about 2^31; however,
+   these are already huge precisions, probably sufficient in practice
+   on this platform. */
 #if   _MPFR_PREC_FORMAT == 1
 typedef short mpfr_prec_t;
 typedef unsigned short mpfr_uprec_t;
@@ -433,8 +437,8 @@ __MPFR_DECLSPEC int mpfr_set_decimal64 (mpfr_ptr, _Decimal64, mpfr_rnd_t);
 #endif
 __MPFR_DECLSPEC int mpfr_set_ld (mpfr_ptr, long double, mpfr_rnd_t);
 #ifdef MPFR_WANT_FLOAT128
-__MPFR_DECLSPEC int mpfr_set_float128 (mpfr_ptr, __float128, mpfr_rnd_t);
-__MPFR_DECLSPEC __float128 mpfr_get_float128 (mpfr_srcptr, mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_set_float128 (mpfr_ptr, _Float128, mpfr_rnd_t);
+__MPFR_DECLSPEC _Float128 mpfr_get_float128 (mpfr_srcptr, mpfr_rnd_t);
 #endif
 __MPFR_DECLSPEC int mpfr_set_z (mpfr_ptr, mpz_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_set_z_2exp (mpfr_ptr, mpz_srcptr, mpfr_exp_t,
@@ -489,6 +493,7 @@ __MPFR_DECLSPEC long double mpfr_get_ld_2exp (long*, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_frexp (mpfr_exp_t*, mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC long mpfr_get_si (mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC unsigned long mpfr_get_ui (mpfr_srcptr, mpfr_rnd_t);
+__MPFR_DECLSPEC size_t mpfr_get_str_ndigits (int, mpfr_prec_t);
 __MPFR_DECLSPEC char * mpfr_get_str (char*, mpfr_exp_t*, int, size_t,
                                      mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_get_z (mpz_ptr z, mpfr_srcptr f, mpfr_rnd_t);

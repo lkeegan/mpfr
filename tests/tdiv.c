@@ -1519,11 +1519,212 @@ bug20171218 (void)
   mpfr_clear (c);
 }
 
+/* Extended test based on a bug found with flint-arb test suite with a
+   32-bit ABI: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=888459
+   Division of the form: (1 - 2^(-pa)) / (1 - 2^(-pb)).
+   The result is compared to the one obtained by increasing the precision of
+   the divisor (without changing its value, so that both results should be
+   equal). For all of these tests, a failure may occur in r12126 only with
+   pb=GMP_NUMB_BITS and MPFR_RNDN (and some particular values of pa and pc).
+   This bug was introduced by r9086, where mpfr_div uses mpfr_div_ui when
+   the divisor has only one limb.
+*/
+static void
+bug20180126 (void)
+{
+  mpfr_t a, b1, b2, c1, c2;
+  int pa, i, j, pc, sa, sb, r, inex1, inex2;
+
+  for (pa = 100; pa < 800; pa += 11)
+    for (i = 1; i <= 4; i++)
+      for (j = -2; j <= 2; j++)
+        {
+          int pb = GMP_NUMB_BITS * i + j;
+
+          if (pb > pa)
+            continue;
+
+          mpfr_inits2 (pa, a, b1, (mpfr_ptr) 0);
+          mpfr_inits2 (pb, b2, (mpfr_ptr) 0);
+
+          mpfr_set_ui (a, 1, MPFR_RNDN);
+          mpfr_nextbelow (a);                   /* 1 - 2^(-pa) */
+          mpfr_set_ui (b2, 1, MPFR_RNDN);
+          mpfr_nextbelow (b2);                  /* 1 - 2^(-pb) */
+          inex1 = mpfr_set (b1, b2, MPFR_RNDN);
+          MPFR_ASSERTN (inex1 == 0);
+
+          for (pc = 32; pc <= 320; pc += 32)
+            {
+              mpfr_inits2 (pc, c1, c2, (mpfr_ptr) 0);
+
+              for (sa = 0; sa < 2; sa++)
+                {
+                  for (sb = 0; sb < 2; sb++)
+                    {
+                      RND_LOOP_NO_RNDF (r)
+                        {
+                          MPFR_ASSERTN (mpfr_equal_p (b1, b2));
+                          inex1 = mpfr_div (c1, a, b1, (mpfr_rnd_t) r);
+                          inex2 = mpfr_div (c2, a, b2, (mpfr_rnd_t) r);
+
+                          if (! mpfr_equal_p (c1, c2) ||
+                              ! SAME_SIGN (inex1, inex2))
+                            {
+                              printf ("Error in bug20180126 for "
+                                      "pa=%d pb=%d pc=%d sa=%d sb=%d %s\n",
+                                      pa, pb, pc, sa, sb,
+                                      mpfr_print_rnd_mode ((mpfr_rnd_t) r));
+                              printf ("inex1 = %d, c1 = ", inex1);
+                              mpfr_dump (c1);
+                              printf ("inex2 = %d, c2 = ", inex2);
+                              mpfr_dump (c2);
+                              exit (1);
+                            }
+                        }
+
+                      mpfr_neg (b1, b1, MPFR_RNDN);
+                      mpfr_neg (b2, b2, MPFR_RNDN);
+                    }  /* sb */
+
+                  mpfr_neg (a, a, MPFR_RNDN);
+                }  /* sa */
+
+              mpfr_clears (c1, c2, (mpfr_ptr) 0);
+            }  /* pc */
+
+          mpfr_clears (a, b1, b2, (mpfr_ptr) 0);
+        }  /* j */
+}
+
+static void
+coverage (mpfr_prec_t pmax)
+{
+  mpfr_prec_t p;
+
+  for (p = MPFR_PREC_MIN; p <= pmax; p++)
+    {
+      int inex;
+      mpfr_t q, u, v;
+
+      mpfr_init2 (q, p);
+      mpfr_init2 (u, p);
+      mpfr_init2 (v, p);
+
+      /* exercise case qx < emin */
+      mpfr_set_ui_2exp (u, 1, mpfr_get_emin (), MPFR_RNDN);
+      mpfr_set_ui (v, 4, MPFR_RNDN);
+
+      mpfr_clear_flags ();
+      /* u/v = 2^(emin-2), should be rounded to +0 for RNDN */
+      inex = mpfr_div (q, u, v, MPFR_RNDN);
+      MPFR_ASSERTN(inex < 0);
+      MPFR_ASSERTN(mpfr_zero_p (q) && mpfr_signbit (q) == 0);
+      MPFR_ASSERTN(mpfr_underflow_p ());
+
+      mpfr_clear_flags ();
+      /* u/v = 2^(emin-2), should be rounded to 2^(emin-1) for RNDU */
+      inex = mpfr_div (q, u, v, MPFR_RNDU);
+      MPFR_ASSERTN(inex > 0);
+      MPFR_ASSERTN(mpfr_cmp_ui_2exp (q, 1, mpfr_get_emin () - 1) == 0);
+      MPFR_ASSERTN(mpfr_underflow_p ());
+
+      mpfr_clear_flags ();
+      /* u/v = 2^(emin-2), should be rounded to +0 for RNDZ */
+      inex = mpfr_div (q, u, v, MPFR_RNDZ);
+      MPFR_ASSERTN(inex < 0);
+      MPFR_ASSERTN(mpfr_zero_p (q) && mpfr_signbit (q) == 0);
+      MPFR_ASSERTN(mpfr_underflow_p ());
+
+      if (p == 1)
+        goto end_of_loop;
+
+      mpfr_set_ui_2exp (u, 1, mpfr_get_emin (), MPFR_RNDN);
+      mpfr_nextbelow (u); /* u = (1-2^(-p))*2^emin */
+      mpfr_set_ui (v, 2, MPFR_RNDN);
+
+      mpfr_clear_flags ();
+      /* u/v = (1-2^(-p))*2^(emin-1), will round to 2^(emin-1) for RNDN */
+      inex = mpfr_div (q, u, v, MPFR_RNDN);
+      MPFR_ASSERTN(inex > 0);
+      MPFR_ASSERTN(mpfr_cmp_ui_2exp (q, 1, mpfr_get_emin () - 1) == 0);
+      MPFR_ASSERTN(mpfr_underflow_p ());
+
+      mpfr_clear_flags ();
+      /* u/v should round to 2^(emin-1) for RNDU */
+      inex = mpfr_div (q, u, v, MPFR_RNDU);
+      MPFR_ASSERTN(inex > 0);
+      MPFR_ASSERTN(mpfr_cmp_ui_2exp (q, 1, mpfr_get_emin () - 1) == 0);
+      MPFR_ASSERTN(mpfr_underflow_p ());
+
+      mpfr_clear_flags ();
+      /* u/v should round to +0 for RNDZ */
+      inex = mpfr_div (q, u, v, MPFR_RNDZ);
+      MPFR_ASSERTN(inex < 0);
+      MPFR_ASSERTN(mpfr_zero_p (q) && mpfr_signbit (q) == 0);
+      MPFR_ASSERTN(mpfr_underflow_p ());
+
+    end_of_loop:
+      mpfr_clear (q);
+      mpfr_clear (u);
+      mpfr_clear (v);
+    }
+}
+
+/* coverage for case usize >= n + n in Mulders' algorithm */
+static void
+coverage2 (void)
+{
+  mpfr_prec_t p;
+  mpfr_t q, u, v, t, w;
+  int inex, inex2;
+
+  p = MPFR_DIV_THRESHOLD * GMP_NUMB_BITS;
+  mpfr_init2 (q, p);
+  mpfr_init2 (u, 2 * p + 3 * GMP_NUMB_BITS);
+  mpfr_init2 (v, p);
+  do mpfr_urandomb (u, RANDS); while (mpfr_zero_p (u));
+  do mpfr_urandomb (v, RANDS); while (mpfr_zero_p (v));
+  inex = mpfr_div (q, u, v, MPFR_RNDN);
+  mpfr_init2 (t, mpfr_get_prec (u));
+  mpfr_init2 (w, mpfr_get_prec (u));
+  inex2 = mpfr_mul (t, q, v, MPFR_RNDN);
+  MPFR_ASSERTN(inex2 == 0);
+  if (inex == 0) /* check q*v = u */
+    MPFR_ASSERTN(mpfr_equal_p (u, t));
+  else
+    {
+      if (inex > 0)
+        mpfr_nextbelow (q);
+      else
+        mpfr_nextabove (q);
+      inex2 = mpfr_mul (w, q, v, MPFR_RNDN);
+      MPFR_ASSERTN(inex2 == 0);
+      inex2 = mpfr_sub (t, t, u, MPFR_RNDN);
+      MPFR_ASSERTN(inex2 == 0);
+      inex2 = mpfr_sub (w, w, u, MPFR_RNDN);
+      MPFR_ASSERTN(inex2 == 0);
+      MPFR_ASSERTN(mpfr_cmpabs (t, w) <= 0);
+      if (mpfr_cmpabs (t, w) == 0) /* even rule: significand of q should now
+                                      be odd */
+        MPFR_ASSERTN(mpfr_min_prec (q) == mpfr_get_prec (q));
+    }
+
+  mpfr_clear (q);
+  mpfr_clear (u);
+  mpfr_clear (v);
+  mpfr_clear (t);
+  mpfr_clear (w);
+}
+
 int
 main (int argc, char *argv[])
 {
   tests_start_mpfr ();
 
+  coverage (1024);
+  coverage2 ();
+  bug20180126 ();
   bug20171218 ();
   testall_rndf (9);
   test_20170105 ();

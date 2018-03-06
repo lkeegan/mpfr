@@ -198,6 +198,7 @@ To make a release (for the MPFR team):
 
   4) Update the ChangeLog file with "TZ=UTC svn log -rHEAD:0 -v" in
      UTF-8 locales, e.g. "LC_ALL=en_US.UTF8 TZ=UTC svn log -rHEAD:0 -v".
+     Make sure that all the pending commits have been done.
 
   5) Do a "svn export" of the branch to make sure to start from a clean
      source tree; this also has the advantage (over a checkout) to set
@@ -366,7 +367,6 @@ To make a release (for the MPFR team):
      Update the old current page to point to the new release; see
      examples for 3.0.1 (latest version of the branch) and 3.1.0
      (which is not the latest version of the branch).
-     Make sure that all the pending commits have been done.
      Run the tools/announce-text script to do some checking and get
      the announce text. Edit this text if need be.
      Announce the release in the mpfr-announce, mpfr, gmp-discuss, gcc
@@ -459,7 +459,7 @@ Format of long double.
                         Define to build conversion functions from/to
                         decimal floats.
 + MPFR_WANT_FLOAT128:   Define to build conversion functions from/to
-                        __float128.
+                        binary128 floats (_Float128 or __float128).
 
 + MPFR_ALLOCA_MAX:      Maximum size for the use of alloca by temporary
                         allocations (default: 16384).
@@ -1071,7 +1071,7 @@ conversions). If such a signed type contains a negative value, the
 result will probably be incorrect. With MPFR 2.x, this problem could
 arise with mpfr_exp_t, which is signed, and mpfr_prec_t (mp_prec_t),
 which was unsigned (it is now signed), meaning that in general, a cast
-of a mpfr_prec_t into a mpfr_exp_t was needed.
+of a mpfr_prec_t to a mpfr_exp_t was needed.
 
 Note that such bugs are difficult to detect because they may depend on
 the platform (e.g., on LP64, 32-bit unsigned int + 64-bit long is OK,
@@ -1099,7 +1099,7 @@ the MPFR versions: MPFR_UINTMAX_MAX, MPFR_INTMAX_MAX and MPFR_INTMAX_MIN.
 Use mpfr_prec_t and mpfr_rnd_t instead of the old types mp_prec_t and
 mp_rnd_t. Similarly, use mpfr_exp_t instead of GMP's mp_exp_t type
 (unless you really want mp_exp_t, e.g. for conversions with mpf; but
-you should not assume that mpfr_exp_t and mp_exp_t are identical).
+you must not assume that mpfr_exp_t and mp_exp_t are identical).
 
 ===========================================================================
 
@@ -1112,15 +1112,11 @@ in the MPFR source depends on the context.
    is that the macros do not evaluate to a lvalue).
 
 2. If the exponent range has been extended, you can use the constants
-   MPFR_EXT_EMIN and MPFR_EXT_EMAX instead. This will be faster if TLS
+   MPFR_EMIN_MIN and MPFR_EMAX_MAX instead. This will be faster if TLS
    is enabled. It also avoids a bug on some Linux/Sparc machines with
    some GCC versions and TLS, but this shouldn't be the primary concern,
    as this might be the other way round on some other machines. This is
    the most common context.
-   Note: If you really want to specify the current minimum or maximum
-   exponent, do not use MPFR_EMIN_MIN or MPFR_EMAX_MAX, even though
-   they have the same value. This may prevent some form of testing in
-   the future.
 
 3. If you want the minimum and maximum possible exponent values supported
    by MPFR, use MPFR_EMIN_MIN and MPFR_EMAX_MAX respectively.
@@ -1132,12 +1128,18 @@ in the MPFR source depends on the context.
 
 More on exponent handling:
 
+* The mpfr_exp_t type has at least 32 bits since it must contain the
+  default exponent range.
+
+* The range of valid exponents is defined so that if a and b are two
+  valid exponents (i.e. between MPFR_EMIN_MIN and MPFR_EMAX_MAX), then
+  ± a ± b ± 1 fits in a mpfr_exp_t.
+
 * The unsigned type corresponding to mpfr_exp_t is mpfr_uexp_t. It may be
   useful if the considered values are nonnegative and don't necessarily
-  fit in mpfr_exp_t. To convert a mpfr_exp_t to mpfr_uexp_t, you should
-  use the MPFR_UEXP macro, as in debug mode, it checks that the value is
-  nonnegative (in future MPFR versions, MPFR_UEXP could tell the compiler
-  that the value is nonnegative, possibly allowing more optimization).
+  fit in mpfr_exp_t. To convert a nonnegative mpfr_exp_t to mpfr_uexp_t,
+  you should use the MPFR_UEXP macro, which is defined as:
+    #define MPFR_UEXP(X) (MPFR_ASSERTD ((X) >= 0), (mpfr_uexp_t) (X))
 
 * If a mpfr_exp_t appears in arithmetic expressions together with ISO C90
   types int and/or long, computations must be done with the largest type,
@@ -1190,6 +1192,14 @@ whether they work with ICC. The following paper can give useful information:
 To detect compilers, see
 
   https://sourceforge.net/p/predef/wiki/Compilers/
+
+===========================================================================
+
+For configure tests, use AC_LINK_IFELSE rather than AC_COMPILE_IFELSE,
+which is broken by design. The reason is that some errors just produce
+a warning (which is not a bug from the compiler: in ISO C terminology,
+this corresponds to a diagnostic, and the compilation is allowed to
+succeed), and this is unfixable in a portable way.
 
 ===========================================================================
 

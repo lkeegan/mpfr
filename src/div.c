@@ -233,15 +233,20 @@ mpfr_div_1 (mpfr_ptr q, mpfr_srcptr u, mpfr_srcptr v, mpfr_rnd_t rnd_mode)
     {
     add_one_ulp:
       qp[0] += MPFR_LIMB_ONE << sh;
-      if (qp[0] == 0)
-        {
-          qp[0] = MPFR_LIMB_HIGHBIT;
-          if (MPFR_UNLIKELY(qx + 1 > __gmpfr_emax))
-            return mpfr_overflow (q, rnd_mode, MPFR_SIGN(q));
-          MPFR_ASSERTD(qx + 1 <= __gmpfr_emax);
-          MPFR_ASSERTD(qx + 1 >= __gmpfr_emin);
-          MPFR_SET_EXP (q, qx + 1);
-        }
+      MPFR_ASSERTD(qp[0] != 0);
+      /* It is not possible to have an overflow in the addition above.
+         Proof: if p is the precision of the inputs, it would mean we have two
+         integers n and d with 2^(p-1) <= n, d < 2^p, such that the binary
+         expansion of n/d starts with p '1', and has at least one '1' later.
+         We distinguish two cases:
+         (1) if n/d < 1, it would mean 1-2^(-p) < n/d < 1
+         (2) if n/d >= 1, it would mean 2-2^(1-p) < n/d < 1
+         In case (1), multiplying by d we get 1-d/2^p < n < d,
+         which has no integer solution since d/2^p < 1.
+         In case (2), multiplying by d we get 2d-2d/2^p < n < 2d:
+         (2a) if d=2^(p-1), we get 2^p-1 < n < 2^p which has no solution;
+              if d>=2^(p-1)+1, then 2d-2d/2^p >= 2^p+2-2 = 2^p, thus there is
+              solution n < 2^p either. */
       MPFR_RET(MPFR_SIGN(q));
     }
 }
@@ -376,15 +381,9 @@ mpfr_div_1n (mpfr_ptr q, mpfr_srcptr u, mpfr_srcptr v, mpfr_rnd_t rnd_mode)
     {
     add_one_ulp:
       qp[0] += MPFR_LIMB_ONE;
-      if (qp[0] == 0)
-        {
-          qp[0] = MPFR_LIMB_HIGHBIT;
-          if (MPFR_UNLIKELY(qx + 1 > __gmpfr_emax))
-            return mpfr_overflow (q, rnd_mode, MPFR_SIGN(q));
-          MPFR_ASSERTD(qx + 1 <= __gmpfr_emax);
-          MPFR_ASSERTD(qx + 1 >= __gmpfr_emin);
-          MPFR_SET_EXP (q, qx + 1);
-        }
+      /* there can be no overflow in the addition above,
+         see the analysis of mpfr_div_1 */
+      MPFR_ASSERTD(qp[0] != 0);
       MPFR_RET(MPFR_SIGN(q));
     }
 }
@@ -636,16 +635,10 @@ mpfr_div_2 (mpfr_ptr q, mpfr_srcptr u, mpfr_srcptr v, mpfr_rnd_t rnd_mode)
     {
     add_one_ulp:
       qp[0] += MPFR_LIMB_ONE << sh;
-      qp[1] += (qp[0] == 0);
-      if (qp[1] == 0)
-        {
-          qp[1] = MPFR_LIMB_HIGHBIT;
-          if (MPFR_UNLIKELY(qx + 1 > __gmpfr_emax))
-            return mpfr_overflow (q, rnd_mode, MPFR_SIGN(q));
-          MPFR_ASSERTD(qx + 1 <= __gmpfr_emax);
-          MPFR_ASSERTD(qx + 1 >= __gmpfr_emin);
-          MPFR_SET_EXP (q, qx + 1);
-        }
+      qp[1] += qp[0] == 0;
+      /* there can be no overflow in the addition above,
+         see the analysis of mpfr_div_1 */
+      MPFR_ASSERTD(qp[1] != 0);
       MPFR_RET(MPFR_SIGN(q));
     }
 }
@@ -749,113 +742,6 @@ mpfr_mpn_sub_aux (mpfr_limb_ptr ap, mpfr_limb_ptr bp, mp_size_t n,
     }
   MPFR_ASSERTD (cy <= 1);
   return cy;
-}
-
-/* For large precision, mpz_tdiv_q (which computes only quotient)
-   is faster than mpn_divrem (which computes also the remainder).
-   Unfortunately as of GMP 6.0.0 the corresponding mpn_div_q function
-   is not in the public interface, thus we call mpz_tdiv_q.
-
-   If this function succeeds in computing the correct rounding, return 1,
-   and put the ternary value in inex.
-
-   Otherwise return 0 (and inex is undefined).
-*/
-static int
-mpfr_div_with_mpz_tdiv_q (mpfr_ptr q, mpfr_srcptr u, mpfr_srcptr v,
-                          mpfr_rnd_t rnd_mode, int *inex)
-{
-  mpz_t qm, um, vm;
-  mpfr_exp_t ue, ve;
-  mpfr_prec_t qp = MPFR_PREC(q), wp = qp + GMP_NUMB_BITS;
-  mp_size_t up, vp, k;
-  int ok;
-
-  mpz_init (qm);
-  mpz_init (um);
-  mpz_init (vm);
-
-  ue = mpfr_get_z_2exp (um, u); /* u = um * 2^ue */
-  ve = mpfr_get_z_2exp (vm, v); /* v = vm * 2^ve */
-
-  vp = mpz_sizeinbase (vm, 2);
-  if (vp > wp)
-    {
-      k = vp - wp; /* truncate k bits of vm */
-      mpz_tdiv_q_2exp (vm, vm, k);
-      ve += k;
-      vp -= k;
-    }
-
-  /* we want about qp + GMP_NUMB_BITS bits of the quotient, thus um should
-     have qp + GMP_NUMB_BITS more bits than vm */
-
-  up = mpz_sizeinbase (um, 2);
-  if (up > vp + wp)
-    {
-      k = up - (vp + wp); /* truncate k bits of um */
-      mpz_tdiv_q_2exp (um, um, k);
-      ue += k;
-      up -= k;
-    }
-  else if (up < vp + wp) /* we need more bits */
-    {
-      k = (vp + wp) - up;
-      mpz_mul_2exp (um, um, k);
-      ue -= k;
-      up += k;
-    }
-
-  /* now um has exactly wp more bits than vp */
-  mpz_tdiv_q (qm, um, vm);
-  /* qm has either wp or wp+1 bits, and we have:
-     (a) um = u/2^ue*(1-tu) with tu=0 if no truncation of um,
-                            and 0 <= tu < 2^(1-wp) otherwise;
-     (b) vm = v/2^ve*(1-tv) with tv=0 if no truncation of vm,
-                             and 0 <= tv < 2^(1-wp) otherwise;
-     (c) um/vm - 1 < qm <= um/vm, thus qm = um/vm*(1-tq) with
-         0 <= tw < 2^(1-wp) since um/vm >= 2^(wp-1)
-     Altogether we have:
-     q = u/v*2^(ve-ue)*(1-tu)/(1-tv)*(1-tq)
-     Thus:
-     u/v*2^(ve-ue)*(1-2^(2-wp)) < q < u/v*2^(ve-ue)*(1+2^(2-wp)).
-     If q has wp bits, the error is less than 2^(wp-1)*2^(2-wp) <= 2.
-     If q has wp+1 bits, the error is less than 2^wp*2^(2-wp) <= 4.
-  */
-
-  k = mpz_sizeinbase (qm, 2) - wp; /* 0 or 1 */
-  /* Assume qm has wp bits (i.e. k=0) and a directed rounding: if the first
-     set bit after position 1 has position less than GMP_NUMB_BITS, then
-     subtracting 2 to qm will not change the bits beyond the GMP_NUMB_BITS
-     low ones, thus we get correct rounding.
-     For k=1, we need to start at position 2, and the first set bit has to be
-     in posiiton less than GMP_NUMB_BITS+1.
-     For rounding to nearest, the first set bit has to be in position less
-     than GMP_NUMB_BITS-1 for k=0 (or less than GMP_NUMB_BITS for k=1).
-  */
-  if (mpz_scan1 (qm, k + 1) < GMP_NUMB_BITS + k - (rnd_mode == MPFR_RNDN) &&
-      mpz_scan0 (qm, k + 1) < GMP_NUMB_BITS + k - (rnd_mode == MPFR_RNDN))
-    {
-      MPFR_SAVE_EXPO_DECL (expo);
-      ok = 1;
-      MPFR_SAVE_EXPO_MARK (expo);
-      *inex = mpfr_set_z (q, qm, rnd_mode);
-      MPFR_SAVE_EXPO_FREE (expo);
-      /* if we got an underflow or overflow, the result is not valid */
-      if (MPFR_IS_SINGULAR(q) || MPFR_EXP(q) == MPFR_EXT_EMIN ||
-          MPFR_EXP(q) == MPFR_EXT_EMAX)
-        ok =  0;
-      MPFR_EXP(q) += ue - ve;
-      *inex = mpfr_check_range (q, *inex, rnd_mode);
-    }
-  else
-    ok = 0;
-
-  mpz_clear (qm);
-  mpz_clear (um);
-  mpz_clear (vm);
-
-  return ok;
 }
 
 MPFR_HOT_FUNCTION_ATTR int
@@ -1007,10 +893,6 @@ mpfr_div (mpfr_ptr q, mpfr_srcptr u, mpfr_srcptr v, mpfr_rnd_t rnd_mode)
       return mpfr_check_range (q, inex, rnd_mode);
     }
 
-  /* for large precisions, try using truncated division first */
-  if (q0size >= 32 && mpfr_div_with_mpz_tdiv_q (q, u, v, rnd_mode, &inex))
-    return inex;
-
   MPFR_TMP_MARK(marker);
 
   /* set sign */
@@ -1082,6 +964,7 @@ mpfr_div (mpfr_ptr q, mpfr_srcptr u, mpfr_srcptr v, mpfr_rnd_t rnd_mode)
         }
 
       qp = MPFR_TMP_LIMBS_ALLOC (n);
+      /* since n = q0size + 1, we have n >= 2 here */
       qh = mpfr_divhigh_n (qp, ap, bp, n);
       MPFR_ASSERTD (qh == 0 || qh == 1);
       /* in all cases, the error is at most (2n+2) ulps on qh*B^n+{qp,n},

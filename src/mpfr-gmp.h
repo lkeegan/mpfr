@@ -177,6 +177,10 @@ void *alloca (size_t);
 #define MPN_SAME_OR_DECR_P(dst, src, size)      \
   MPN_SAME_OR_DECR2_P(dst, size, src, size)
 
+#ifndef MUL_FFT_THRESHOLD
+#define MUL_FFT_THRESHOLD 8448
+#endif
+
 /* If mul_basecase or mpn_sqr_basecase are not exported, used mpn_mul instead */
 #ifndef mpn_mul_basecase
 # define mpn_mul_basecase(dst,s1,n1,s2,n2) mpn_mul((dst),(s1),(n1),(s2),(n2))
@@ -295,6 +299,12 @@ __MPFR_DECLSPEC mp_limb_t __gmpn_sbpi1_divappr_q (mp_limb_t*,
 #if defined(WANT_GMP_INTERNALS) && defined(HAVE___GMPN_INVERT_LIMB)
 #ifndef __gmpn_invert_limb
 __MPFR_DECLSPEC mp_limb_t __gmpn_invert_limb (mp_limb_t);
+#endif
+#endif
+
+#if defined(WANT_GMP_INTERNALS) && defined(HAVE___GMPN_RSBLSH1_N)
+#ifndef __gmpn_rsblsh1_n
+__MPFR_DECLSPEC mp_limb_t __gmpn_rsblsh1_n (mp_limb_t*, mp_limb_t*, mp_limb_t*, mp_size_t);
 #endif
 #endif
 

@@ -688,8 +688,6 @@ static double double_zero = 0.0;
 # define MPFR_LDBL_MANT_DIG \
   (sizeof(long double)*GMP_NUMB_BITS/sizeof(mp_limb_t))
 #endif
-#define MPFR_LIMBS_PER_LONG_DOUBLE \
-  ((sizeof(long double)-1)/sizeof(mp_limb_t)+1)
 
 /* LONGDOUBLE_NAN_ACTION executes the code "action" if x is a NaN. */
 
@@ -766,7 +764,7 @@ __MPFR_DECLSPEC long double
 # endif
 #endif
 
-/* Some special case for IEEE_EXT Litle Endian */
+/* Some special case for IEEE_EXT Little Endian */
 #if HAVE_LDOUBLE_IEEE_EXT_LITTLE
 
 typedef union {
@@ -780,18 +778,13 @@ typedef union {
   } s;
 } mpfr_long_double_t;
 
-/* #undef MPFR_LDBL_MANT_DIG */
-#undef MPFR_LIMBS_PER_LONG_DOUBLE
-/* #define MPFR_LDBL_MANT_DIG   64 */
-#define MPFR_LIMBS_PER_LONG_DOUBLE ((64-1)/GMP_NUMB_BITS+1)
-
-#endif
+#endif /* HAVE_LDOUBLE_IEEE_EXT_LITTLE */
 
 #endif  /* long double macros and typedef */
 
 
 /******************************************************
- ****************  __float128 support  ****************
+ *****************  _Float128 support  ****************
  ******************************************************/
 
 /* This is standardized by IEEE 754-2008. */
@@ -1083,7 +1076,8 @@ typedef uintmax_t mpfr_ueexp_t;
   } while (0)
 
 /* Transform RNDU and RNDD to RNDZ or RNDA according to sign,
-   leave the other modes unchanged */
+   leave the other modes unchanged.
+   Usage: MPFR_UPDATE2_RND_MODE (rnd_mode, MPFR_SIGN (x)) */
 #define MPFR_UPDATE2_RND_MODE(rnd, sign)                       \
   do {                                                         \
     if (rnd == MPFR_RNDU)                                      \
@@ -1499,17 +1493,13 @@ typedef struct {
   mpfr_exp_t saved_emax;
 } mpfr_save_expo_t;
 
-/* Minimum and maximum exponents of the extended exponent range. */
-#define MPFR_EXT_EMIN MPFR_EMIN_MIN
-#define MPFR_EXT_EMAX MPFR_EMAX_MAX
-
 #define MPFR_SAVE_EXPO_DECL(x) mpfr_save_expo_t x
 #define MPFR_SAVE_EXPO_MARK(x)     \
  ((x).saved_flags = __gmpfr_flags, \
   (x).saved_emin = __gmpfr_emin,   \
   (x).saved_emax = __gmpfr_emax,   \
-  __gmpfr_emin = MPFR_EXT_EMIN,    \
-  __gmpfr_emax = MPFR_EXT_EMAX)
+  __gmpfr_emin = MPFR_EMIN_MIN,    \
+  __gmpfr_emax = MPFR_EMAX_MAX)
 #define MPFR_SAVE_EXPO_FREE(x)     \
  (__gmpfr_flags = (x).saved_flags, \
   __gmpfr_emin = (x).saved_emin,   \

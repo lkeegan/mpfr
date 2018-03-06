@@ -632,19 +632,31 @@ Please use another compiler or build MPFR without --enable-decimal-float.])
      fi])
 fi
 
-dnl Check if __float128 is available. We also require the compiler
-dnl to support C99 constants (this prevents the __float128 support
-dnl with GCC's -std=c90, but who cares?).
+dnl Check if _Float128 or __float128 is available. We also require the
+dnl compiler to support hex constants with the f128 or q suffix (this
+dnl prevents the _Float128 support with GCC's -std=c90, but who cares?).
 if test "$enable_float128" != no; then
-   AC_MSG_CHECKING(if compiler knows __float128 with C99 constants)
-   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__float128 x = 0x1.fp+16383q;]])],
+   AC_MSG_CHECKING(if compiler knows _Float128 with hex constants)
+   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[_Float128 x = 0x1.fp+16383f128;]])],
       [AC_MSG_RESULT(yes)
        AC_DEFINE([MPFR_WANT_FLOAT128],1,[Build float128 functions])],
       [AC_MSG_RESULT(no)
-       if test "$enable_float128" = yes; then
-          AC_MSG_ERROR([compiler doesn't know __float128 with C99 constants
+       AC_MSG_CHECKING(if __float128 can be used as a fallback)
+dnl Use the q suffix in this case.
+       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#define _Float128 __float128
+_Float128 x = 0x1.fp+16383q;]])],
+          [AC_MSG_RESULT(yes)
+           AC_DEFINE([MPFR_WANT_FLOAT128],2,
+                     [Build float128 functions with float128 fallback])
+           AC_DEFINE([_Float128],[__float128],[__float128 fallback])],
+          [AC_MSG_RESULT(no)
+           if test "$enable_float128" = yes; then
+              AC_MSG_ERROR(
+[compiler doesn't know _Float128 or __float128 with hex constants.
 Please use another compiler or build MPFR without --enable-float128.])
        fi])
+      ])
 fi
 
 dnl Check if Static Assertions are supported.
@@ -671,8 +683,6 @@ int main (void) {
       AC_DEFINE([MPFR_USE_STATIC_ASSERT],1,[Build MPFR with Static Assertions])
      ],
      [AC_MSG_RESULT(no)
-     ],
-     [AC_MSG_RESULT([cannot test, assume no])
      ])
 CPPFLAGS="$saved_CPPFLAGS"
 
@@ -736,7 +746,7 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 case $mpfr_cv_check_gmp in
 no*)
   AC_MSG_ERROR([bad GMP library or header - ABI problem?
-See 'config.log' for details.])
+See 'config.log' for details.]) ;;
 esac
 ])
 
@@ -794,7 +804,7 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 case $mpfr_cv_dbl_int_bug in
 yes*)
   AC_MSG_ERROR([double-to-integer conversion is incorrect.
-You need to use another compiler (or lower the optimization level).])
+You need to use another compiler (or lower the optimization level).]) ;;
 esac
 ])
 
@@ -802,6 +812,23 @@ dnl MPFR_CHECK_MP_LIMB_T_VS_LONG
 dnl ----------------------------
 dnl Check that a long can fit in a mp_limb_t.
 dnl If so, it set the define MPFR_LONG_WITHIN_LIMB
+dnl FIXME: The following code is wrong when using:
+dnl   -std=c99 -pedantic-errors -Wno-error=overlength-strings
+dnl because static assertions are not supported, so that MPFR_ASSERTN
+dnl is used, but it is not defined by "mpfr-sassert.h". The consequence
+dnl is that the program fails, and MPFR_LONG_WITHIN_LIMB is not defined
+dnl while it should be. Before fixing this bug, find a way to test with
+dnl MPFR_LONG_WITHIN_LIMB undefined; this is necessary for code coverage
+dnl and possibly to find new bugs, like in r12252:
+dnl   ./configure --enable-assert=full \
+dnl     'CFLAGS=-std=c99 -O3 -pedantic-errors -Wno-error=overlength-strings'
+dnl According to the GMP developers, a limb is always as large as a long,
+dnl except when __GMP_SHORT_LIMB is defined, but this is never defined:
+dnl https://gmplib.org/list-archives/gmp-discuss/2018-February/006190.html
+dnl FIXME: This is not safe. The fact that __GMP_SHORT_LIMB cannot occur
+dnl is not documented, and gmp.h has such a code probably because it may
+dnl occur in the future (or the user may want to override the default
+dnl choice).
 AC_DEFUN([MPFR_CHECK_MP_LIMB_T_VS_LONG], [
 AC_REQUIRE([MPFR_CONFIGS])
 AC_CACHE_CHECK([for long to fit in mp_limb_t], mpfr_cv_long_within_limb, [
@@ -814,12 +841,38 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
   MPFR_STAT_STATIC_ASSERT ((mp_limb_t) -1 >= (unsigned long) -1);
   return 0;
 ]])], [mpfr_cv_long_within_limb="yes"],
-      [mpfr_cv_long_within_limb="no"],
-      [mpfr_cv_long_within_limb="cannot test, assume not present"])
+      [mpfr_cv_long_within_limb="no"])
 ])
 case $mpfr_cv_long_within_limb in
 yes*)
-      AC_DEFINE([MPFR_LONG_WITHIN_LIMB],1,[long can be stored in mp_limb_t])
+      AC_DEFINE([MPFR_LONG_WITHIN_LIMB],1,[long can be stored in mp_limb_t]) ;;
+esac
+CPPFLAGS="$saved_CPPFLAGS"
+])
+
+dnl MPFR_CHECK_MP_LIMB_T_VS_INTMAX
+dnl ------------------------------
+dnl Check that an intmax_t can fit in a mp_limb_t.
+AC_DEFUN([MPFR_CHECK_MP_LIMB_T_VS_INTMAX], [
+AC_REQUIRE([MPFR_CONFIGS])
+AC_CACHE_CHECK([for intmax_t to fit in mp_limb_t], mpfr_cv_intmax_within_limb, [
+saved_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS -I$srcdir/src"
+dnl AC_LINK_IFELSE is safier than AC_COMPILE_IFELSE, which did not detect
+dnl the missing #include "mpfr-sassert.h".
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <gmp.h>
+#include "mpfr-sassert.h"
+#include "mpfr-intmax.h"
+]], [[
+  MPFR_STAT_STATIC_ASSERT ((mp_limb_t) -1 >= (uintmax_t) -1);
+  return 0;
+]])], [mpfr_cv_intmax_within_limb="yes"],
+      [mpfr_cv_intmax_within_limb="no"])
+])
+case $mpfr_cv_intmax_within_limb in
+yes*)
+      AC_DEFINE([MPFR_INTMAX_WITHIN_LIMB],1,[intmax_t can be stored in mp_limb_t]) ;;
 esac
 CPPFLAGS="$saved_CPPFLAGS"
 ])
@@ -1033,7 +1086,7 @@ BEGIN {
               got[11] == "031" && \
               got[10] == "300")
             {
-              print "IEEE extended, little endian"
+              print "IEEE extended, little endian (12 bytes)"
               found = 1
               exit
             }
@@ -1052,7 +1105,7 @@ BEGIN {
               got[08] == "000")
             {
               # format found on m68k
-              print "IEEE extended, big endian"
+              print "IEEE extended, big endian (12 bytes)"
               found = 1
               exit
             }
@@ -1096,7 +1149,7 @@ BEGIN {
               got[15] == "031" && \
               got[14] == "300")
             {
-              print "IEEE extended, little endian"
+              print "IEEE extended, little endian (16 bytes)"
               found = 1
               exit
             }
@@ -1226,37 +1279,37 @@ AH_VERBATIM([HAVE_LDOUBLE],
 #undef HAVE_LDOUBLE_IEEE_QUAD_BIG])
 
 case $mpfr_cv_c_long_double_format in
-  "IEEE double, big endian")
+  "IEEE double, big endian"*)
     AC_DEFINE(HAVE_LDOUBLE_IS_DOUBLE, 1)
     ;;
-  "IEEE double, little endian")
+  "IEEE double, little endian"*)
     AC_DEFINE(HAVE_LDOUBLE_IS_DOUBLE, 1)
     ;;
-  "IEEE extended, little endian")
+  "IEEE extended, little endian"*)
     AC_DEFINE(HAVE_LDOUBLE_IEEE_EXT_LITTLE, 1)
     ;;
-  "IEEE extended, big endian")
+  "IEEE extended, big endian"*)
     AC_DEFINE(HAVE_LDOUBLE_IEEE_EXT_BIG, 1)
     ;;
-  "IEEE quad, big endian")
+  "IEEE quad, big endian"*)
     AC_DEFINE(HAVE_LDOUBLE_IEEE_QUAD_BIG, 1)
     ;;
-  "IEEE quad, little endian")
+  "IEEE quad, little endian"*)
     AC_DEFINE(HAVE_LDOUBLE_IEEE_QUAD_LITTLE, 1)
     ;;
-  "possibly double-double, big endian")
+  "possibly double-double, big endian"*)
     AC_MSG_WARN([This format is known on GCC/PowerPC platforms,])
     AC_MSG_WARN([but due to GCC PR26374, we can't test further.])
     AC_MSG_WARN([You can safely ignore this warning, though.])
     AC_DEFINE(HAVE_LDOUBLE_MAYBE_DOUBLE_DOUBLE, 1)
     ;;
-  "possibly double-double, little endian")
+  "possibly double-double, little endian"*)
     AC_MSG_WARN([This format is known on GCC/PowerPC platforms,])
     AC_MSG_WARN([but due to GCC PR26374, we can't test further.])
     AC_MSG_WARN([You can safely ignore this warning, though.])
     AC_DEFINE(HAVE_LDOUBLE_MAYBE_DOUBLE_DOUBLE, 1)
     ;;
-  unknown* | "not available")
+  unknown* | "not available"*)
     ;;
   *)
     AC_MSG_WARN([unrecognized long double FP format: $mpfr_cv_c_long_double_format])

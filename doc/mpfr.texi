@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 4.1.0-dev
-@set UPDATED-MONTH January 2018
+@set UPDATED-MONTH March 2018
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -361,8 +361,8 @@ Here are the steps needed to install the library on Unix systems
 
 @enumerate
 @item
-To build MPFR, you first have to install GNU MP
-(version 4.1 or higher) on your computer.
+To build MPFR, you first have to install GNU MP (version 5.0.0 or higher)
+on your computer.
 You need a C compiler, preferably GCC, but any reasonable compiler should
 work.  And you need the standard Unix @samp{make} command, plus some other
 standard Unix utility commands.
@@ -1328,7 +1328,7 @@ These functions assign new values to already initialized floats
 @deftypefunx int mpfr_set_flt (mpfr_t @var{rop}, float @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_set_d (mpfr_t @var{rop}, double @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_set_ld (mpfr_t @var{rop}, long double @var{op}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_set_float128 (mpfr_t @var{rop}, __float128 @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_set_float128 (mpfr_t @var{rop}, _Float128 @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_set_decimal64 (mpfr_t @var{rop}, _Decimal64 @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_set_z (mpfr_t @var{rop}, mpz_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_set_q (mpfr_t @var{rop}, mpq_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -1339,7 +1339,7 @@ Note that the input 0 is converted to +0 by @code{mpfr_set_ui},
 @code{mpfr_set_si}, @code{mpfr_set_uj}, @code{mpfr_set_sj},
 The @code{mpfr_set_float128} function is built only with the configure
 option @samp{--enable-float128}, which requires the compiler or
-system provides the @samp{__float128} data type
+system provides the @samp{_Float128} data type
 (GCC 4.3 or later supports this data type);
 to use @code{mpfr_set_float128}, one should define the macro
 @code{MPFR_WANT_FLOAT128} before including @file{mpfr.h}.
@@ -1527,7 +1527,7 @@ See @code{mpfr_set_str}.
 @deftypefun float mpfr_get_flt (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx double mpfr_get_d (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx {long double} mpfr_get_ld (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
-@deftypefunx {__float128} mpfr_get_float128 (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefunx {_Float128} mpfr_get_float128 (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx _Decimal64 mpfr_get_decimal64 (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 Convert @var{op} to a @code{float} (respectively @code{double},
 @code{long double} or @code{_Decimal64}), using the rounding mode @var{rnd}.
@@ -1652,11 +1652,26 @@ not with the same radix), the range of values is much larger in MPF
 than in MPFR, so that an overflow or underflow is not possible.
 @end deftypefun
 
+@deftypefun {size_t} mpfr_get_str_ndigits (int @var{b}, mpfr_prec_t @var{p})
+Return the minimal integer @math{m} such that any number
+of @var{p} bits, when output with @math{m} digits in radix @var{b} with
+rounding to nearest, can be recovered exactly when read again,
+still with rounding to nearest.
+More precisely, we have
+@ifnottex
+m = 1 + ceil(@var{p}*log(2)/log(@var{b})),
+@end ifnottex
+@tex
+$m = 1 + \left\lceil @var{p} {\log 2 \over \log @var{b}} \right\rceil$,
+@end tex
+with @var{p} replaced by @var{p}@minus{}1 if @var{b} is a power of 2.
+@end deftypefun
+
 @deftypefun {char *} mpfr_get_str (char *@var{str}, mpfr_exp_t *@var{expptr}, int @var{b}, size_t @var{n}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 Convert @var{op} to a string of digits in base @var{b}, with rounding in
 the direction @var{rnd}, where @var{n} is either zero (see below) or the
-number of significant digits output in the string; in the latter case,
-@var{n} must be greater or equal to 2. The base may vary from 2 to 62;
+number of significant digits output in the string.
+The base may vary from 2 to 62;
 otherwise the function does nothing and immediately returns a null pointer.
 
 If the input is NaN, then the returned string is @samp{@@NaN@@} and the
@@ -1682,25 +1697,9 @@ which is 12 in decimal, (16) and a half is rounded to
 @c (36) and a half is rounded to (40) which is 28 in decimal,
 and (26) and a half is rounded to (26) which is 20 in decimal.
 
-If @var{n} is zero, the number of digits of the significand is chosen
-large enough so that re-reading the printed value with the same precision,
-assuming both output and input use rounding to nearest, will recover
-the original value of @var{op}.
-More precisely, in most cases, the chosen precision of @var{str} is the
-minimal precision @math{m} depending only on @var{p} = PREC(@var{op}) and
-@var{b} that satisfies the above property, i.e.,
-@ifnottex
-m = 1 + ceil(@var{p}*log(2)/log(@var{b})),
-@end ifnottex
-@tex
-$m = 1 + \left\lceil @var{p} {\log 2 \over \log @var{b}} \right\rceil$,
-@end tex
-with @var{p} replaced by @var{p}@minus{}1 if @var{b} is a power of 2,
-but in some very rare cases, it might be @math{m+1}
-(the smallest case for bases up to 62 is when @var{p} equals 186564318007
-for bases 7 and 49).
-@c In the source src/get_str.c, this is due to the approximate mpfr_ceil_mul,
-@c but also m = 1 is changed to 2.
+If @var{n} is zero, the number of digits of the significand is taken as
+@code{mpfr_get_str_ndigits(@var{b},@var{p})} where @var{p} is the precision
+of @var{op}.
 
 If @var{str} is a null pointer, space for the significand is allocated using
 the allocation function (@pxref{Memory Handling}) and a pointer to the string
@@ -3295,7 +3294,7 @@ return zero otherwise.
 @end deftypefun
 
 @deftypefun int mpfr_buildopt_float128_p (void)
-Return a non-zero value if MPFR was compiled with @samp{__float128} support
+Return a non-zero value if MPFR was compiled with @samp{_Float128} support
 (that is, MPFR was built with the @samp{--enable-float128} configure option),
 return zero otherwise.
 @end deftypefun
@@ -3408,20 +3407,20 @@ This function rounds @var{x} emulating subnormal number arithmetic:
 if @var{x} is outside the subnormal exponent range of the emulated
 floating-point system, this function just propagates the
 @ref{ternary value} @var{t}; otherwise, it rounds @var{x} to precision
-@code{EXP(x)-emin+1} according to rounding mode @var{rnd} and previous
+@code{EXP(@var{x})-emin+1} according to rounding mode @var{rnd} and previous
 ternary value @var{t}, avoiding double rounding problems.
-More precisely in the subnormal domain, denoting by @var{e} the value of
+More precisely in the subnormal domain, denoting by @m{e,@var{e}} the value of
 @code{emin}, @var{x} is rounded in fixed-point
 arithmetic to an integer multiple of @m{2^{e-1}, two to the power
 @var{e}@minus{}1}; as a consequence, @m{1.5 \times 2^{e-1},
 1.5 multiplied by two to the power @var{e}@minus{}1} when @var{t} is zero
 is rounded to @m{2^e, two to the power @var{e}} with rounding to nearest.
 
-@code{PREC(x)} is not modified by this function.
+@code{PREC(@var{x})} is not modified by this function.
 @var{rnd} and @var{t} must be the rounding mode
 and the returned ternary value used when computing @var{x}
 (as in @code{mpfr_check_range}).
-The subnormal exponent range is from @code{emin} to @code{emin+PREC(x)-1}.
+The subnormal exponent range is from @code{emin} to @code{emin+PREC(@var{x})-1}.
 If the result cannot be represented in the current exponent range of MPFR
 (due to a too small @code{emax}), the behavior is undefined.
 Note that unlike most functions, the result is compared to the exact one,
@@ -3991,6 +3990,8 @@ in MPFR 4.0.
 @item @code{mpfr_get_patches} in MPFR 2.3.
 
 @item @code{mpfr_get_q} in MPFR 4.0.
+
+@item @code{mpfr_get_str_ndigits} in MPFR 4.1.
 
 @item @code{mpfr_get_z_2exp} in MPFR 3.0.
 This function was named @code{mpfr_get_z_exp} in previous versions;

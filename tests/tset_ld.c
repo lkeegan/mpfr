@@ -21,9 +21,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include <float.h>
-#ifdef WITH_FPU_CONTROL
-#include <fpu_control.h>
-#endif
 
 #include "mpfr-test.h"
 
@@ -31,6 +28,7 @@ static void
 check_gcc33_bug (void)
 {
   volatile long double x;
+
   x = (long double) 9007199254740992.0 + 1.0;
   if (x != 0.0)
     return;  /* OK */
@@ -212,7 +210,7 @@ check_set_get (long double d)
           printf ("  x = ");
           mpfr_dump (x);
           printf ("  MPFR_LDBL_MANT_DIG=%u\n", MPFR_LDBL_MANT_DIG);
-          printf ("  prec=%lu\n", prec);
+          printf ("  prec=%ld\n", (long) prec);
           print_binary (d, 2);
           exit (1);
         }
@@ -505,16 +503,6 @@ main (int argc, char *argv[])
   mpfr_t x;
   int i;
   mpfr_exp_t emax;
-#ifdef WITH_FPU_CONTROL
-  fpu_control_t cw;
-
-  if (argc > 1)
-    {
-      cw = strtol(argv[1], NULL, 0);
-      printf ("FPU control word: 0x%x\n", (unsigned int) cw);
-      _FPU_SETCW (cw);
-    }
-#endif
 
   tests_start_mpfr ();
   mpfr_test_init ();

@@ -22,7 +22,7 @@
     <RootNamespace>talloc</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{541BB0AF-2A9D-4254-AEA2-C4AF64B072AE}</ProjectGuid>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

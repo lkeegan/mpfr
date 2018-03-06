@@ -23,6 +23,10 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define MPFR_NEED_LONGLONG_H
 #include "mpfr-impl.h"
 
+/* FIXME: Possible overflow/underflow issues in corner cases
+   (see MPFR_ASSERTN in the code). They should be fixable with UBF
+   like in mpfr_fmma. */
+
 /* The fused-multiply-add (fma) of x, y and z is defined by:
    fma(x,y,z)= x*y + z
 */
@@ -230,7 +234,7 @@ mpfr_fma (mpfr_ptr s, mpfr_srcptr x, mpfr_srcptr y, mpfr_srcptr z,
           /* Let's eliminate the obvious case where x*y and z have the
              same sign. No possible cancellation -> real overflow.
              Also, we know that |z| < 2^emax. If E(x) + E(y) >= emax+3,
-             then |x*y| >= 2^(emax+1), and |x*y + z| >= 2^emax. This case
+             then |x*y| >= 2^(emax+1), and |x*y + z| > 2^emax. This case
              is also an overflow. */
           if (MPFR_SIGN (u) == MPFR_SIGN (z) || e >= __gmpfr_emax + 3)
             {
@@ -249,26 +253,37 @@ mpfr_fma (mpfr_ptr s, mpfr_srcptr x, mpfr_srcptr y, mpfr_srcptr z,
           inexact = mpfr_mul (u, u, y, MPFR_RNDN);
           MPFR_ASSERTN (inexact == 0);
 
-          /* Now, we need to add z/4... But it may underflow! */
+          /* Now, we need to add z/4, which is in fact a subtraction since
+             x*y and z have different signs. But it may underflow! */
           {
             mpfr_t zo4;
             mpfr_srcptr zz;
             MPFR_BLOCK_DECL (flags);
 
             if (MPFR_GET_EXP (u) > MPFR_GET_EXP (z) &&
-                MPFR_GET_EXP (u) - MPFR_GET_EXP (z) > MPFR_PREC (u))
+                MPFR_GET_EXP (u) - MPFR_GET_EXP (z) > MPFR_PREC (s) + 1)
               {
-                /* |z| < ulp(u)/2, therefore one can use z instead of z/4. */
+                /* |z| < ulp(u)/4, where the ulp is meant with the precision
+                   of the result s, therefore one can use z instead of z/4,
+                   including when u is a power of 2!
+                   FIXME[VL]: It should be |z| < ulp(u)/4 where the precision
+                   considered for the ulp is the maximum of the precisions of
+                   s and u. First, add a test... */
                 zz = z;
               }
             else
               {
                 mpfr_init2 (zo4, MPFR_PREC (z));
-                if (mpfr_div_2ui (zo4, z, 2, MPFR_RNDZ))
-                  {
-                    /* The division by 4 underflowed! */
-                    MPFR_ASSERTN (0); /* TODO... */
-                  }
+                inexact = mpfr_div_2ui (zo4, z, 2, MPFR_RNDZ);
+                /* If inexact <> 0 this means the division by 4 underflowed
+                   (it cannot overflow since EXP(z) <= emax).
+                   This is very unlikely since it would imply EXP(z) <= emin+1,
+                   and since EXP(u) >= emax - 1 (otherwise x*y would not
+                   overflow) and EXP(u) - EXP(z) <= PREC(s) + 1 we deduce
+                   PREC(s) >= emax - emin - 3, which means PREC(s) >= 2^31-5
+                   on a 32-bit computer, and PREC(s) >= 2^63-5 on a 64-bit
+                   computer */
+                MPFR_ASSERTN (inexact == 0);
                 zz = zo4;
               }
 
@@ -276,8 +291,11 @@ mpfr_fma (mpfr_ptr s, mpfr_srcptr x, mpfr_srcptr y, mpfr_srcptr z,
                following addition would give the same result). */
             MPFR_BLOCK (flags, inexact = mpfr_add (s, u, zz, rnd_mode));
             /* u and zz have different signs, so that an overflow
-               is not possible. But an underflow is theoretically
-               possible! */
+               is not possible (FIXME: except if PREC(s) < PREC(u) and u is
+               the largest number < +Inf).
+               But an underflow is theoretically
+               possible, if zz cancels almost all bits of u up to the emin
+               bit position. */
             if (MPFR_UNDERFLOW (flags))
               {
                 MPFR_ASSERTN (zz != z);

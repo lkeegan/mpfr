@@ -22,7 +22,7 @@
     <RootNamespace>tfrexp</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{EF613D11-70B1-5F25-5B2C-A561F2098B82}</ProjectGuid>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

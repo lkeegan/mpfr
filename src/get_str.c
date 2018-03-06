@@ -2229,6 +2229,78 @@ mpfr_ceil_mul (mpfr_exp_t e, int beta, int i)
   return r;
 }
 
+/* take at least 1 + ceil(p*log(2)/log(b)) digits, where p is the
+   number of bits of the mantissa, to ensure back conversion from
+   the output gives the same floating-point.
+
+   Warning: if b = 2^k, this may be too large. The worst case is when
+   the first base-b digit contains only one bit, so we take
+   1 + ceil((p-1)/k) instead.
+*/
+size_t
+mpfr_get_str_ndigits (int b, mpfr_prec_t p)
+{
+  MPFR_ASSERTD(2 <= b && b <= 62);
+
+  /* deal first with power of two bases, since even for those, mpfr_ceil_mul
+     might return a value too large by 1 */
+  if (IS_POW2(b)) /* 1 + ceil((p-1)/k) = 2 + floor((p-2)/k) */
+    {
+      int k;
+
+      count_leading_zeros (k, (mp_limb_t) b);
+      k = GMP_NUMB_BITS - k - 1; /* now b = 2^k */
+      return 1 + (p + k - 2) / k;
+    }
+
+  /* the value returned by mpfr_ceil_mul is guaranteed to be
+     1 + ceil(p*log(2)/log(b)) for p < 186564318007 (it returns one more
+     for p=186564318007 and b=7 or 49) */
+  MPFR_STAT_STATIC_ASSERT (MPFR_PREC_BITS >= 64 || MPFR_PREC_BITS <= 32);
+#if MPFR_PREC_BITS >= 64
+  /* 64-bit numbers are supported by the C implementation, so that we can
+     use the large constant below. If MPFR_PREC_BITS <= 32, the condition
+     is always satisfied, so that we do not need any test. */
+  if (MPFR_LIKELY (p < 186564318007))
+#endif
+    return 1 + mpfr_ceil_mul (IS_POW2(b) ? p - 1 : p, b, 1);
+
+  /* Now p is large and b is not a power of two. The code below works for any
+     value of p and b, as long as b is not a power of two. Indeed, in such a
+     case, p*log(2)/log(b) cannot be exactly an integer, and thus Ziv's loop
+     will terminate. */
+  {
+    mpfr_prec_t w = 77; /* mpfr_ceil_mul used a 77-bit upper approximation of
+                           log(2)/log(b) */
+    mpfr_t d, u;
+    size_t ret = 0;
+    while (ret == 0)
+      {
+        w = 2 * w;
+        mpfr_init2 (d, w); /* lower approximation */
+        mpfr_init2 (u, w); /* upper approximation */
+        mpfr_set_ui (d, b, MPFR_RNDU);
+        mpfr_set_ui (u, b, MPFR_RNDD);
+        mpfr_log2 (d, d, MPFR_RNDU);
+        mpfr_log2 (u, u, MPFR_RNDD);
+        /* The code below requires that the precision fit in an unsigned long,
+           which we currently guarantee (see _MPFR_PREC_FORMAT). */
+        MPFR_STAT_STATIC_ASSERT (MPFR_PREC_MAX <= ULONG_MAX);
+        /* u <= log(b)/log(2) <= d (***) */
+        mpfr_ui_div (d, p, d, MPFR_RNDD);
+        mpfr_ui_div (u, p, u, MPFR_RNDU);
+        /* d <= p*log(2)/log(b) <= u */
+        mpfr_ceil (d, d);
+        mpfr_ceil (u, u);
+        if (mpfr_cmp (d, u) == 0)
+          ret = mpfr_get_ui (d, MPFR_RNDU);
+        mpfr_clear (d);
+        mpfr_clear (u);
+      }
+    return 1 + ret;
+  }
+}
+
 /* prints the mantissa of x in the string s, and writes the corresponding
    exponent in e.
    x is rounded with direction rnd, m is the number of digits of the mantissa,
@@ -2313,27 +2385,12 @@ mpfr_get_str (char *s, mpfr_exp_t *e, int b, size_t m, mpfr_srcptr x,
   MPFR_SAVE_EXPO_MARK (expo);  /* needed for mpfr_ceil_mul (at least) */
 
   if (m == 0)
-    {
-
-      /* take at least 1 + ceil(n*log(2)/log(b)) digits, where n is the
-         number of bits of the mantissa, to ensure back conversion from
-         the output gives the same floating-point.
-
-         Warning: if b = 2^k, this may be too large. The worst case is when
-         the first base-b digit contains only one bit, so we get
-         1 + ceil((n-1)/k) = 2 + floor((n-2)/k) instead.
-      */
-      m = 1 +
-        mpfr_ceil_mul (IS_POW2(b) ? MPFR_PREC(x) - 1 : MPFR_PREC(x), b, 1);
-      if (m < 2)
-        m = 2;
-    }
+    m = mpfr_get_str_ndigits (b, MPFR_PREC(x));
 
   MPFR_LOG_MSG (("m=%zu\n", m));
 
-  /* The code below for non-power-of-two bases works for m=1;
-     this is important for the internal use of mpfr_get_str. */
-  MPFR_ASSERTN (m >= 2 || (!IS_POW2(b) && m >= 1));
+  /* The code below works for m=1, both for power-of-two and non-power-of-two
+     bases; this is important for the internal use of mpfr_get_str. */
 
   /* x is a floating-point number */
 
@@ -2363,7 +2420,7 @@ mpfr_get_str (char *s, mpfr_exp_t *e, int b, size_t m, mpfr_srcptr x,
       int inexp;
 
       count_leading_zeros (pow2, (mp_limb_t) b);
-      pow2 = GMP_NUMB_BITS - pow2 - 1; /* base = 2^pow2 */
+      pow2 = GMP_NUMB_BITS - pow2 - 1; /* b = 2^pow2 */
 
       /* set MPFR_EXP(x) = f*pow2 + r, 1 <= r <= pow2 */
       f = (MPFR_GET_EXP (x) - 1) / pow2;
@@ -2376,6 +2433,8 @@ mpfr_get_str (char *s, mpfr_exp_t *e, int b, size_t m, mpfr_srcptr x,
 
       /* the first digit will contain only r bits */
       prec = (m - 1) * pow2 + r; /* total number of bits */
+      /* if m=1 then 1 <= prec <= pow2, and since prec=1 is now valid in MPFR,
+         the power-of-two code also works for m=1 */
       n = MPFR_PREC2LIMBS (prec);
 
       MPFR_TMP_MARK (marker);
@@ -2430,6 +2489,7 @@ mpfr_get_str (char *s, mpfr_exp_t *e, int b, size_t m, mpfr_srcptr x,
 
   g = mpfr_ceil_mul (MPFR_GET_EXP (x) - 1, b, 1);
   exact = 1;
+  /* prec is the radix-2 precision necessary to get m digits in radix b */
   prec = mpfr_ceil_mul (m, b, 0) + 1;
   exp = ((mpfr_exp_t) m < g) ? g - (mpfr_exp_t) m : (mpfr_exp_t) m - g;
   prec += MPFR_INT_CEIL_LOG2 (prec); /* number of guard bits */
@@ -2473,7 +2533,7 @@ mpfr_get_str (char *s, mpfr_exp_t *e, int b, size_t m, mpfr_srcptr x,
           x1 = (nx >= n) ? xp + nx - n : xp;
           nx1 = (nx >= n) ? n : nx; /* nx1 = min(n, nx) */
 
-          /* test si exact */
+          /* test if exact */
           if (nx > n)
             exact = (exact &&
                      ((mpn_scan1 (xp, 0) >= (nx - n) * GMP_NUMB_BITS)));
@@ -2499,7 +2559,7 @@ mpfr_get_str (char *s, mpfr_exp_t *e, int b, size_t m, mpfr_srcptr x,
           else
             MPN_COPY (a, result + nx1, n);
         }
-      else
+      else /* m < g: divide by b^exp */
         {
           mp_limb_t *x1;
 
@@ -2508,15 +2568,23 @@ mpfr_get_str (char *s, mpfr_exp_t *e, int b, size_t m, mpfr_srcptr x,
           exact = (err == -1);
 
           /* allocate memory for x1, result and reste */
-          x1 = MPFR_TMP_LIMBS_ALLOC (2 * n);
           result = MPFR_TMP_LIMBS_ALLOC (n + 1);
           reste = MPFR_TMP_LIMBS_ALLOC (n);
 
-          /* initialize x1 = x */
-          MPN_COPY2 (x1, 2 * n, xp, nx);
-          if ((exact) && (nx > 2 * n) &&
-              (mpn_scan1 (xp, 0) < (nx - 2 * n) * GMP_NUMB_BITS))
-            exact = 0;
+          if (2 * n <= nx)
+            {
+              x1 = xp + nx - 2 * n;
+              /* we ignored the low nx - 2 * n limbs from x */
+              if (exact && mpn_scan1 (xp, 0) < (nx - 2 * n) * GMP_NUMB_BITS)
+                exact = 0;
+            }
+          else
+            {
+              /* copy the nx most significant limbs of x into those of x1 */
+              x1 = MPFR_TMP_LIMBS_ALLOC (2 * n);
+              MPN_ZERO (x1, 2 * n - nx);
+              MPN_COPY (x1 + 2 * n - nx, xp, nx);
+            }
 
           /* result = x / a */
           mpn_tdiv_qr (result, reste, 0, x1, 2 * n, a, n);

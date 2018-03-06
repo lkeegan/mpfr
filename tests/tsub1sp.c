@@ -269,7 +269,8 @@ bug20171213_gen (mpfr_prec_t pmax)
           mpfr_div_2exp (d, d, e, MPFR_RNDN);    /* b = 1 - 2^(-e) */
           if (! mpfr_equal_p (a, d))
             {
-              printf ("bug20171213_gen failed for p=%lu, e=%lu\n", p, e);
+              printf ("bug20171213_gen failed for p=%ld, e=%ld\n",
+                      (long) p, (long) e);
               printf ("b="); mpfr_dump (b);
               printf ("c="); mpfr_dump (c);
               printf ("got      a="); mpfr_dump (a);
@@ -284,6 +285,91 @@ bug20171213_gen (mpfr_prec_t pmax)
     }
 }
 
+static void
+coverage (void)
+{
+  mpfr_t a, b, c, d, u;
+  int inex;
+
+  /* coverage test in mpfr_sub1sp: case d=1, limb > MPFR_LIMB_HIGHBIT, RNDF
+     and also RNDZ */
+  mpfr_init2 (a, 3 * GMP_NUMB_BITS);
+  mpfr_init2 (b, 3 * GMP_NUMB_BITS);
+  mpfr_init2 (c, 3 * GMP_NUMB_BITS);
+  mpfr_init2 (d, 3 * GMP_NUMB_BITS);
+  mpfr_init2 (u, 3 * GMP_NUMB_BITS);
+  mpfr_set_ui (b, 1, MPFR_RNDN);
+  mpfr_nextbelow (b); /* b = 1 - 2^(-p) */
+  mpfr_set_prec (c, GMP_NUMB_BITS);
+  mpfr_set_ui_2exp (c, 1, -1, MPFR_RNDN);
+  mpfr_nextbelow (c);
+  mpfr_nextbelow (c); /* c = 1/2 - 2*2^(-GMP_NUMB_BITS-1) */
+  mpfr_prec_round (c, 3 * GMP_NUMB_BITS, MPFR_RNDN);
+  mpfr_nextbelow (c); /* c = 1/2 - 2*2^(-GMP_NUMB_BITS-1) - 2^(-p-1) */
+  /* b-c = c */
+  mpfr_sub (a, b, c, MPFR_RNDF);
+  mpfr_sub (d, b, c, MPFR_RNDD);
+  mpfr_sub (u, b, c, MPFR_RNDU);
+  /* check a = d or u */
+  MPFR_ASSERTN(mpfr_equal_p (a, d) || mpfr_equal_p (a, u));
+
+  /* coverage test in mpfr_sub1sp: case d=p, RNDN, sb = 0, significand of b
+     is even but b<>2^e, (case 1e) */
+  mpfr_set_prec (a, 3 * GMP_NUMB_BITS);
+  mpfr_set_prec (b, 3 * GMP_NUMB_BITS);
+  mpfr_set_prec (c, 3 * GMP_NUMB_BITS);
+  mpfr_set_ui (b, 1, MPFR_RNDN);
+  mpfr_nextabove (b);
+  mpfr_nextabove (b);
+  mpfr_set_ui_2exp (c, 1, -3 * GMP_NUMB_BITS, MPFR_RNDN);
+  inex = mpfr_sub (a, b, c, MPFR_RNDN);
+  MPFR_ASSERTN(inex > 0);
+  MPFR_ASSERTN(mpfr_equal_p (a, b));
+
+  mpfr_clear (a);
+  mpfr_clear (b);
+  mpfr_clear (c);
+  mpfr_clear (d);
+  mpfr_clear (u);
+}
+
+/* bug in mpfr_sub1sp1n, made generic */
+static void
+bug20180217 (mpfr_prec_t pmax)
+{
+  mpfr_t a, b, c;
+  int inex;
+  mpfr_prec_t p;
+
+  for (p = MPFR_PREC_MIN; p <= pmax; p++)
+    {
+      mpfr_init2 (a, p);
+      mpfr_init2 (b, p);
+      mpfr_init2 (c, p);
+      mpfr_set_ui (b, 1, MPFR_RNDN); /* b = 1 */
+      mpfr_set_ui_2exp (c, 1, -p-1, MPFR_RNDN); /* c = 2^(-p-1) */
+      /* a - b = 1 - 2^(-p-1) and should be rounded to 1 (case 2f of
+         mpfr_sub1sp) */
+      inex = mpfr_sub (a, b, c, MPFR_RNDN);
+      MPFR_ASSERTN(inex > 0);
+      MPFR_ASSERTN(mpfr_cmp_ui (a, 1) == 0);
+      /* check also when a=b */
+      mpfr_set_ui (a, 1, MPFR_RNDN);
+      inex = mpfr_sub (a, a, c, MPFR_RNDN);
+      MPFR_ASSERTN(inex > 0);
+      MPFR_ASSERTN(mpfr_cmp_ui (a, 1) == 0);
+      /* and when a=c */
+      mpfr_set_ui (b, 1, MPFR_RNDN); /* b = 1 */
+      mpfr_set_ui_2exp (a, 1, -p-1, MPFR_RNDN);
+      inex = mpfr_sub (a, b, a, MPFR_RNDN);
+      MPFR_ASSERTN(inex > 0);
+      MPFR_ASSERTN(mpfr_cmp_ui (a, 1) == 0);
+      mpfr_clear (a);
+      mpfr_clear (b);
+      mpfr_clear (c);
+    }
+}
+
 int
 main (void)
 {
@@ -291,6 +377,8 @@ main (void)
 
   tests_start_mpfr ();
 
+  bug20180217 (1024);
+  coverage ();
   compare_sub_sub1sp ();
   test20170208 ();
   bug20170109 ();
@@ -800,8 +888,8 @@ check_underflow (mpfr_prec_t p)
       inexact = mpfr_sub (x, y, z, MPFR_RNDN);
       if (inexact >= 0 || (mpfr_cmp_ui (x, 0) != 0))
         {
-          printf ("4*2^(emin-2) - 3*2^(emin-2) with RNDN failed for p=%lu\n",
-                  p);
+          printf ("4*2^(emin-2) - 3*2^(emin-2) with RNDN failed for p=%ld\n",
+                  (long) p);
           printf ("Expected inexact < 0 with x=0\n");
           printf ("Got inexact=%d with x=", inexact);
           mpfr_dump (x);
@@ -816,8 +904,8 @@ check_underflow (mpfr_prec_t p)
       inexact = mpfr_sub (x, y, z, MPFR_RNDN);
       if (inexact >= 0 || (mpfr_cmp_ui (x, 0) != 0))
         {
-          printf ("5*2^(emin-2) - 4*2^(emin-2) with RNDN failed for p=%lu\n",
-                  p);
+          printf ("5*2^(emin-2) - 4*2^(emin-2) with RNDN failed for p=%ld\n",
+                  (long) p);
           printf ("Expected inexact < 0 with x=0\n");
           printf ("Got inexact=%d with x=", inexact);
           mpfr_dump (x);

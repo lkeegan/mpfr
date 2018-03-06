@@ -20,6 +20,7 @@ along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
 http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
+/* Needed due to the inclusion of mpfr-intmax.h */
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
@@ -324,6 +325,16 @@ main (void)
     printf ("[tversion] MPFR tuning parameters from %s\n", MPFR_TUNE_CASE);
 
   /**************************** ABI information ****************************/
+
+  printf ("[tversion] sizeof(long) = %ld"
+#if defined(_MPFR_H_HAVE_INTMAX_T)
+          ", sizeof(intmax_t) = %ld"
+#endif
+          "\n", (long) sizeof(long)
+#if defined(_MPFR_H_HAVE_INTMAX_T)
+          , (long) sizeof(intmax_t)
+#endif
+          );
 
   if (mp_bits_per_limb != GMP_NUMB_BITS)
     {

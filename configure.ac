@@ -347,11 +347,11 @@ AC_ARG_ENABLE(decimal-float,
       *)   AC_MSG_ERROR([bad value for --enable-decimal-float: yes or no]) ;;
      esac])
 
-dnl GCC >= 4.3 provides __float128, but since this is not standard,
-dnl the default is "autodetect" and not "yes"
+dnl FIXME: If a fallback to __float128 is used, say binary128 instead
+dnl of _Float128.
 AC_ARG_ENABLE(float128,
-   [  --disable-float128      explicitly disable __float128 support
-  --enable-float128       build conversion functions from/to __float128
+   [  --disable-float128      explicitly disable _Float128 support
+  --enable-float128       build conversion functions from/to _Float128
                           [[default=autodetect]]],
    [ case $enableval in
       yes) ;;
@@ -743,9 +743,11 @@ dnl (see above).
 AC_CHECK_FUNCS([__gmpn_sbpi1_divappr_q])
 dnl same for other GMP internal functions
 AC_CHECK_FUNCS([__gmpn_invert_limb])
-AC_CHECK_FUNCS([__gmpn_rsblsh_n])
+dnl mpn_rsblsh1_n(rp, up, vp, n) does {rp, n} <- 2 * {vp, n} - {up, n}
+AC_CHECK_FUNCS([__gmpn_rsblsh1_n])
 
 MPFR_CHECK_MP_LIMB_T_VS_LONG
+MPFR_CHECK_MP_LIMB_T_VS_INTMAX
 
 dnl The getrusage function is needed for MPFR bench (cf tools/bench)
 AC_CHECK_FUNCS([getrusage])

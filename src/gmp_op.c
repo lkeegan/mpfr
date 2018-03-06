@@ -152,7 +152,15 @@ mpfr_cmp_z (mpfr_srcptr x, mpz_srcptr z)
   flags = __gmpfr_flags;
   if (mpfr_set_z (t, z, MPFR_RNDN))
     {
-      /* overflow (t is an infinity) or underflow */
+      /* overflow (t is an infinity) or underflow: z does not fit in the
+         current exponent range.
+         If overflow, then z is larger than the largest *integer* < +Inf
+         (if z > 0), thus we get t = +Inf (or -Inf), and the value of
+         mpfr_cmp (x, t) below is correct.
+         If underflow, then z is smaller than the smallest number > 0,
+         which is necessarily an integer, say xmin.
+         If z > xmin/2, then t is xmin, and we divide t by 2 to ensure t
+         is zero, and then the value of mpfr_cmp (x, t) below is correct. */
       mpfr_div_2ui (t, t, 2, MPFR_RNDZ);  /* if underflow, set t to zero */
       __gmpfr_flags = flags;  /* restore the flags */
       /* The real value of t (= z), which falls outside the exponent range,
@@ -452,11 +460,18 @@ mpfr_cmp_q (mpfr_srcptr x, mpq_srcptr q)
   mpfr_prec_t p;
   MPFR_SAVE_EXPO_DECL (expo);
 
+  /* GMP allows the user to set the denominator to 0. This is interpreted
+     by MPFR as the value being an infinity or NaN (probably better than
+     an assertion failure). */
   if (MPFR_UNLIKELY (mpq_denref (q) == 0))
     {
       /* q is an infinity or NaN */
-      mpfr_init2 (t, 2);
+      mpfr_flags_t old_flags;
+
+      mpfr_init2 (t, MPFR_PREC_MIN);
+      old_flags = __gmpfr_flags;
       mpfr_set_q (t, q, MPFR_RNDN);
+      __gmpfr_flags = old_flags;
       res = mpfr_cmp (x, t);
       mpfr_clear (t);
       return res;
