@@ -59,7 +59,7 @@ Table of contents:
 - export mpfr_overflow and mpfr_underflow as public functions
 
 - many functions currently taking into account the precision of the *input*
-  variable to set the initial working precison (acosh, asinh, cosh, ...).
+  variable to set the initial working precision (acosh, asinh, cosh, ...).
   This is nonsense since the "average" working precision should only depend
   on the precision of the *output* variable (and maybe on the *value* of
   the input in case of cancellation).
@@ -117,6 +117,8 @@ Table of contents:
 4. New functions to implement
 ##############################################################################
 
+- a function to compute the hash of a floating-point number
+  (suggested by Patrick Pelissier)
 - implement new functions from the C++17 standard:
   http://en.cppreference.com/w/cpp/numeric/special_math
   assoc_laguerre, assoc_legendre, comp_ellint_1, comp_ellint_2, comp_ellint_3,

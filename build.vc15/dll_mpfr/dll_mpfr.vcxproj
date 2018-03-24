@@ -22,7 +22,7 @@
     <ProjectGuid>{8A1EB575-B721-4891-B5BD-17CC45D0103C}</ProjectGuid>
     <RootNamespace>dll_mpfr</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -440,6 +440,7 @@
     <ClCompile Include="..\..\src\swap.c" />
     <ClCompile Include="..\..\src\tan.c" />
     <ClCompile Include="..\..\src\tanh.c" />
+    <ClCompile Include="..\..\src\total_order.c" />
     <ClCompile Include="..\..\src\ubf.c" />
     <ClCompile Include="..\..\src\uceil_exp2.c" />
     <ClCompile Include="..\..\src\uceil_log2.c" />

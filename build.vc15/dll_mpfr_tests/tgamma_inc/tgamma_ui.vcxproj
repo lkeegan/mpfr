@@ -22,7 +22,7 @@
     <RootNamespace>tgamma</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{A0B4A7DF-C347-4F42-A733-A2A8CA2BDAE4}</ProjectGuid>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

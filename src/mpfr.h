@@ -760,7 +760,8 @@ __MPFR_DECLSPEC mpfr_exp_t mpfr_custom_get_exp (mpfr_srcptr);
 __MPFR_DECLSPEC void mpfr_custom_move (mpfr_ptr, void *);
 __MPFR_DECLSPEC void mpfr_custom_init_set (mpfr_ptr, int, mpfr_exp_t,
                                            mpfr_prec_t, void *);
-__MPFR_DECLSPEC int    mpfr_custom_get_kind (mpfr_srcptr);
+__MPFR_DECLSPEC int mpfr_custom_get_kind (mpfr_srcptr);
+__MPFR_DECLSPEC int mpfr_total_order (mpfr_srcptr, mpfr_srcptr);
 
 #if defined (__cplusplus)
 }
@@ -1024,7 +1025,7 @@ __MPFR_DECLSPEC int    mpfr_custom_get_kind (mpfr_srcptr);
 
 
 /* Check if <stdint.h> / <inttypes.h> is included or if the user
-   explicitly wants intmax_t. Automatical detection is done by
+   explicitly wants intmax_t. Automatic detection is done by
    checking:
      - INTMAX_C and UINTMAX_C, but not if the compiler is a C++ one
        (as suggested by Patrick Pelissier) because the test does not

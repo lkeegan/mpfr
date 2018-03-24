@@ -313,6 +313,14 @@ do
     { echo "Missing '#include \"mpfr-impl.h\"' in $file?" && err=1 }
 done
 
+# Detect mpfr_mul with identical 2nd and 3rd arguments, which can be
+# replaced by mpfr_sqr. We exclude mul.c and sqr.c (which implement
+# these functions) because such a mpfr_mul can be used on purpose.
+err-if-output --msg='Use mpfr_sqr instead of mpfr_mul.' "mul/sqr" perl -ne \
+  '/__MPFR_DECLSPEC/ or ($u,$v) = /mpfr_mul *\([^,]*,([^,]*),([^,]*),/ and
+     do { $u =~ tr/ //d; $v =~ tr/ //d; $u eq $v and print "$ARGV: $_" }' \
+  src/*.[ch]~src/(mul|sqr).c
+
 # Re-seeding mpfr_rands in the tests is bad practice, as it would affect
 # later tests, defeating the purpose of GMP_CHECK_RANDOMIZE.
 err-if-output \
@@ -431,8 +439,9 @@ EOF
 # (they are in the doc/mpfr.t2p/mpfr.t2d/pdf/check_recorder directory, and
 # unfortunately codespell can't skip directories such as mpfr.t2p).
 if which codespell > /dev/null 2> /dev/null; then
-  err-if-output "codespell" codespell ${term:+--enable-colors} -q3 -S \
-    'algorithm2e.sty,algorithms.tex,texinfo.tex,openout.*' \
+  err-if-output "codespell" codespell ${term:+--enable-colors} \
+    -q3 -I codespell.ignore \
+    -S 'algorithm2e.sty,algorithms.*,mpfr.t2p,texinfo.tex,openout.*' \
     AUTHORS BUGS INSTALL NEWS README TODO doc examples $srctests
 else
   echo "Warning! codespell is not installed. Cannot check spelling." >&2

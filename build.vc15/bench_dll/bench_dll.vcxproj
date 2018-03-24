@@ -23,7 +23,7 @@
     <ProjectGuid>{E7D548AF-7D8A-4791-A66E-C78D689CD8FF}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>bench_dll</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
     <ProjectName>bench_dll</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

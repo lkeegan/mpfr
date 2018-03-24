@@ -2022,6 +2022,20 @@ Return non-zero if @var{op1} or @var{op2} is a NaN (i.e., they cannot be
 compared), zero otherwise.
 @end deftypefun
 
+@deftypefun int mpfr_total_order (mpfr_t @var{x}, mpfr_t @var{y})
+This function implements the totalOrder predicate from IEEE 754-2008,
+where @minus{}NaN < @minus{}Inf < negative finite numbers < @minus{}0 <
++0 < positive finite numbers < +Inf < +NaN@.
+It returns a non-zero value (true) when @var{x} is smaller than or equal
+to @var{y} for this order relation, and zero (false) otherwise.
+Contrary to @code{mpfr_cmp (x, y)}, which returns a ternary value,
+@code{mpfr_total_order} returns a binary value (zero or non-zero).
+In particular, @code{mpfr_total_order (x, x)} returns true,
+@code{mpfr_total_order (-0, +0)} returns true and
+@code{mpfr_total_order (+0, -0)} returns false.
+The sign bit of NaN also matters.
+@end deftypefun
+
 @node Special Functions, Input and Output Functions, Comparison Functions, MPFR Interface
 @cindex Special functions
 @section Special Functions
@@ -2375,7 +2389,7 @@ use @code{mpfr_free_cache} or @code{mpfr_free_cache2}.
 @end deftypefun
 
 @deftypefun void mpfr_free_cache (void)
-Free all caches and pools used by MPFR internally (thoses local to the
+Free all caches and pools used by MPFR internally (those local to the
 current thread and those shared by all threads).
 You should call this function before terminating a thread, even if you did
 not call @code{mpfr_const_*} functions directly (they could have been called
@@ -4056,6 +4070,8 @@ use @code{mpfr_get_z_exp}.
 @item @code{mpfr_snprintf} and @code{mpfr_sprintf} in MPFR 2.4.
 
 @item @code{mpfr_sub_d} in MPFR 2.4.
+
+@item @code{mpfr_total_order} in MPFR 4.1.
 
 @item @code{mpfr_urandom} in MPFR 3.0.
 

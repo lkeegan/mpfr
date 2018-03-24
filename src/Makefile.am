@@ -9,12 +9,11 @@
 # PARTICULAR PURPOSE.
 
 
-EXTRA_DIST = round_raw_generic.c jyn_asympt.c 			        \
-	x86/mparam.h x86_64/core2/mparam.h arm/mparam.h			\
-	powerpc64/mparam.h sparc64/mparam.h				\
-	generic/mparam.h amd/k8/mparam.h 				\
-	amd/amdfam10/mparam.h 						\
-	mips/mparam.h generic/coverage/mparam.h x86_64/mparam.h
+EXTRA_DIST = round_raw_generic.c jyn_asympt.c				\
+	amd/mparam.h arm/mparam.h					\
+	generic/coverage/mparam.h generic/mparam.h			\
+	mips/mparam.h powerpc64/mparam.h sparc64/mparam.h		\
+	x86/mparam.h x86_64/core2/mparam.h x86_64/mparam.h
 
 include_HEADERS = mpfr.h mpf2mpfr.h
 
@@ -59,7 +58,7 @@ scale2.c set_z_exp.c ai.c gammaonethird.c ieee_floats.h			\
 grandom.c fpif.c set_float128.c get_float128.c rndna.c nrandom.c        \
 random_deviate.h random_deviate.c erandom.c mpfr-mini-gmp.c             \
 mpfr-mini-gmp.h fmma.c log_ui.c gamma_inc.c ubf.c invert_limb.h 	\
-invsqrt_limb.h beta.c odd_p.c get_q.c pool.c
+invsqrt_limb.h beta.c odd_p.c get_q.c pool.c total_order.c
 
 libmpfr_la_LIBADD = @LIBOBJS@
 
