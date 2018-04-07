@@ -1086,6 +1086,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "trootn_ui", "dll_mpfr_tests
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "total-order", "dll_mpfr_tests\total_order\total-order.vcxproj", "{EC5E43E3-C1DA-4BF3-9DAD-75A9AEF1F5D4}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tprec_round", "dll_mpfr_tests\tprec_round\tprec_round.vcxproj", "{0047FC20-7FEE-4396-B126-31AB13BDDA0F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -2558,6 +2560,14 @@ Global
 		{EC5E43E3-C1DA-4BF3-9DAD-75A9AEF1F5D4}.Release|Win32.Build.0 = Release|Win32
 		{EC5E43E3-C1DA-4BF3-9DAD-75A9AEF1F5D4}.Release|x64.ActiveCfg = Release|x64
 		{EC5E43E3-C1DA-4BF3-9DAD-75A9AEF1F5D4}.Release|x64.Build.0 = Release|x64
+		{0047FC20-7FEE-4396-B126-31AB13BDDA0F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0047FC20-7FEE-4396-B126-31AB13BDDA0F}.Debug|Win32.Build.0 = Debug|Win32
+		{0047FC20-7FEE-4396-B126-31AB13BDDA0F}.Debug|x64.ActiveCfg = Debug|x64
+		{0047FC20-7FEE-4396-B126-31AB13BDDA0F}.Debug|x64.Build.0 = Debug|x64
+		{0047FC20-7FEE-4396-B126-31AB13BDDA0F}.Release|Win32.ActiveCfg = Release|Win32
+		{0047FC20-7FEE-4396-B126-31AB13BDDA0F}.Release|Win32.Build.0 = Release|Win32
+		{0047FC20-7FEE-4396-B126-31AB13BDDA0F}.Release|x64.ActiveCfg = Release|x64
+		{0047FC20-7FEE-4396-B126-31AB13BDDA0F}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -2744,6 +2754,7 @@ Global
 		{F9BE5409-FAED-4AF2-9A8A-19A229FF4975} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
 		{EB661AAC-61D3-4F3E-8B58-AEBFB5589F91} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
 		{EC5E43E3-C1DA-4BF3-9DAD-75A9AEF1F5D4} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
+		{0047FC20-7FEE-4396-B126-31AB13BDDA0F} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DF0C069F-3E76-403F-BEAC-2692113BE006}

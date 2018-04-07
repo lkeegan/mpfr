@@ -251,20 +251,19 @@ mpfr_divhigh_n (mpfr_limb_ptr qp, mpfr_limb_ptr np, mpfr_limb_ptr dp,
   k = MPFR_LIKELY (n < MPFR_DIVHIGH_TAB_SIZE) ? divhigh_ktab[n] : 2*(n/3);
 
   if (k == 0)
+    {
 #if defined(WANT_GMP_INTERNALS) && defined(HAVE___GMPN_SBPI1_DIVAPPR_Q)
-  {
-    mpfr_pi1_t dinv2;
-    invert_pi1 (dinv2, dp[n - 1], dp[n - 2]);
-    return __gmpn_sbpi1_divappr_q (qp, np, n + n, dp, n, dinv2.inv32);
-  }
+      mpfr_pi1_t dinv2;
+      invert_pi1 (dinv2, dp[n - 1], dp[n - 2]);
+      return __gmpn_sbpi1_divappr_q (qp, np, n + n, dp, n, dinv2.inv32);
 #else /* use our own code for base-case short division */
-    return mpfr_divhigh_n_basecase (qp, np, dp, n);
+      return mpfr_divhigh_n_basecase (qp, np, dp, n);
 #endif
+    }
 
-  MPFR_ASSERTD ((n+4)/2 <= k && k < n-1); /* bounds from [1], in addition we
-                                             forbid k=n-1 which would give l=1
-                                             in the recursive call, it follows
-                                             n >= 5 */
+  /* Check the bounds from [1]. In addition, we forbid k=n-1, which would
+     give l=1 in the recursive call. It follows n >= 5. */
+  MPFR_ASSERTD ((n+4)/2 <= k && k < n-1);
 
   MPFR_TMP_MARK (marker);
   l = n - k;

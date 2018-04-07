@@ -54,6 +54,10 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
  * may change in the future without notice.
  */
 
+#if !(flag == 0 || flag == 1)
+#error "flag must be 0 or 1"
+#endif
+
 int
 mpfr_round_raw_generic(
 #if flag == 0
@@ -79,13 +83,15 @@ mpfr_round_raw_generic(
   if (use_inexp)
     MPFR_ASSERTD(inexp != ((int*) 0));
   MPFR_ASSERTD(neg == 0 || neg == 1);
+#if flag == 1
+  /* rnd_mode = RNDF is only possible for flag = 0. */
+  MPFR_ASSERTD(rnd_mode != MPFR_RNDF);
+#endif
 
   if (rnd_mode == MPFR_RNDF)
     {
       if (use_inexp)
         *inexp = 0;  /* make sure it has a valid value */
-      if (flag)
-        return 0;
       rnd_mode = MPFR_RNDZ;  /* faster */
       new_use_inexp = 0;
     }

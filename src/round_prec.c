@@ -28,6 +28,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define use_inexp 1
 #include "round_raw_generic.c"
 
+/* mpfr_round_raw_2 is called from mpfr_round_raw2 */
 #define mpfr_round_raw_generic mpfr_round_raw_2
 #define flag 1
 #define use_inexp 0
@@ -204,9 +205,13 @@ mpfr_can_round_raw (const mp_limb_t *bp, mp_size_t bn, int neg, mpfr_exp_t err,
     rnd1 = MPFR_IS_LIKE_RNDZ(rnd1, neg) ? MPFR_RNDZ : MPFR_RNDA;
   if (rnd2 == MPFR_RNDF)
     rnd2 = (rnd1 == MPFR_RNDN) ? MPFR_RNDN :
-      MPFR_IS_LIKE_RNDZ(rnd2, neg) ? MPFR_RNDA : MPFR_RNDZ;
+      MPFR_IS_LIKE_RNDZ(rnd1, neg) ? MPFR_RNDA : MPFR_RNDZ;
   if (rnd2 != MPFR_RNDN)
     rnd2 = MPFR_IS_LIKE_RNDZ(rnd2, neg) ? MPFR_RNDZ : MPFR_RNDA;
+
+  MPFR_ASSERTD (rnd2 == MPFR_RNDN ||
+                rnd2 == MPFR_RNDZ ||
+                rnd2 == MPFR_RNDA);
 
   /* For err < prec (+1 for rnd1=RNDN), we can never round correctly, since
      the error is at least 2*ulp(b) >= ulp(round(b)).
@@ -324,24 +329,8 @@ mpfr_can_round_raw (const mp_limb_t *bp, mp_size_t bn, int neg, mpfr_exp_t err,
             }
           return 1;
         }
-      else if (rnd1 == rnd2)
-        {
-          if (rnd1 == MPFR_RNDN && prec < (mpfr_prec_t) bn * GMP_NUMB_BITS)
-            {
-              /* then rnd2 = RNDN, and for prec = bn * GMP_NUMB_BITS we cannot
-                 have b the middle of two representable numbers */
-              k1 = MPFR_PREC2LIMBS (prec + 1);
-              MPFR_UNSIGNED_MINUS_MODULO(s1, prec + 1);
-              if (((bp[bn - k1] >> s1) & 1) &&
-                  mpfr_round_raw2 (bp, bn, neg, MPFR_RNDA, prec + 1) == 0)
-                /* b is representable in precision prec+1 and ends with a 1 */
-                return 0;
-              else
-                return 1;
-            }
-          else
-            return 1;
-        }
+      else if (rnd1 == rnd2) /* cases RNDZ RNDZ or RNDA RNDA: ok */
+        return 1;
       else
         return mpfr_round_raw2 (bp, bn, neg, MPFR_RNDA, prec) != 0;
     }
