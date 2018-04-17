@@ -672,7 +672,7 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
           z = result + 2*ysize + 1;
           err = mpfr_mpn_exp (z, &exp_z, pstr->base, exp_z, ysize);
           /* Since we want y/z rounded toward zero, we must get an upper
-             bound of z. If err >= 0, the error on z is bounded by 2^err. */
+             bound on z. If err >= 0, the error on z is bounded by 2^err. */
           if (err >= 0)
             {
               mp_limb_t cy;
@@ -681,11 +681,7 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
 
               if (h >= ysize) /* not enough precision in z */
                 goto next_loop;
-              cy = mpn_add_1 (z, z, ysize - h, MPFR_LIMB_ONE << l);
-              /* Note: it is very unlikely that we can have a carry in the
-                 above addition. Indeed, this would mean that an integer
-                 power of pstr->base has its ysize most significant
-                 limbs >= 1000...000 - 2^err. */
+              cy = mpn_add_1 (z + h, z + h, ysize - h, MPFR_LIMB_ONE << l);
               if (cy != 0) /* the code below requires z on ysize limbs */
                 goto next_loop;
             }
@@ -773,12 +769,11 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
       exp ++;
     }
 
-  if (res == 0) /* fix ternary value */
-    {
-      exact = exact && (pstr_size == pstr->prec);
-      if (!exact)
-        res = (pstr->negative) ? 1 : -1;
-    }
+  /* Note: if exact <> 0, then the approximation {result, ysize} is exact,
+     thus no double-rounding can occur:
+     (a) either the ternary value res is non-zero, and it is the correct
+         ternary value that we should return
+     (b) or the ternary value res is zero, and we should return 0. */
 
   /* Set sign of x before exp since check_range needs a valid sign */
   (pstr->negative) ? MPFR_SET_NEG (x) : MPFR_SET_POS (x);
