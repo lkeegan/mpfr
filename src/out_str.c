@@ -80,11 +80,12 @@ mpfr_out_str (FILE *stream, int base, size_t n_digits, mpfr_srcptr op,
     {
       int r;
 
-      MPFR_ASSERTN(e >= LONG_MIN);
-      MPFR_ASSERTN(e <= LONG_MAX);
+      r = fprintf (stream, (base <= 10 ?
+                            "e%" MPFR_EXP_FSPEC "d" :
+                            "@%" MPFR_EXP_FSPEC "d"), (mpfr_eexp_t) e);
 
-      r = fprintf (stream, (base <= 10 ? "e%ld" : "@%ld"), (long) e);
-      if (MPFR_UNLIKELY (r < 0))
+      /* Check error from fprintf or integer overflow (wrapping) on size_t */
+      if (MPFR_UNLIKELY (r < 0 || l + r < l))
         return 0;
 
       l += r;

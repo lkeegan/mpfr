@@ -268,10 +268,10 @@ test_cmp_z (mpfr_prec_t pmin, mpfr_prec_t pmax, int nmax)
       exit (1);
     }
 
-  for(p=pmin ; p < pmax ; p++)
+  for (p = pmin ; p < pmax ; p++)
     {
       mpfr_set_prec (x, p);
-      for ( n = 0; n < nmax ; n++)
+      for (n = 0 ; n < nmax ; n++)
         {
           mpfr_urandomb (x, RANDS);
           mpz_urandomb  (y, RANDS, 1024);
@@ -307,20 +307,43 @@ test_cmp_q (mpfr_prec_t pmin, mpfr_prec_t pmax, int nmax)
   mpfr_init2 (z, MPFR_PREC_MIN);
   mpq_init (y);
 
-  /* check the erange flag when x is NaN */
+  /* Check the flags when x is NaN: the erange flags must be set, and
+     only this one. */
   mpfr_set_nan (x);
   mpq_set_ui (y, 17, 1);
-  mpfr_clear_erangeflag ();
+  mpfr_clear_flags ();
   res1 = mpfr_cmp_q (x, y);
-  if (res1 != 0 || mpfr_erangeflag_p () == 0)
+  if (res1 != 0 || __gmpfr_flags != MPFR_FLAGS_ERANGE)
     {
       printf ("Error for mpfr_cmp_q (NaN, 17)\n");
       printf ("Return value: expected 0, got %d\n", res1);
-      printf ("Erange flag: expected set, got %d\n", mpfr_erangeflag_p ());
+      printf ("Expected flags:");
+      flags_out (MPFR_FLAGS_ERANGE);
+      printf ("Got flags:     ");
+      flags_out (__gmpfr_flags);
       exit (1);
     }
 
-  for(p=pmin ; p < pmax ; p++)
+  /* Check the flags when y is NaN: the erange flags must be set, and
+     only this one. */
+  mpfr_set_ui (x, 42, MPFR_RNDN);
+  /* A NaN rational is represented by 0/0 (MPFR extension). */
+  mpz_set_ui (mpq_numref (y), 0);
+  mpz_set_ui (mpq_denref (y), 0);
+  mpfr_clear_flags ();
+  res1 = mpfr_cmp_q (x, y);
+  if (res1 != 0 || __gmpfr_flags != MPFR_FLAGS_ERANGE)
+    {
+      printf ("Error for mpfr_cmp_q (42, NaN)\n");
+      printf ("Return value: expected 0, got %d\n", res1);
+      printf ("Expected flags:");
+      flags_out (MPFR_FLAGS_ERANGE);
+      printf ("Got flags:     ");
+      flags_out (__gmpfr_flags);
+      exit (1);
+    }
+
+  for (p = pmin ; p < pmax ; p++)
     {
       mpfr_set_prec (x, p);
       for (n = 0 ; n < nmax ; n++)
@@ -421,11 +444,11 @@ test_cmp_f (mpfr_prec_t pmin, mpfr_prec_t pmax, int nmax)
       exit (1);
     }
 
-  for(p=pmin ; p < pmax ; p+=3)
+  for (p = pmin ; p < pmax ; p += 3)
     {
       mpfr_set_prec (x, p);
       mpf_set_prec (y, p);
-      for ( n = 0; n < nmax ; n++)
+      for (n = 0 ; n < nmax ; n++)
         {
           mpfr_urandomb (x, RANDS);
           mpf_urandomb  (y, RANDS, p);
@@ -845,7 +868,7 @@ test_specialq (mpfr_prec_t p0, mpfr_prec_t p1, unsigned int N,
       mpfr_inits2 (prec, fra, frb, frq, (mpfr_ptr) 0);
       mpq_init (q1); mpq_init(q2); mpq_init (qr);
 
-      for( n = 0 ; n < N ; n++)
+      for (n = 0 ; n < N ; n++)
         {
           mpq_set_ui(q1, randlimb(), randlimb() );
           mpq_set_ui(q2, randlimb(), randlimb() );

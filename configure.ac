@@ -404,9 +404,8 @@ AC_ARG_ENABLE(lto,
       *)    AC_MSG_ERROR([bad value for --enable-lto: yes or no]) ;;
      esac])
 
-dnl Check if compiler is ICC, and if such a case, disable GCC
-dnl And add some specific flags.
-dnl Don't add Warnings Flags (Otherwise you'll get more than 20000 warnings).
+dnl If the compiler is ICC, add some specific flags.
+dnl Don't add warnings flags (Otherwise you'll get more than 20000 warnings).
 dnl Add -long_double flags? Don't use -pc64 !
 dnl Notes (VL):
 dnl   * With icc 10.1 20080212 on itanium, the __ICC macro is not defined,
@@ -426,7 +425,7 @@ dnl     option has been introduced in ICC 9.0 for Linux (2005-06):
 dnl     http://www.ncsa.illinois.edu/UserInfo/Resources/Software/Intel/Compilers/9.0/C_ReleaseNotes.htm
 AC_MSG_CHECKING(for ICC)
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#if !defined(__ICC)
+#if !defined(__ICC) && !defined(__INTEL_COMPILER)
 # error "Not ICC"
 error
 #endif

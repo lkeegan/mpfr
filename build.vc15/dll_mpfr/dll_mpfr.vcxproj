@@ -253,6 +253,7 @@
     <ClCompile Include="..\..\src\coth.c" />
     <ClCompile Include="..\..\src\csc.c" />
     <ClCompile Include="..\..\src\csch.c" />
+    <ClCompile Include="..\..\src\dot.c" />
     <ClCompile Include="..\..\src\d_div.c" />
     <ClCompile Include="..\..\src\d_sub.c" />
     <ClCompile Include="..\..\src\digamma.c" />
