@@ -292,7 +292,7 @@ To make a release (for the MPFR team):
      *after* the -fsanitize=undefined one.
 
      GCC 4.9 also supports "-fsanitize=undefined", but it just gives
-     diagnostic messages at runtime, not a failure; GCC 5 supports
+     diagnostic messages at run time, not a failure; GCC 5 supports
      -fno-sanitize-recover like clang.
 
      Test with GCC's AddressSanitizer (-fsanitize=address). One needs to
@@ -1572,3 +1572,9 @@ and if everything is OK (no error messages), commit both files.
 
 Update the FAQ.html file with update-faq in the doc directory of the
 MPFR trunk and supported branches.
+
+===========================================================================
+
+Spelling:
+  * Some suggestions: https://gcc.gnu.org/codingconventions.html#Spelling
+  * Check with "codespell" (done by mpfrlint).
