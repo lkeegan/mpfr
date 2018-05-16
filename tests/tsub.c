@@ -1090,7 +1090,13 @@ bug20180216 (void)
     }
 }
 
-/* Fails with r12281: "reuse of c error in b - c in MPFR_RNDN". */
+/* Fails with r12281: "reuse of c error in b - c in MPFR_RNDN".
+ *
+ * If the fix in r10697 (2016-07-29) is reverted, this test also fails
+ * (there were no non-regression tests for this bug until this one);
+ * note that if --enable-assert=full is used, the error message is:
+ * "sub1 & sub1sp return different values for MPFR_RNDN".
+ */
 static void
 bug20180217 (void)
 {
