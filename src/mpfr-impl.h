@@ -642,10 +642,10 @@ static double double_zero = 0.0;
    (with Xcode 2.4.1, i.e. the latest one). */
 #define LVALUE(x) (&(x) == &(x) || &(x) != &(x))
 #define DOUBLE_ISINF(x) (LVALUE(x) && ((x) > DBL_MAX || (x) < -DBL_MAX))
-/* The DOUBLE_ISNAN(x) macro is also valid on long double x
-   (assuming that the compiler isn't too broken). */
-#ifdef MPFR_NANISNAN
-/* Avoid MIPSpro / IRIX64 / gcc -ffast-math (incorrect) optimizations.
+/* The DOUBLE_ISNAN(x) macro must be valid with any real floating type,
+   thus constants must be of integer type (e.g. 0). */
+#if defined(MPFR_NANISNAN) || __MPFR_GNUC(1,0)
+/* Avoid MIPSpro / IRIX64 / GCC (incorrect) optimizations.
    The + must not be replaced by a ||. With gcc -ffast-math, NaN is
    regarded as a positive number or something like that; the second
    test catches this case.
@@ -653,9 +653,17 @@ static double double_zero = 0.0;
    -ffinite-math-only; such options are not supported, but this makes
    difficult to test MPFR assuming x == x optimization to 1. Anyway
    support of functions/tests of using native FP and special values for
-   non-IEEE-754 environment will always be on a case-by-case basis. */
+   non-IEEE-754 environment will always be on a case-by-case basis.
+   [2018-05-31] Let's use this macro instead of the usual (x) != (x) test
+   with all GCC versions, as due to
+     https://gcc.gnu.org/bugzilla/show_bug.cgi?id=323
+   there is no guarantee that (x) != (x) will be true only for NaN.
+   And even though GCC can be used in a mode that avoids this issue,
+   there is currently no way to detect this:
+     https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85995
+*/
 # define DOUBLE_ISNAN(x) \
-    (LVALUE(x) && !((((x) >= 0.0) + ((x) <= 0.0)) && -(x)*(x) <= 0.0))
+    (LVALUE(x) && !((((x) >= 0) + ((x) <= 0)) && -(x)*(x) <= 0))
 #else
 # define DOUBLE_ISNAN(x) (LVALUE(x) && (x) != (x))
 #endif
@@ -2169,8 +2177,8 @@ __MPFR_DECLSPEC int mpfr_pow_general (mpfr_ptr, mpfr_srcptr, mpfr_srcptr,
 __MPFR_DECLSPEC void mpfr_setmax (mpfr_ptr, mpfr_exp_t);
 __MPFR_DECLSPEC void mpfr_setmin (mpfr_ptr, mpfr_exp_t);
 
-__MPFR_DECLSPEC long mpfr_mpn_exp (mp_limb_t *, mpfr_exp_t *, int,
-                                   mpfr_exp_t, size_t);
+__MPFR_DECLSPEC int mpfr_mpn_exp (mp_limb_t *, mpfr_exp_t *, int,
+                                  mpfr_exp_t, size_t);
 
 #ifdef _MPFR_H_HAVE_FILE
 __MPFR_DECLSPEC void mpfr_fdump (FILE *, mpfr_srcptr);
@@ -2369,8 +2377,20 @@ extern "C" {
    and hopefully avoid aliasing issues at the same time. And code that
    accepts UBF in input should also accept mpfr_t as a consequence; this
    makes mpfr_t to UBF conversion unnecessary.
+
+   The alignment requirement for __mpfr_ubf_struct (UBF) needs to be at least
+   as strong as the one for __mpfr_struct (MPFR number); this is not required
+   by the C standard, but this should always be the case in practice, since
+   __mpfr_ubf_struct starts with the same members as those of __mpfr_struct.
+   If ever this would not be the case with some particular C implementation,
+   an _Alignas alignment attribute (C11) could be added for UBF.
+
    When an input of a public function is a UBF, the semantic remains
-   internal to MPFR and can change in the future.
+   internal to MPFR and can change in the future. UBF arguments need
+   to be explicitly converted to mpfr_ptr (or mpfr_srcptr); be careful
+   with variadic functions, as the compiler will not be able to check
+   in general. See fmma.c as an example of usage.
+
    Note that functions used for logging need to support UBF (currently
    done by printing that a number is a UBF, as it may be difficult to
    do more without significant changes). */

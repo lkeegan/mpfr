@@ -316,8 +316,8 @@ To make a release (for the MPFR team):
        * a patched autoconf:
      http://lists.gnu.org/archive/html/autoconf-patches/2014-01/msg00003.html
 
-     Check that there are no abnormal regressions in the timings (both
-     for 100, 1000, 10000 digits, http://mpfr.org/mpfr-current/timings.html,
+     Check that there are no abnormal regressions in the timings (both for
+     100, 1000, 10000 digits, https://www.mpfr.org/mpfr-current/timings.html,
      and for small precision, using the mbench program, see mpfr/mbench).
 
      Test the library interface compatibility by running the test suite
@@ -1202,6 +1202,31 @@ which is broken by design. The reason is that some errors just produce
 a warning (which is not a bug from the compiler: in ISO C terminology,
 this corresponds to a diagnostic, and the compilation is allowed to
 succeed), and this is unfixable in a portable way.
+
+===========================================================================
+
+Shell portability
+-----------------
+
+Shell commands (in /bin/sh scripts, in Makefile and autotools related
+files...) need to be valid in POSIX shells, but also in Bourne shells
+(for instance, /bin/sh under Solaris is a Bourne shell).
+
+In particular:
+
+* Do not use $(...) but `...` (backticks).
+
+* Be careful that quote nesting with backticks such as "`cmd "$foo"`"
+  is not portable:
+
+    https://unix.stackexchange.com/q/387246/74516
+    ("quotes inside backticks inside quotes in ksh")
+
+  But the external quotes are not needed when assigning to a variable:
+
+    out=`cmd "$foo"`
+
+  Otherwise one can write "`cmd \"$foo\"`".
 
 ===========================================================================
 

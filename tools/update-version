@@ -20,7 +20,7 @@ fi
 #   ./update-version 2 3 0 p1 -
 
 dir=`pwd`
-[ -d src ] || [ "`basename "$dir"`" != tools ] || cd ..
+[ -d src ] || [ "`basename \"$dir\"`" != tools ] || cd ..
 
 replace()
 {
@@ -47,7 +47,7 @@ echo $full > VERSION
 
 if [ $# -lt 5 ]; then
   # Up to 4 arguments...
-  u="http://www.mpfr.org/mpfr-"
+  u="https://www.mpfr.org/mpfr-"
   replace "s/(?<=\@set VERSION ).*/$full/" doc/mpfr.texi
   replace "s,MPFR [\d.]+( web page \@url\{$u)[\d.]+/,MPFR $vers\${1}$vers/," \
     doc/mpfr.texi

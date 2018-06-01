@@ -1,5 +1,5 @@
 /* This is the example given and commented on the MPFR web site:
- *   http://www.mpfr.org/sample.html
+ *   https://www.mpfr.org/sample.html
  */
 
 /*
@@ -52,5 +52,6 @@ int main (void)
   mpfr_clear (s);
   mpfr_clear (t);
   mpfr_clear (u);
+  mpfr_free_cache ();
   return 0;
 }

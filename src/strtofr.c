@@ -455,7 +455,7 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
   mpfr_prec_t prec;
   mpfr_exp_t exp;
   mpfr_exp_t ysize_bits;
-  mp_limb_t *y, *result;
+  mp_limb_t *result;
   int count, exact;
   size_t pstr_size;
   mp_size_t ysize, real_ysize;
@@ -472,6 +472,8 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
   MPFR_ZIV_INIT (loop, prec);
   for (;;)
     {
+      mp_limb_t *y0, *y;
+
       /* Set y to the value of the ~prec most significant bits of pstr->mant
          (as long as we guarantee correct rounding, we don't need to get
          exactly prec bits). */
@@ -481,8 +483,8 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
       /* and to ysize_bits >= prec > MPFR_PREC (x) bits */
       /* we need to allocate one more limb to work around bug
          https://gmplib.org/list-archives/gmp-bugs/2013-December/003267.html */
-      y = MPFR_TMP_LIMBS_ALLOC (2 * ysize + 2);
-      y += ysize; /* y has (ysize+2) allocated limbs */
+      y0 = MPFR_TMP_LIMBS_ALLOC (2 * ysize + 2);
+      y = y0 + ysize; /* y has (ysize+2) allocated limbs */
 
       /* pstr_size is the number of characters we read in pstr->mant
          to have at least ysize full limbs.
@@ -530,7 +532,7 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
       /* exact means that the number of limbs of the output of mpn_set_str
          is less or equal to ysize */
       exact = real_ysize <= ysize;
-      if (exact) /* shift y to the left in that case y should be exact */
+      if (exact) /* shift y to the left; in that case, y will be exact */
         {
           /* we have enough limbs to store {y, real_ysize} */
           /* shift {y, num_limb} for count bits to the left */
@@ -606,7 +608,7 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
           result = MPFR_TMP_LIMBS_ALLOC (2 * ysize + 1);
 
           /* z = base^(exp_base-sptr_size) using space allocated at y-ysize */
-          z = y - ysize;
+          z = y0;
           /* NOTE: exp_base-pstr_size can't overflow since pstr_size > 0 */
           err = mpfr_mpn_exp (z, &exp_z, pstr->base,
                               pstr->exp_base - pstr_size, ysize);
@@ -665,9 +667,8 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
 
           result = MPFR_TMP_LIMBS_ALLOC (3 * ysize + 1);
 
-          /* set y to y * K^ysize */
-          y = y - ysize;  /* we have allocated ysize limbs at y - ysize */
-          MPN_ZERO (y, ysize);
+          /* y0 = y * K^ysize */
+          MPN_ZERO (y0, ysize);
 
           /* pstr_size - pstr->exp_base can overflow */
           MPFR_SADD_OVERFLOW (exp_z, (mpfr_exp_t) pstr_size, -pstr->exp_base,
@@ -678,29 +679,32 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
           /* (z, exp_z) = base^(pstr_size - exp_base) */
           z = result + 2*ysize + 1;
           err = mpfr_mpn_exp (z, &exp_z, pstr->base, exp_z, ysize);
-          /* Now {z, ysize}*2^(exp_z_out - ysize_bits) is an approximation of
-             base^exp_z_in, rounded towards zero, with:
-             * if err=-1, the result is exact
-             * if err=-2, an overflow occurred in the computation of exp_z
+
+          /* Now {z, ysize} * 2^(exp_z_out - ysize_bits) is an approximation
+             to base^exp_z_in (denoted b^e below), rounded toward zero, with:
+             * if err = -1, the result is exact;
+             * if err = -2, an overflow occurred in the computation of exp_z;
              * otherwise the error is bounded by 2^err ulps.
-             Thus the exact value of b^e is between z and z + 2^err (up to a
-             power of 2 multiplier for the exponent). Then the error will be:
+             Thus the exact value of b^e is between z and z + 2^err, where
+             z is {z, ysize} properly scaled by a power of 2. Then the error
+             will be:
                y/b^e - trunc(y/z) = eps1 + eps2
              with
                eps1 = y/b^e - y/z <= 0
                eps2 = y/z - trunc(y/z) >= 0
              thus the errors will (partly) compensate, giving a bound
              max(|eps1|,|eps2|).
-             In addition there is a 3rd error eps3 since y might be the
-             conversion of only part of the characters strings, and/or y
+             In addition, there is a 3rd error eps3 since y might be the
+             conversion of only a part of the character string, and/or y
              might be truncated by the mpn_rshift call above:
-               eps3 = y0/b^e - y/b^e >= 0.
+               eps3 = exact_y/b^e - y/b^e >= 0.
           */
-          exact = exact && (err == -1);
           if (err == -2)
             goto underflow; /* FIXME: Sure? */
-          if (err == -1)
-            err = 0;
+          else if (err == -1)
+            err = 0; /* see the note below */
+          else
+            exact = 0;
 
           /* Compute the integer division y/z rounded toward zero.
              The quotient will be put at result + ysize (size: ysize + 1),
@@ -708,17 +712,18 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
              Both the dividend {y, 2*ysize} and the divisor {z, ysize} are
              normalized, i.e., the most significant bit of their most
              significant limb is 1. */
-          MPFR_ASSERTD(y[2 * ysize - 1] & MPFR_LIMB_HIGHBIT);
-          MPFR_ASSERTD(z[ysize - 1] & MPFR_LIMB_HIGHBIT);
-          mpn_tdiv_qr (result + ysize, result, (mp_size_t) 0, y,
+          MPFR_ASSERTD (MPFR_LIMB_MSB (y0[2 * ysize - 1]) != 0);
+          MPFR_ASSERTD (MPFR_LIMB_MSB (z[ysize - 1]) != 0);
+          mpn_tdiv_qr (result + ysize, result, (mp_size_t) 0, y0,
                        2 * ysize, z, ysize);
 
           /* The truncation error of the mpn_tdiv_qr call (eps2 above) is at
-             most 1 ulp. Idem for the error eps3 which has the same sign,
+             most 1 ulp. Idem for the error eps3, which has the same sign,
              thus eps2 + eps3 <= 2 ulps.
-             For the error eps1 coming from the approximation of
-             b^e, we have (still up to a power-of-2 normalization):
-             y/z - y/b^e = y*(b^e-z)/(z*b^e) <= y*2^err/(z*b^e).
+             FIXME: For eps3, this is not obvious and should be explained.
+             For the error eps1 coming from the approximation to b^e,
+             we have (still up to a power-of-2 normalization):
+             y/z - y/b^e = y * (b^e-z) / (z * b^e) <= y * 2^err / (z * b^e).
              We have to convert that error in terms of ulp(trunc(y/z)).
              We first have ulp(trunc(y/z)) = ulp(y/z).
              Since both y and z are normalized, the quotient
@@ -726,7 +731,7 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
              bit:
              * if the quotient has exactly ysize limbs, then 1/2 <= |y/z| < 1
                (up to a power of 2) and since 1/2 <= b^e < 1, the error is at
-               most 2^(err+1) ulps.
+               most 2^(err+1) ulps;
              * if the quotient has one extra bit, then 1 <= |y/z| < 2
                (up to a power of 2) and since 1/2 <= b^e < 1, the error is at
                most 2^(err+2) ulps; but since we will shift the result right
@@ -735,8 +740,13 @@ parsed_string_to_mpfr (mpfr_t x, struct parsed_string *pstr, mpfr_rnd_t rnd)
 
              Thus the error is:
              * at most 2^(err+1) ulps for eps1
-             * at most 2 ulps for eps2 + eps3, which is opposite sign
-             and we can bound the error by 2^(err+1) ulps in all cases. */
+             * at most 2 ulps for eps2 + eps3, which is of opposite sign
+             and we can bound the error by 2^(err+1) ulps in all cases.
+
+             Note: If eps1 was 0, the error would be bounded by 2 ulps,
+             thus replacing err = -1 by err = 0 above was the right thing
+             to do, since 2^(0+1) = 2.
+          */
 
           /* exp -= exp_z + ysize_bits with overflow checking
              and check that we can add/subtract 2 to exp without overflow */
