@@ -392,6 +392,7 @@
     <ClCompile Include="..\..\src\sech.c" />
     <ClCompile Include="..\..\src\set.c" />
     <ClCompile Include="..\..\src\set_d.c" />
+    <ClCompile Include="..\..\src\set_d128.c" />
     <ClCompile Include="..\..\src\set_d64.c" />
     <ClCompile Include="..\..\src\set_dfl_prec.c" />
     <ClCompile Include="..\..\src\set_exp.c" />
