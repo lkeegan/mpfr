@@ -102,7 +102,7 @@ static unsigned int T[1024] = {
   774, 775, 776, 777, 778, 779, 796, 797, 976, 977, 998, 999 };
 #endif
 
-#if _GMP_IEEE_FLOATS
+#if HAVE_DECIMAL128_IEEE && (GMP_NUMB_BITS == 32 || GMP_NUMB_BITS == 64)
 /* Convert d to a decimal string (one-to-one correspondence, no rounding).
    The string s needs to have at least 44 characters (including the final \0):
    * 1 for the sign '-'
@@ -123,22 +123,22 @@ static unsigned int T[1024] = {
 static void
 decimal128_to_string (char *s, _Decimal128 d)
 {
-  union ieee_double_extract128 x; /* FIXME */
-  union ieee_double_decimal128 y;
+  union ieee_decimal128 x;
   char *t;
   int Gh; /* most 5 significant bits from combination field */
   int exp; /* exponent */
-  mp_limb_t rp[2];
-  mp_size_t rn = 2;
   unsigned int i;
 #ifdef DPD_FORMAT
-  unsigned int d0, d1, d2, d3, d4, d5;
+  unsigned int D[12]; /* declets */
+#else
+  mp_limb_t rp[4];
+  mp_size_t rn;
 #endif
 
-  /* now convert BID or DPD to string */
-  y.d128 = d;
-  x.d = y.d;
-  Gh = x.s.exp >> 6; /* FIXME: check 6 is correct */
+  /* now convert BID or DPD to string:
+     the combination field has 17 bits: 5 + 12 */
+  x.d128 = d;
+  Gh = x.s.comb >> 12;
   if (Gh == 31)
     {
       sprintf (s, "NaN");
@@ -156,70 +156,92 @@ decimal128_to_string (char *s, _Decimal128 d)
   if (x.s.sig)
     *t++ = '-';
 
+  /* both the decimal128 DPD and BID encodings consist of:
+   * a sign bit of 1 bit
+   * a combination field of 17 bits (5 for the combination field and
+     12 remaining bits)
+   * a trailing significand field of 110 bits
+   */
 #ifdef DPD_FORMAT
+  /* page 11 of IEEE 754-2008, case c1) */
   if (Gh < 24)
     {
-      exp = (x.s.exp >> 1) & 768;
-      d0 = Gh & 7;
+      exp = Gh >> 3;
+      D[0] = Gh & 7; /* 4G2+2G3+G4 */
     }
-  else
+  else /* case c1i): the most significant five bits of G are 110xx or 1110x */
     {
-      exp = (x.s.exp & 384) << 1;
-      d0 = 8 | (Gh & 1);
+      exp = (Gh >> 1) & 3; /* 2G2+G3 */
+      D[0] = 8 | (Gh & 1); /* leading significant digit, 8 or 9 */
     }
-  exp |= (x.s.exp & 63) << 2;
-  exp |= x.s.manh >> 18;
-  d1 = (x.s.manh >> 8) & 1023;
-  d2 = ((x.s.manh << 2) | (x.s.manl >> 30)) & 1023;
-  d3 = (x.s.manl >> 20) & 1023;
-  d4 = (x.s.manl >> 10) & 1023;
-  d5 = x.s.manl & 1023;
-  sprintf (t, "%1u%3u%3u%3u%3u%3u", d0, T[d1], T[d2], T[d3], T[d4], T[d5]);
+  exp = (exp << 12) | (x.s.comb & 0xfff); /* add last 12 bits of biased exp. */
+  D[1] = x.s.t0 >> 4; /* first declet */
+  D[2] = ((x.s.t0 << 6) | (x.s.t1 >> 26)) & 1023;
+  D[3] = (x.s.t1 >> 16) & 1023;
+  D[4] = (x.s.t1 >> 6) & 1023;
+  D[5] = ((x.s.t1 << 4) | (x.s.t2 >> 28)) & 1023;
+  D[6] = (x.s.t2 >> 18) & 1023;
+  D[7] = (x.s.t2 >> 8) & 1023;
+  D[8] = ((x.s.t2 << 2) | (x.s.t3 >> 30)) & 1023;
+  D[9] = (x.s.t3 >> 20) & 1023;
+  D[10] = (x.s.t3 >> 10) & 1023;
+  D[11] = x.s.t3 & 1023;
+  sprintf (t, "%1u%3u%3u%3u%3u%3u%3u%3u%3u%3u%3u%3u", D[0], T[D[1]], T[D[2]],
+           T[D[3]], T[D[4]], T[D[5]], T[D[6]], T[D[7]], T[D[8]], T[D[9]],
+           T[D[10]], T[D[11]]);
   /* Warning: some characters may be blank */
-  for (i = 0; i < 16; i++)
+  for (i = 0; i < 34; i++)
     if (t[i] == ' ')
       t[i] = '0';
-  t += 16;
+  t += 34;
 #else /* BID */
+  /* w + 5 = 17, thus w = 12 */
+  /* IEEE 754-2008 specifies that if the decoded significand exceeds the
+     maximum, i.e. here if it is >= 10^34, then the value is zero. */
   if (Gh < 24)
     {
-      /* the biased exponent E is formed from G[0] to G[9] and the
-         significand from bits G[10] through the end of the decoding */
-      exp = x.s.exp >> 1;
-      /* manh has 20 bits, manl has 32 bits */
-      rp[1] = ((x.s.exp & 1) << 20) | x.s.manh;
-      rp[0] = x.s.manl;
+      /* the biased exponent E is formed from G[0] to G[13] and the
+         significant from bits G[14] through the end of the decoding
+         (including the bits of the trailing significand field) */
+      exp = x.s.comb >> 3; /* upper 14 bits, exp <= 12287 */
+      rp[3] = ((x.s.comb & 7) << 14) | x.s.t0;
+      MPFR_ASSERTD (rp[3] < MPFR_LIMB_ONE << 17);  /* rp[3] < 2^17 */
     }
   else
-    {
-      /* the biased exponent is formed from G[2] to G[11] */
-      exp = (x.s.exp & 511) << 1;
-      rp[1] = x.s.manh;
-      rp[0] = x.s.manl;
-      exp |= rp[1] >> 19;
-      rp[1] &= 524287; /* 2^19-1: cancel G[11] */
-      rp[1] |= 2097152; /* add 2^21 */
-    }
-#if GMP_NUMB_BITS >= 54
+    goto zero;  /* in that case, the significand would be formed by prefixing
+                   (8 + G[16]) to the trailing significand field of 110 bits,
+                   which would give a value of at least 2^113 > 10^34-1,
+                   and the standard says that any value exceeding the maximum
+                   is non-canonical and should be interpreted as 0. */
+  rp[2] = x.s.t1;
+  rp[1] = x.s.t2;
+  rp[0] = x.s.t3;
+#if GMP_NUMB_BITS == 64
   rp[0] |= rp[1] << 32;
-  rn = 1;
+  rp[1] = rp[2] | (rp[3] << 32);
+  rn = 2;
+#else
+  rn = 4;
 #endif
   while (rn > 0 && rp[rn - 1] == 0)
     rn --;
   if (rn == 0)
     {
-      *t = 0;
-      i = 1;
+    zero:
+      t[0] = '0';
+      t[1] = '\0';
+      return;
     }
-  else
-    {
-      i = mpn_get_str ((unsigned char*)t, 10, rp, rn);
-    }
+  i = mpn_get_str ((unsigned char *) t, 10, rp, rn);
+  if (i > 34)
+    goto zero;
+  /* convert the values from mpn_get_str (0, 1, ..., 9) to digits: */
   while (i-- > 0)
     *t++ += '0';
 #endif /* DPD or BID */
 
-  exp -= 398; /* unbiased exponent */
+  exp -= 6176; /* unbiased exponent: emin - (p-1) where
+                  emin = 1-emax = 1-6144 = -6143 and p=34 */
   sprintf (t, "E%d", exp);
 }
 
@@ -235,6 +257,22 @@ decimal128_to_string (char *s, _Decimal128 d)
 {
   int sign = 0, n;
   int exp = 0;
+  _Decimal128 ten, ten2, ten4, ten8, ten16, ten32, ten64,
+    ten128, ten256, ten512, ten1024, ten2048, ten4096;
+
+  ten = 10;
+  ten2 = 100;
+  ten4 = 10000;
+  ten8 = 100000000;
+  ten16 = ten8 * ten8;
+  ten32 = ten16 * ten16;
+  ten64 = ten32 * ten32;
+  ten128 = ten64 * ten64;
+  ten256 = ten128 * ten128;
+  ten512 = ten256 * ten256;
+  ten1024 = ten512 * ten512;
+  ten2048 = ten1024 * ten1024;
+  ten4096 = ten2048 * ten2048;
 
   if (MPFR_UNLIKELY (DOUBLE_ISNAN (d))) /* NaN */
     {
@@ -275,17 +313,6 @@ decimal128_to_string (char *s, _Decimal128 d)
   /* now normalize d in [0.1, 1[ */
   if (d >= (_Decimal128) 1.0)
     {
-      _Decimal128 ten16 = (double) 1e16; /* 10^16 is exactly representable
-                                           in binary64 */
-      _Decimal128 ten32 = ten16 * ten16;
-      _Decimal128 ten64 = ten32 * ten32;
-      _Decimal128 ten128 = ten64 * ten64;
-      _Decimal128 ten256 = ten128 * ten128;
-      _Decimal128 ten512 = ten256 * ten256;
-      _Decimal128 ten1024 = ten512 * ten512;
-      _Decimal128 ten2048 = ten1024 * ten1024;
-      _Decimal128 ten4096 = ten2048 * ten2048;
-
       if (d >= ten4096)
         {
           d /= ten4096;
@@ -326,126 +353,97 @@ decimal128_to_string (char *s, _Decimal128 d)
           d /= ten32;
           exp += 32;
         }
-      if (d >= (_Decimal128) 10000000000000000.0)
+      if (d >= ten16)
         {
-          d /= (_Decimal128) 10000000000000000.0;
+          d /= ten16;
           exp += 16;
         }
-      if (d >= (_Decimal128) 100000000.0)
+      if (d >= ten8)
         {
-          d /= (_Decimal128) 100000000.0;
+          d /= ten8;
           exp += 8;
         }
-      if (d >= (_Decimal128) 10000.0)
+      if (d >= ten4)
         {
-          d /= (_Decimal128) 10000.0;
+          d /= ten4;
           exp += 4;
         }
-      if (d >= (_Decimal128) 100.0)
+      if (d >= ten2)
         {
-          d /= (_Decimal128) 100.0;
+          d /= ten2;
           exp += 2;
         }
-      if (d >= (_Decimal128) 10.0)
+      while (d >= 1)
         {
-          d /= (_Decimal128) 10.0;
-          exp += 1;
-        }
-      if (d >= (_Decimal128) 1.0)
-        {
-          d /= (_Decimal128) 10.0;
+          d /= ten;
           exp += 1;
         }
     }
   else /* d < 1.0 */
     {
-      _Decimal128 ten16, ten32, ten64, ten128, ten256, ten512, ten1024,
-        ten2048, ten4096;
-
-      ten16 = (double) 1e16; /* 10^16 is exactly representable in binary64 */
-      ten16 = (_Decimal128) 1.0 / ten16; /* 10^(-16), exact */
-      ten32 = ten16 * ten16;
-      ten64 = ten32 * ten32;
-      ten128 = ten64 * ten64;
-      ten256 = ten128 * ten128;
-      ten512 = ten256 * ten256;
-      ten1024 = ten512 * ten512;
-      ten2048 = ten1024 * ten1024;
-      ten4096 = ten2048 * ten2048;
-
-      if (d < ten4096)
+      if (d < 1 / ten4096)
         {
-          d /= ten4096;
+          d *= ten4096;
           exp -= 4096;
         }
-      if (d < ten2048)
+      if (d < 1 / ten2048)
         {
-          d /= ten2048;
+          d *= ten2048;
           exp -= 2048;
         }
-      if (d < ten1024)
+      if (d < 1 / ten1024)
         {
-          d /= ten1024;
+          d *= ten1024;
           exp -= 1024;
         }
-      if (d < ten512)
+      if (d < 1 / ten512)
         {
-          d /= ten512;
+          d *= ten512;
           exp -= 512;
         }
-      if (d < ten256)
+      if (d < 1 / ten256)
         {
-          d /= ten256;
+          d *= ten256;
           exp -= 256;
         }
-      if (d < ten128)
+      if (d < 1 / ten128)
         {
-          d /= ten128;
+          d *= ten128;
           exp -= 128;
         }
-      if (d < ten64)
+      if (d < 1 / ten64)
         {
-          d /= ten64;
+          d *= ten64;
           exp -= 64;
         }
-      if (d < ten32)
+      if (d < 1 / ten32)
         {
-          d /= ten32;
+          d *= ten32;
           exp -= 32;
         }
-      /* the double constant 0.0000000000000001 is 2028240960365167/2^104,
-         which should be rounded to 1e-16 in _Decimal128 */
-      if (d < (_Decimal128) 0.0000000000000001)
+      if (d < 1 / ten16)
         {
-          d *= (_Decimal128) 10000000000000000.0;
+          d *= ten16;
           exp -= 16;
         }
-      /* the double constant 0.00000001 is 3022314549036573/2^78,
-         which should be rounded to 1e-8 in _Decimal128 */
-      if (d < (_Decimal128) 0.00000001)
+      if (d < 1 / ten8)
         {
-          d *= (_Decimal128) 100000000.0;
+          d *= ten8;
           exp -= 8;
         }
-      /* the double constant 0.0001 is 7378697629483821/2^66,
-         which should be rounded to 1e-4 in _Decimal128 */
-      if (d < (_Decimal128) 0.0001)
+      if (d < 1 / ten4)
         {
-          d *= (_Decimal128) 10000.0;
+          d *= ten4;
           exp -= 4;
         }
-      /* the double constant 0.01 is 5764607523034235/2^59,
-         which should be rounded to 1e-2 in _Decimal128 */
-      if (d < (_Decimal128) 0.01)
+      if (d < 1 / ten2)
         {
-          d *= (_Decimal128) 100.0;
+          d *= ten2;
           exp -= 2;
         }
-      /* the double constant 0.1 is 3602879701896397/2^55,
-         which should be rounded to 1e-1 in _Decimal128 */
-      if (d < (_Decimal128) 0.1)
+      if (d < 1 / ten)
         {
-          d *= (_Decimal128) 10.0;
+          d *= ten;
           exp -= 1;
         }
     }
@@ -457,23 +455,23 @@ decimal128_to_string (char *s, _Decimal128 d)
   *s++ = '.';
   for (n = 0; n < 34; n++)
     {
-      double e;
       int r;
 
-      d *= (_Decimal128) 10.0;
-      e = (double) d;
-      r = (int) e;
+      MPFR_ASSERTD (d < 1);
+      d *= 10;
+      MPFR_ASSERTD (d < 10);
+      r = (int) d;
       *s++ = '0' + r;
       d -= (_Decimal128) r;
     }
-  MPFR_ASSERTN(d == (_Decimal128) 0.0);
+  MPFR_ASSERTN (d == 0);
   if (exp != 0)
     sprintf (s, "E%d", exp); /* adds a final '\0' */
   else
     *s = '\0';
 }
 
-#endif /* _GMP_IEEE_FLOATS */
+#endif /* _MPFR_IEEE_FLOATS */
 
 /* the IEEE754-2008 decimal128 format has 34 digits, with emax=6144,
    emin=1-emax=-6143 */
@@ -488,7 +486,8 @@ mpfr_set_decimal128 (mpfr_ptr r, _Decimal128 d, mpfr_rnd_t rnd_mode)
                       1 character for terminating \0. */
 
   decimal128_to_string (s, d);
-  return mpfr_set_str (r, s, 10, rnd_mode);
+  MPFR_LOG_MSG (("string: %s\n", s));
+  return mpfr_strtofr (r, s, NULL, 10, rnd_mode);
 }
 
 #endif /* MPFR_WANT_DECIMAL_FLOATS */

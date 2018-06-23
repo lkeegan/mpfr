@@ -802,12 +802,53 @@ typedef union {
 
 
 /******************************************************
- ****************  _Decimal64 support  ****************
+ ******************  Decimal support  *****************
  ******************************************************/
 
 #ifdef MPFR_WANT_DECIMAL_FLOATS
-/* to cast between binary64 and decimal64 */
+
+/* TODO: The following is ugly and possibly wrong on some platforms.
+   Do something like union ieee_decimal128. */
 union ieee_double_decimal64 { double d; _Decimal64 d64; };
+
+#if _MPFR_IEEE_FLOATS
+/* TODO: It would be better to define a different structure for DPD,
+   where the t* bit-fields correspond to the declets. And to avoid
+   confusion and detect coding errors, these bit-fields should have
+   different names for BID and DPD. */
+union ieee_decimal128
+{
+  struct
+    {
+      /* Assume little-endian double implies little-endian for bit-field
+         allocation (C99 says: "The order of allocation of bit-fields
+         within a unit (high-order to low-order or low-order to high-order)
+         is implementation-defined.") */
+#if defined(HAVE_DECIMAL128_IEEE_LITTLE_ENDIAN)
+#define HAVE_DECIMAL128_IEEE 1
+      unsigned int t3:32;
+      unsigned int t2:32;
+      unsigned int t1:32;
+      unsigned int t0:14;
+      unsigned int comb:17;
+      unsigned int sig:1;
+#elif defined(HAVE_DECIMAL128_IEEE_BIG_ENDIAN)
+#define HAVE_DECIMAL128_IEEE 1
+      unsigned int sig:1;
+      unsigned int comb:17;
+      unsigned int t0:14;
+      unsigned int t1:32;
+      unsigned int t2:32;
+      unsigned int t3:32;
+#else /* unknown bit-field ordering */
+      /* This will not be used as HAVE_DECIMAL128_IEEE is not defined. */
+      unsigned int dummy;
+#endif
+    } s;
+  _Decimal128 d128;
+};
+#endif /* _MPFR_IEEE_FLOATS */
+
 #endif /* MPFR_WANT_DECIMAL_FLOATS */
 
 

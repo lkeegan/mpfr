@@ -119,11 +119,12 @@ decimal64_to_string (char *s, _Decimal64 d)
   char *t;
   unsigned int Gh; /* most 5 significant bits from combination field */
   int exp; /* exponent */
-  mp_limb_t rp[2];
-  mp_size_t rn = 2;
   unsigned int i;
 #ifdef DPD_FORMAT
   unsigned int d0, d1, d2, d3, d4, d5;
+#else
+  mp_limb_t rp[2];
+  mp_size_t rn;
 #endif
 
   /* now convert BID or DPD to string */
@@ -147,16 +148,23 @@ decimal64_to_string (char *s, _Decimal64 d)
   if (x.s.sig)
     *t++ = '-';
 
+  /* both the decimal64 DPD and BID encodings consist of:
+   * a sign bit of 1 bit
+   * a combination field of 13=5+8 bits
+   * a trailing significand field of 50 bits
+   */
 #ifdef DPD_FORMAT
+  /* the most significant 5 bits of the combination field give the first digit
+     of the significand, and leading bits of the biased exponent (0, 1, 2). */
   if (Gh < 24)
     {
       exp = (x.s.exp >> 1) & 768;
-      d0 = Gh & 7;
+      d0 = Gh & 7; /* first digit is in 0..7 */
     }
   else
     {
       exp = (x.s.exp & 384) << 1;
-      d0 = 8 | (Gh & 1);
+      d0 = 8 | (Gh & 1); /* first digit is 8 or 9 */
     }
   exp |= (x.s.exp & 63) << 2;
   exp |= x.s.manh >> 18;
@@ -172,6 +180,8 @@ decimal64_to_string (char *s, _Decimal64 d)
       t[i] = '0';
   t += 16;
 #else /* BID */
+  /* IEEE 754-2008 specifies that if the decoded significand exceeds the
+     maximum, i.e. here if it is >= 10^16, then the value is zero. */
   if (Gh < 24)
     {
       /* the biased exponent E is formed from G[0] to G[9] and the
@@ -191,26 +201,33 @@ decimal64_to_string (char *s, _Decimal64 d)
       rp[1] &= 524287; /* 2^19-1: cancel G[11] */
       rp[1] |= 2097152; /* add 2^21 */
     }
-#if GMP_NUMB_BITS >= 54
+#if GMP_NUMB_BITS >= 64
   rp[0] |= rp[1] << 32;
   rn = 1;
+#else
+  rn = 2;
 #endif
   while (rn > 0 && rp[rn - 1] == 0)
     rn --;
   if (rn == 0)
     {
+    zero:
       *t = 0;
       i = 1;
     }
   else
     {
-      i = mpn_get_str ((unsigned char*)t, 10, rp, rn);
+      i = mpn_get_str ((unsigned char*) t, 10, rp, rn);
+      if (i > 16) /* non-canonical encoding: return zero */
+        goto zero;
     }
+  /* convert the values from mpn_get_str (0, 1, ..., 9) to digits: */
   while (i-- > 0)
     *t++ += '0';
 #endif /* DPD or BID */
 
-  exp -= 398; /* unbiased exponent */
+  exp -= 398; /* unbiased exponent: -398 = emin - (p-1) where
+                 emin = 1-emax = 1-384 = -383 and p=16 */
   sprintf (t, "E%d", exp);
 }
 #else
@@ -427,7 +444,8 @@ mpfr_set_decimal64 (mpfr_ptr r, _Decimal64 d, mpfr_rnd_t rnd_mode)
                       1 character for terminating \0. */
 
   decimal64_to_string (s, d);
-  return mpfr_set_str (r, s, 10, rnd_mode);
+  MPFR_LOG_MSG (("string: %s\n", s));
+  return mpfr_strtofr (r, s, NULL, 10, rnd_mode);
 }
 
 #endif /* MPFR_WANT_DECIMAL_FLOATS */

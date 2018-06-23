@@ -278,6 +278,7 @@
     <ClCompile Include="..\..\src\gammaonethird.c" />
     <ClCompile Include="..\..\src\gamma_inc.c" />
     <ClCompile Include="..\..\src\get_d.c" />
+    <ClCompile Include="..\..\src\get_d128.c" />
     <ClCompile Include="..\..\src\get_d64.c" />
     <ClCompile Include="..\..\src\get_exp.c" />
     <ClCompile Include="..\..\src\get_f.c" />

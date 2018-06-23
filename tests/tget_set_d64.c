@@ -301,7 +301,7 @@ check_random (void)
         mpfr_mul_2ui (x, x, -1271 - mpfr_get_exp (x), MPFR_RNDN);
       d = mpfr_get_decimal64 (x, MPFR_RNDN);
       mpfr_set_decimal64 (y, d, MPFR_RNDN);
-      if (mpfr_cmp (x, y) != 0)
+      if (! mpfr_equal_p (x, y))
         {
           printf ("Error:\n");
           printf ("x="); mpfr_dump (x);
@@ -419,6 +419,127 @@ check_tiny (void)
   mpfr_clear (x);
 }
 
+static void
+powers_of_10 (void)
+{
+  mpfr_t x1, x2;
+  _Decimal64 d[2];
+  int i, rnd;
+  unsigned int neg;
+
+  mpfr_inits2 (200, x1, x2, (mpfr_ptr) 0);
+  for (i = 0, d[0] = 1, d[1] = 1; i < 150; i++, d[0] *= 10, d[1] /= 10)
+    for (neg = 0; neg <= 3; neg++)
+      RND_LOOP_NO_RNDF (rnd)
+        {
+          int inex1, inex2;
+          mpfr_flags_t flags1, flags2;
+          mpfr_rnd_t rx1;
+          _Decimal64 dd;
+
+          inex1 = mpfr_set_si (x1, (neg >> 1) ? -i : i, MPFR_RNDN);
+          MPFR_ASSERTN (inex1 == 0);
+
+          rx1 = (neg & 1) ?
+            MPFR_INVERT_RND ((mpfr_rnd_t) rnd) : (mpfr_rnd_t) rnd;
+          mpfr_clear_flags ();
+          inex1 = mpfr_exp10 (x1, x1, rx1);
+          flags1 = __gmpfr_flags;
+
+          dd = d[neg >> 1];
+
+          if (neg & 1)
+            {
+              MPFR_SET_NEG (x1);
+              inex1 = -inex1;
+              dd = -dd;
+            }
+
+          mpfr_clear_flags ();
+          inex2 = mpfr_set_decimal64 (x2, dd, (mpfr_rnd_t) rnd);
+          flags2 = __gmpfr_flags;
+
+          if (!(mpfr_equal_p (x1, x2) &&
+                SAME_SIGN (inex1, inex2) &&
+                flags1 == flags2))
+            {
+              printf ("Error in powers_of_10 for i=%d, neg=%d, %s\n",
+                      i, neg, mpfr_print_rnd_mode ((mpfr_rnd_t) rnd));
+              printf ("Expected ");
+              mpfr_dump (x1);
+              printf ("with inex = %d and flags =", inex1);
+              flags_out (flags1);
+              printf ("Got      ");
+              mpfr_dump (x2);
+              printf ("with inex = %d and flags =", inex2);
+              flags_out (flags2);
+              exit (1);
+            }
+        }
+  mpfr_clears (x1, x2, (mpfr_ptr) 0);
+}
+
+static void
+coverage (void)
+{
+  /* The code below assumes BID. */
+#ifndef DPD_FORMAT
+  union mpfr_ieee_double_extract x;
+  union ieee_double_decimal64 y;
+
+  /* test for non-canonical encoding */
+  y.d64 = 9999999999999999.0dd;
+  x.d = y.d;
+  /* if BID, we have sig=0, exp=1735, manh=231154, manl=1874919423 */
+  if (x.s.sig == 0 && x.s.exp == 1735 && x.s.manh == 231154 &&
+      x.s.manl == 1874919423)
+    {
+      mpfr_t z;
+      mpfr_init2 (z, 54); /* 54 bits ensure z is exact, since 10^16 < 2^54 */
+      x.s.manl += 1; /* then the significand equals 10^16 */
+      y.d = x.d;
+      mpfr_set_decimal64 (z, y.d64, MPFR_RNDN);
+      MPFR_ASSERTN(mpfr_zero_p (z) && mpfr_signbit (z) == 0);
+      mpfr_clear (z);
+    }
+#endif
+}
+
+/* generate random sequences of 8 bytes and interpret them as _Decimal64 */
+static void
+check_random_bytes (void)
+{
+  union {
+    _Decimal64 d;
+    unsigned char c[8];
+  } x;
+  int i;
+  mpfr_t y;
+  _Decimal64 e;
+
+  mpfr_init2 (y, 55); /* 55 = 1 + ceil(16*log(10)/log(2)), thus ensures
+                         that if a decimal64 number is converted to a 55-bit
+                         value and back, we should get the same value */
+  for (i = 0; i < 100000; i++)
+    {
+      int j;
+      for (j = 0; j < 8; j++)
+        x.c[j] = randlimb () & 255;
+      mpfr_set_decimal64 (y, x.d, MPFR_RNDN);
+      e = mpfr_get_decimal64 (y, MPFR_RNDN);
+      if (!mpfr_nan_p (y))
+        if (x.d != e)
+          {
+            printf ("check_random_bytes failed\n");
+            printf ("x.d="); print_decimal64 (x.d);
+            printf ("y="); mpfr_dump (y);
+            printf ("e="); print_decimal64 (e);
+            exit (1);
+          }
+    }
+  mpfr_clear (y);
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -434,6 +555,10 @@ main (int argc, char *argv[])
   printf ("Using BID format\n");
 #endif
 
+#if !defined(MPFR_ERRDIVZERO)
+  check_random_bytes ();
+#endif
+  coverage ();
   check_misc ();
   check_random ();
   check_native ();
@@ -441,6 +566,7 @@ main (int argc, char *argv[])
   check_overflow ();
 #endif
   check_tiny ();
+  powers_of_10 ();
 
   tests_end_mpfr ();
   return 0;
