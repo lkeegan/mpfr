@@ -83,7 +83,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 /* For the definition of MPFR_THREAD_ATTR. GCC/ICC detection macros are
    no longer used, as they sometimes gave incorrect information about
    the support of thread-local variables. A configure check is now done. */
-#if defined (WANT_SHARED_CACHE)
+#if defined(MPFR_WANT_SHARED_CACHE)
 # define MPFR_NEED_THREAD_LOCK 1
 #endif
 #include "mpfr-thread.h"
@@ -207,7 +207,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 extern "C" {
 #endif
 
-#if defined(WANT_SHARED_CACHE)
+#if defined(MPFR_WANT_SHARED_CACHE)
 # define MPFR_CACHE_ATTR
 #else
 # define MPFR_CACHE_ATTR MPFR_THREAD_ATTR
@@ -811,6 +811,9 @@ typedef union {
    Do something like union ieee_decimal128. */
 union ieee_double_decimal64 { double d; _Decimal64 d64; };
 
+/* FIXME: There's no reason to make the _Decimal128 code depend on
+   whether _MPFR_IEEE_FLOATS is defined or not, as _MPFR_IEEE_FLOATS
+   is about binary IEEE-754 floating point only. */
 #if _MPFR_IEEE_FLOATS
 /* TODO: It would be better to define a different structure for DPD,
    where the t* bit-fields correspond to the declets. And to avoid

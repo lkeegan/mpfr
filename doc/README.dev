@@ -331,7 +331,7 @@ To make a release (for the MPFR team):
 
      Also test with different environment variables set
      (GMP_CHECK_RANDOMIZE, MPFR_CHECK_LIBC_PRINTF, MPFR_CHECK_LARGEMEM,
-     MPFR_SUSPICIOUS_OVERFLOW).
+     MPFR_SUSPICIOUS_OVERFLOW, MPFR_CHECK_LOCALES).
 
      Check there is no branch misprediction due to wrong MPFR_LIKELY or
      MPFR_UNLIKELY statements. For that test, configure with
@@ -429,6 +429,9 @@ List of macros used for building MPFR (also used for checking):
 + MPFR_HAVE_INTMAX_MAX: Define if the INTMAX_MAX macro works correctly
                         (if 'intmax_t' is supported).
 
++ MPFR_HAVE_C11_LOCK:   Define if C11 threads are supported.
++ HAVE_PTHREAD:         Define if pthread is available.
+
 Format of long double.
 + HAVE_LDOUBLE_IS_DOUBLE:               IEEE double.
 + HAVE_LDOUBLE_IEEE_EXT_BIG:            IEEE extended, big endian.
@@ -471,6 +474,12 @@ Format of long double.
 + MPFR_USE_THREAD_SAFE: Define to build MPFR as thread safe (TLS).
 + MPFR_USE_C11_THREAD_SAFE:
                         Define to implement TLS in the C11 way.
+
++ MPFR_WANT_SHARED_CACHE:
+                        Define to have caches shared by all threads.
++ MPFR_THREAD_LOCK_METHOD:
+                        When MPFR_WANT_SHARED_CACHE is defined, this macro
+                        gives the thread locking method (string).
 
 + MPFR_HAVE_NORETURN:   Define if the _Noreturn function specifier is
                         supported.
@@ -541,6 +550,11 @@ Environment variables that affect the tests:
                         disabled by default as failures could be due to
                         the C library itself on some machines, and they
                         do not affect MPFR.
+
++ MPFR_CHECK_LOCALES:   Fail in case a locale cannot be set. Developers
+                        can set this variable on their machines to make
+                        sure that needed locales are properly installed
+                        and tested.
 
 + MPFR_DEBUG_BADCASES:  For debugging (see tests.c, function bad_cases).
 

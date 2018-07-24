@@ -22,7 +22,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include "mpfr-test.h"
 
-#if defined (WANT_SHARED_CACHE) && defined(HAVE_PTHREAD)
+#if defined(MPFR_WANT_SHARED_CACHE) && defined(HAVE_PTHREAD)
 
 # include <pthread.h>
 
@@ -81,9 +81,11 @@ run_pthread_test (void)
 
 # define RUN_PTHREAD_TEST()                                             \
   (MPFR_ASSERTN(mpfr_buildopt_sharedcache_p() == 1), run_pthread_test())
+
 #else
-# define RUN_PTHREAD_TEST() \
-  (MPFR_ASSERTN(mpfr_buildopt_sharedcache_p() == 0))
+
+# define RUN_PTHREAD_TEST() ((void) 0)
+
 #endif
 
 /* tconst_pi [prec] [rnd] [0 = no print] */
