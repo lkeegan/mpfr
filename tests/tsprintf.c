@@ -233,6 +233,11 @@ decimal (void)
   /* specifier 'P' for precision */
   check_vsprintf ("128", "%Pu", p);
   check_vsprintf ("00128", "%.5Pu", p);
+  check_vsprintf ("000128", "%06Pu", p);
+  check_vsprintf ("128    :", "%-7Pu:", p);
+  check_vsprintf ("128", "%-2.6Pd:", p);
+  check_vsprintf ("  000128:", "%8.6Pd:", p);
+  check_vsprintf ("000128  :", "%-8.6Pd:", p);
 
   /* special numbers */
   mpfr_set_inf (x, 1);
@@ -1473,6 +1478,7 @@ check_length_overflow (void)
     { "%*Rg", -5, 5, 0 },
 #if INT_MAX == 2147483647
     { "%2147483647Rg", 0, 2147483647, 0 },
+    { "%2147483647Rg ", 0, -1, 1 },
     { "%2147483648Rg", 0, -1, 1 },
     { "%18446744073709551616Rg", 0, -1, 1 },
     { "%*Rg", 2147483647, 2147483647, 0 },
