@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <RootNamespace>tget_set_d128</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
     <ProjectGuid>{52CE9EB2-E62B-4126-A4F8-D4F68ADD9EC1}</ProjectGuid>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
