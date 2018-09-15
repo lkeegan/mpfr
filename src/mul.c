@@ -217,6 +217,20 @@ mpfr_mul (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
 
 #if !defined(MPFR_GENERIC_ABI)
 
+/* Disabled for now since the mul_1_extracted.c is not formally proven yet.
+   Once it is proven, replace MPFR_WANT_PROVEN_CODExxx by MPFR_WANT_PROVEN_CODE. */
+#if defined(MPFR_WANT_PROVEN_CODExxx) && GMP_NUMB_BITS == 64 && \
+  UINT_MAX == 0xffffffff && MPFR_PREC_BITS == 64 && \
+  _MPFR_PREC_FORMAT == 3 && _MPFR_EXP_FORMAT == _MPFR_PREC_FORMAT
+
+/* The code assumes that mp_limb_t has 64 bits exactly, unsigned int
+   has 32 bits exactly, mpfr_prec_t and mpfr_exp_t are of type long,
+   which has 64 bits exactly. */
+
+#include "mul_1_extracted.c"
+
+#else
+
 /* Special code for prec(a) < GMP_NUMB_BITS and
    prec(b), prec(c) <= GMP_NUMB_BITS.
    Note: this code was copied in sqr.c, function mpfr_sqr_1 (this saves a few cycles
@@ -266,7 +280,7 @@ mpfr_mul_1 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
      a >= 0.111...111[1]*2^(emin-1), there is no underflow. */
   if (MPFR_UNLIKELY(ax < __gmpfr_emin))
     {
-      if (ax == __gmpfr_emin - 1 && ap[0] == ~mask &&
+      if (ax == __gmpfr_emin - 1 && ap[0] == MPFR_LIMB(~mask) &&
           ((rnd_mode == MPFR_RNDN && rb) ||
            (MPFR_IS_LIKE_RNDA(rnd_mode, MPFR_IS_NEG (a)) && (rb | sb))))
         goto rounding; /* no underflow */
@@ -318,6 +332,8 @@ mpfr_mul_1 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
       MPFR_RET(MPFR_SIGN(a));
     }
 }
+
+#endif /* MPFR_WANT_PROVEN_CODE */
 
 /* Special code for prec(a) = GMP_NUMB_BITS and
    prec(b), prec(c) <= GMP_NUMB_BITS. */
@@ -489,7 +505,7 @@ mpfr_mul_2 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
     {
       if (ax == __gmpfr_emin - 1 &&
           ap[1] == MPFR_LIMB_MAX &&
-          ap[0] == ~mask &&
+          ap[0] == MPFR_LIMB(~mask) &&
           ((rnd_mode == MPFR_RNDN && rb) ||
            (MPFR_IS_LIKE_RNDA(rnd_mode, MPFR_IS_NEG (a)) && (rb | sb))))
         goto rounding; /* no underflow */
@@ -625,7 +641,7 @@ mpfr_mul_3 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
       if (ax == __gmpfr_emin - 1 &&
           ap[2] == MPFR_LIMB_MAX &&
           ap[1] == MPFR_LIMB_MAX &&
-          ap[0] == ~mask &&
+          ap[0] == MPFR_LIMB(~mask) &&
           ((rnd_mode == MPFR_RNDN && rb) ||
            (MPFR_IS_LIKE_RNDA(rnd_mode, MPFR_IS_NEG (a)) && (rb | sb))))
         goto rounding; /* no underflow */

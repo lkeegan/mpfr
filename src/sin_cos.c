@@ -282,13 +282,15 @@ reduce2 (mpz_t S, mpz_t C, mpfr_prec_t prec)
 
    Assumes prec >= 10.
 */
+
+#define KMAX 64
 static unsigned long
 sin_bs_aux (mpz_t Q0, mpz_t S0, mpz_t C0, mpz_srcptr p, mpfr_prec_t r,
             mpfr_prec_t prec)
 {
-  mpz_t T[GMP_NUMB_BITS], Q[GMP_NUMB_BITS], ptoj[GMP_NUMB_BITS], pp;
-  mpfr_prec_t log2_nb_terms[GMP_NUMB_BITS], mult[GMP_NUMB_BITS];
-  mpfr_prec_t accu[GMP_NUMB_BITS], size_ptoj[GMP_NUMB_BITS];
+  mpz_t T[KMAX], Q[KMAX], ptoj[KMAX], pp;
+  mpfr_prec_t log2_nb_terms[KMAX], mult[KMAX];
+  mpfr_prec_t accu[KMAX], size_ptoj[KMAX];
   mpfr_prec_t prec_i_have, h, r0 = r, pp_s, p_s;
   unsigned long i, j, m;
   int alloc, k, l;
@@ -342,7 +344,9 @@ sin_bs_aux (mpz_t Q0, mpz_t S0, mpz_t C0, mpz_srcptr p, mpfr_prec_t r,
       k ++;
       if (k + 1 >= alloc) /* necessarily k + 1 = alloc */
         {
+          MPFR_ASSERTD (k + 1 == alloc);
           alloc ++;
+          MPFR_ASSERTN (k + 1 < KMAX);
           mpz_init (T[k+1]);
           mpz_init (Q[k+1]);
           mpz_init (ptoj[k+1]);
@@ -353,6 +357,7 @@ sin_bs_aux (mpz_t Q0, mpz_t S0, mpz_t C0, mpz_srcptr p, mpfr_prec_t r,
          then                Q[k+1] = (2*i+2)*(2*i+3), T[k+1] = 1,
          which reduces to T[k] = (2*i+2)*(2*i+3)*2^r-pp,
          Q[k] = (2*i)*(2*i+1)*(2*i+2)*(2*i+3). */
+      MPFR_ASSERTN (k < KMAX);
       log2_nb_terms[k] = 1;
       mpz_set_ui (Q[k], 2 * i + 2);
       mpz_mul_ui (Q[k], Q[k], 2 * i + 3);
@@ -371,6 +376,7 @@ sin_bs_aux (mpz_t Q0, mpz_t S0, mpz_t C0, mpz_srcptr p, mpfr_prec_t r,
       l = 1;
       while ((j & 1) == 0) /* combine and reduce */
         {
+          MPFR_ASSERTN (k >= 1);
           mpz_mul (T[k], T[k], ptoj[l]);
           mpz_mul (T[k-1], T[k-1], Q[k]);
           mpz_mul_2exp (T[k-1], T[k-1], r << l);

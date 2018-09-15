@@ -123,8 +123,14 @@ decimal64_to_string (char *s, _Decimal64 d)
 #ifdef DPD_FORMAT
   unsigned int d0, d1, d2, d3, d4, d5;
 #else
+#if GMP_NUMB_BITS >= 64
   mp_limb_t rp[2];
-  mp_size_t rn;
+#else
+  unsigned long rp[2]; /* rp[0] and rp[1] should contain at least 32 bits */
+#endif
+#define NLIMBS (64 / GMP_NUMB_BITS)
+  mp_limb_t sp[NLIMBS];
+  mp_size_t sn;
 #endif
 
   /* now convert BID or DPD to string */
@@ -201,15 +207,33 @@ decimal64_to_string (char *s, _Decimal64 d)
       rp[1] &= 524287; /* 2^19-1: cancel G[11] */
       rp[1] |= 2097152; /* add 2^21 */
     }
+  /* now convert {rp, 2} to {sp, NLIMBS} */
 #if GMP_NUMB_BITS >= 64
-  rp[0] |= rp[1] << 32;
-  rn = 1;
+  sp[0] = MPFR_LIMB(rp[0]) | MPFR_LIMB_LSHIFT(rp[1],32);
+#elif GMP_NUMB_BITS == 32
+  sp[0] = rp[0];
+  sp[1] = rp[1];
+#elif GMP_NUMB_BITS == 16
+  sp[0] = MPFR_LIMB(rp[0]);
+  sp[1] = MPFR_LIMB(rp[0] >> 16);
+  sp[2] = MPFR_LIMB(rp[1]);
+  sp[3] = MPFR_LIMB(rp[1] >> 16);
+#elif GMP_NUMB_BITS == 8
+  sp[0] = MPFR_LIMB(rp[0]);
+  sp[1] = MPFR_LIMB(rp[0] >> 8);
+  sp[2] = MPFR_LIMB(rp[0] >> 16);
+  sp[3] = MPFR_LIMB(rp[0] >> 24);
+  sp[4] = MPFR_LIMB(rp[1]);
+  sp[5] = MPFR_LIMB(rp[1] >> 8);
+  sp[6] = MPFR_LIMB(rp[1] >> 16);
+  sp[7] = MPFR_LIMB(rp[1] >> 24);
 #else
-  rn = 2;
+#error "GMP_NUMB_BITS should be 8, 16, 32, or >= 64"
 #endif
-  while (rn > 0 && rp[rn - 1] == 0)
-    rn --;
-  if (rn == 0)
+  sn = NLIMBS;
+  while (sn > 0 && sp[sn - 1] == 0)
+    sn --;
+  if (sn == 0)
     {
     zero:
       *t = 0;
@@ -217,7 +241,7 @@ decimal64_to_string (char *s, _Decimal64 d)
     }
   else
     {
-      i = mpn_get_str ((unsigned char*) t, 10, rp, rn);
+      i = mpn_get_str ((unsigned char*) t, 10, sp, sn);
       if (i > 16) /* non-canonical encoding: return zero */
         goto zero;
     }

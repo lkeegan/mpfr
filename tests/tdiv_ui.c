@@ -172,7 +172,13 @@ check_inexact (void)
         {
           mpfr_set_prec (y, py);
           mpfr_set_prec (z, py + mp_bits_per_limb);
-          for (rnd = 0; rnd < MPFR_RND_MAX; rnd++)
+          /* The following test fails with MPFR_RNDF ("Wrong ternary value")
+             when building with CFLAGS="-Wall -Werror -std=c90 -pedantic
+             -Wno-error=overlength-strings -Wno-error=format" so that
+             MPFR_LONG_WITHIN_LIMB is not defined (the implementation
+             is not the same in this case). But the ternary value is not
+             specified for MPFR_RNDF. Thus use RND_LOOP_NO_RNDF. */
+          RND_LOOP_NO_RNDF (rnd)
             {
               inexact = mpfr_div_ui (y, x, u, (mpfr_rnd_t) rnd);
               if (mpfr_mul_ui (z, y, u, (mpfr_rnd_t) rnd))
@@ -187,7 +193,7 @@ check_inexact (void)
                   ((inexact > 0) && (cmp <= 0)) ||
                   ((inexact < 0) && (cmp >= 0)))
                 {
-                  printf ("Wrong inexact flag for u=%lu, rnd=%s\n", u,
+                  printf ("Wrong ternary value for u=%lu, rnd=%s\n", u,
                           mpfr_print_rnd_mode ((mpfr_rnd_t) rnd));
                   printf ("x="); mpfr_dump (x);
                   printf ("y="); mpfr_dump (y);
@@ -373,7 +379,9 @@ corner_cases (int n)
           mpfr_init2 (t, 2 * GMP_NUMB_BITS);
           for (i = 0; i < n; i++)
             {
-              u = randlimb ();
+              do
+                u = randlimb ();
+              while (u == 0);
               do
                 v = randlimb ();
               while (v <= MPFR_LIMB_HIGHBIT);

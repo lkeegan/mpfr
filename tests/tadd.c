@@ -149,7 +149,7 @@ check64 (void)
   mpfr_set_str_binary (t, "-1.1e-2");
   mpfr_set_prec (u, 2);
   test_add (u, x, t, MPFR_RNDN);
-  if (MPFR_MANT(u)[0] << 2)
+  if ((mp_limb_t) (MPFR_MANT(u)[0] << 2))
     {
       printf ("result not normalized for prec=2\n");
       mpfr_dump (u);
@@ -776,6 +776,8 @@ check_1111 (void)
                   (int) tb, (int) tc, (int) diff,
                   mpfr_print_rnd_mode (rnd_mode));
           printf ("sb = %d, sc = %d\n", sb, sc);
+          printf ("b = "); mpfr_dump (b);
+          printf ("c = "); mpfr_dump (c);
           printf ("a = "); mpfr_dump (a);
           printf ("s = "); mpfr_dump (s);
           printf ("inex_a = %d, inex_s = %d\n", inex_a, inex_s);

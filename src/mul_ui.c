@@ -75,6 +75,7 @@ mpfr_mul_ui (mpfr_ptr y, mpfr_srcptr x, unsigned long int u, mpfr_rnd_t rnd_mode
   else if (MPFR_UNLIKELY (IS_POW2 (u)))
     return mpfr_mul_2si (y, x, MPFR_INT_CEIL_LOG2 (u), rnd_mode);
 
+#ifdef MPFR_LONG_WITHIN_LIMB
   yp = MPFR_MANT (y);
   xn = MPFR_LIMB_SIZE (x);
 
@@ -114,6 +115,21 @@ mpfr_mul_ui (mpfr_ptr y, mpfr_srcptr x, unsigned long int u, mpfr_rnd_t rnd_mode
 
   MPFR_SET_EXP (y, MPFR_GET_EXP (x) + cnt);
   MPFR_SET_SAME_SIGN (y, x);
+#else
+    {
+      mpfr_t uu;
+      MPFR_SAVE_EXPO_DECL (expo);
+
+      mpfr_init2 (uu, sizeof (unsigned long) * CHAR_BIT);
+      /* Warning: u might be outside the current exponent range! */
+      MPFR_SAVE_EXPO_MARK (expo);
+      mpfr_set_ui (uu, u, MPFR_RNDZ);
+      inexact = mpfr_mul (y, x, uu, rnd_mode);
+      mpfr_clear (uu);
+      MPFR_SAVE_EXPO_FREE (expo);
+      return mpfr_check_range (y, inexact, rnd_mode);
+    }
+#endif /* MPFR_LONG_WITHIN_LIMB */
 
   MPFR_RET (inexact);
 }

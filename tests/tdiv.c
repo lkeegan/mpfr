@@ -69,8 +69,18 @@ mpfr_all_div (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t r)
         {
           __gmpfr_flags = oldflags;
           inex2 = mpfr_ui_div (a2, mpfr_get_ui (b, MPFR_RNDN), c, r);
-          MPFR_ASSERTN (SAME_SIGN (inex2, inex));
-          MPFR_ASSERTN (__gmpfr_flags == newflags);
+          if (!SAME_SIGN (inex2, inex))
+            {
+              printf ("Error for ternary value (rnd=%s), mpfr_div %d, mpfr_ui_div %d\n",
+                      mpfr_print_rnd_mode (r), inex, inex2);
+              exit (1);
+            }
+          if (__gmpfr_flags != newflags)
+            {
+              printf ("Error for flags, mpfr_div %d, mpfr_ui_div %d\n",
+                      newflags, __gmpfr_flags);
+              exit (1);
+            }
           check_equal (a, a2, "mpfr_ui_div", b, c, r);
         }
       if (mpfr_fits_slong_p (b, MPFR_RNDA))
@@ -1129,8 +1139,10 @@ test_20151023 (void)
 
       /* generate a random divisor of p bits */
       mpfr_urandomb (d, RANDS);
-      /* generate a random quotient of GMP_NUMB_BITS bits */
-      mpfr_urandomb (q0, RANDS);
+      /* generate a random non-zero quotient of GMP_NUMB_BITS bits */
+      do
+        mpfr_urandomb (q0, RANDS);
+      while (mpfr_zero_p (q0));
       /* zero-pad the quotient to p bits */
       inex = mpfr_prec_round (q0, p, MPFR_RNDN);
       MPFR_ASSERTN(inex == 0);
@@ -1152,7 +1164,15 @@ test_20151023 (void)
           MPFR_ASSERTN(inex == 0);
           mpfr_nextabove (n);
           mpfr_div (q, n, d, MPFR_RNDN);
-          MPFR_ASSERTN(mpfr_cmp (q, q0) == 0);
+          if (! mpfr_equal_p (q, q0))
+            {
+              printf ("Error in test_20151023 for p=%lu, rnd=RNDN\n", p);
+              printf ("n="); mpfr_dump (n);
+              printf ("d="); mpfr_dump (d);
+              printf ("expected q0="); mpfr_dump (q0);
+              printf ("got       q="); mpfr_dump (q);
+              exit (1);
+            }
 
           inex = mpfr_mul (n, d, q0, MPFR_RNDN);
           MPFR_ASSERTN(inex == 0);

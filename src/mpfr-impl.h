@@ -88,9 +88,24 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #endif
 #include "mpfr-thread.h"
 
+#include "gmp.h"
+
+/* With the current code, MPFR_LONG_WITHIN_LIMB must be defined if an
+   unsigned long fits in a limb. Since one cannot rely on the configure
+   tests entirely (in particular when GMP is involved) and some platforms
+   may not use configure, make sure that MPFR_LONG_WITHIN_LIMB is defined
+   when __GMP_SHORT_LIMB is not defined (this is the general case) or
+   when int and long have the same size (as with MS Windows). */
+#if !defined(__GMP_SHORT_LIMB) || INT_MAX == LONG_MAX
+# undef MPFR_LONG_WITHIN_LIMB
+# define MPFR_LONG_WITHIN_LIMB 1
+#endif
+
 #ifdef MPFR_HAVE_GMP_IMPL /* Build with gmp internals */
 
-# include "gmp.h"
+# ifdef MPFR_USE_MINI_GMP
+#  error "MPFR_HAVE_GMP_IMPL and MPFR_USE_MINI_GMP must not be both defined"
+# endif
 # include "gmp-impl.h"
 # ifdef MPFR_NEED_LONGLONG_H
 #  include "longlong.h"
@@ -100,16 +115,17 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #else /* Build without gmp internals */
 
-# include "gmp.h"
 /* if using mini-gmp, include missing definitions in mini-gmp */
 # ifdef MPFR_USE_MINI_GMP
 #  include "mpfr-mini-gmp.h"
 # endif
 # include "mpfr.h"
 # include "mpfr-gmp.h"
-# ifdef MPFR_NEED_LONGLONG_H
-#  define LONGLONG_STANDALONE
-#  include "mpfr-longlong.h"
+# ifdef MPFR_LONG_WITHIN_LIMB /* longlong.h is not valid otherwise */
+#  ifdef MPFR_NEED_LONGLONG_H
+#   define LONGLONG_STANDALONE
+#   include "mpfr-longlong.h"
+#  endif
 # endif
 
 #endif
@@ -454,6 +470,9 @@ __MPFR_DECLSPEC extern const mpfr_t __gmpfr_const_log2_RNDU;
    MPFR_DBGRES(assignment): to be used when the result is tested only
      in an MPFR_ASSERTD expression (in order to avoid a warning, e.g.
      with GCC's -Wunused-but-set-variable, in non-debug mode).
+     Note: WG14/N2270 proposed a maybe_unused attribute, which could
+     be useful to avoid MPFR_DBGRES. See:
+       http://www.open-std.org/jtc1/sc22/wg14/www/docs/n2270.pdf
    Note: Evaluating expr might yield side effects, but such side effects
    must not change the results (except by yielding an assertion failure).
 */
@@ -1157,6 +1176,28 @@ typedef uintmax_t mpfr_ueexp_t;
 /* Mask for the low 's' bits of a limb */
 #define MPFR_LIMB_MASK(s) ((MPFR_LIMB_ONE << (s)) - MPFR_LIMB_ONE)
 
+/* MPFR_LIMB: Cast to mp_limb_t, assuming that x is based on mp_limb_t
+   variables (needed when mp_limb_t is defined as an integer type shorter
+   than int, due to the integer promotion rules, which is possible only
+   if MPFR_LONG_WITHIN_LIMB is not defined). Warning! This will work
+   only when the computed value x is congruent to the expected value
+   modulo MPFR_LIMB_MAX + 1. Be aware that this macro may not solve all
+   the problems related to the integer promotion rules, because it won't
+   have an influence on the evaluation of x itself. Hence the need for...
+
+   MPFR_LIMB_LSHIFT: Left shift by making sure that the shifted argument
+   is unsigned (use unsigned long due to the MPFR_LONG_WITHIN_LIMB test).
+   For instance, due to the integer promotion rules, if mp_limb_t is
+   defined as a 16-bit unsigned short and an int has 32 bits, then a
+   mp_limb_t will be converted to an int, which is signed.
+*/
+#ifdef MPFR_LONG_WITHIN_LIMB
+#define MPFR_LIMB(x) (x)
+#define MPFR_LIMB_LSHIFT(x,c) ((x) << (c))
+#else
+#define MPFR_LIMB(x) ((mp_limb_t) (x))
+#define MPFR_LIMB_LSHIFT(x,c) MPFR_LIMB((unsigned long) (x) << (c))
+#endif
 
 /******************************************************
  **********************  Memory  **********************
@@ -1387,6 +1428,7 @@ asm (".section predict_data, \"aw\"; .previous\n"
    with some build options; a loop could be used if x > ULONG_MAX. If
    the type of x is <= unsigned long, then no additional code will be
    generated thanks to obvious compiler optimization. */
+#ifdef MPFR_LONG_WITHIN_LIMB
 # define MPFR_INT_CEIL_LOG2(x)                            \
     (MPFR_UNLIKELY ((x) == 1) ? 0 :                       \
      __extension__ ({ int _b; mp_limb_t _limb;            \
@@ -1396,9 +1438,21 @@ asm (".section predict_data, \"aw\"; .previous\n"
       count_leading_zeros (_b, _limb);                    \
       (GMP_NUMB_BITS - _b); }))
 #else
+# define MPFR_INT_CEIL_LOG2(x)                              \
+  (MPFR_UNLIKELY ((x) == 1) ? 0 :                           \
+   __extension__ ({ int _c = 0; unsigned long _x = (x) - 1; \
+       MPFR_ASSERTN ((x) > 1);                              \
+       while (_x != 0)                                      \
+         {                                                  \
+           _x = _x >> 1;                                    \
+           _c ++;                                           \
+         };                                                 \
+       _c; }))
+#endif /* MPFR_LONG_WITHIN_LIMB */
+#else
 # define MPFR_INT_CEIL_LOG2(x) \
   (MPFR_ASSERTN (x <= ULONG_MAX), __gmpfr_int_ceil_log2(x))
-#endif
+#endif /* __MPFR_GNUC(2,95) || __MPFR_ICC(8,1,0) */
 
 /* Add two integers with overflow handling */
 /* Example: MPFR_SADD_OVERFLOW (c, a, b, long, unsigned long,
@@ -1474,15 +1528,15 @@ do {                                                                  \
 #define mpfr_get_d1(x) mpfr_get_d(x,__gmpfr_default_rounding_mode)
 
 /* Store in r the size in bits of the mpz_t z */
-#define MPFR_MPZ_SIZEINBASE2(r, z)              \
-  do {                                          \
-   int _cnt;                                    \
-   mp_size_t _size;                             \
-   MPFR_ASSERTD (mpz_sgn (z) != 0);             \
-   _size = ABSIZ(z);                            \
-   MPFR_ASSERTD (_size >= 1);                   \
-   count_leading_zeros (_cnt, PTR(z)[_size-1]); \
-   (r) = _size * GMP_NUMB_BITS - _cnt;          \
+#define MPFR_MPZ_SIZEINBASE2(r, z)                      \
+  do {                                                  \
+    int _cnt;                                           \
+    mp_size_t _size;                                    \
+    MPFR_ASSERTD (mpz_sgn (z) != 0);                    \
+    _size = ABSIZ(z);                                   \
+    MPFR_ASSERTD (_size >= 1);                          \
+    count_leading_zeros (_cnt, PTR(z)[_size-1]);        \
+    (r) = (mp_bitcnt_t) _size * GMP_NUMB_BITS - _cnt;   \
   } while (0)
 
 /* MPFR_LCONV_DPTS can also be forced to 0 or 1 by the user. */
@@ -1872,16 +1926,18 @@ typedef struct {
    is not used (if the result is larger than MPFR_PREC_MAX, this
    should be detected with a later assertion, e.g. in mpfr_init2).
    But this change is mainly for existing code that has not been
-   updated yet. So, it is advised to always use MPFR_ADD_PREC if
-   the result can be larger than MPFR_PREC_MAX. */
+   updated yet. So, it is advised to always use MPFR_ADD_PREC or
+   MPFR_INC_PREC if the result can be larger than MPFR_PREC_MAX. */
 #define MPFR_ADD_PREC(P,X) \
   (MPFR_ASSERTN ((X) <= MPFR_PREC_MAX - (P)), (P) + (X))
+#define MPFR_INC_PREC(P,X) \
+  (MPFR_ASSERTN ((X) <= MPFR_PREC_MAX - (P)), (P) += (X))
 
 #ifndef MPFR_USE_LOGGING
 
 #define MPFR_ZIV_DECL(_x) mpfr_prec_t _x
 #define MPFR_ZIV_INIT(_x, _p) (_x) = GMP_NUMB_BITS
-#define MPFR_ZIV_NEXT(_x, _p) ((_p) = MPFR_ADD_PREC (_p, _x), (_x) = (_p)/2)
+#define MPFR_ZIV_NEXT(_x, _p) (MPFR_INC_PREC (_p, _x), (_x) = (_p)/2)
 #define MPFR_ZIV_FREE(x)
 
 #else
@@ -1931,7 +1987,7 @@ typedef struct {
 #define MPFR_ZIV_NEXT(_x, _p)                                           \
   do                                                                    \
     {                                                                   \
-      (_p) = MPFR_ADD_PREC (_p, _x);                                    \
+      MPFR_INC_PREC (_p, _x);                                           \
       (_x) = (_p) / 2;                                                  \
       if (mpfr_log_level >= 0)                                          \
         _x ## _bad += (_x ## _cpt == 1);                                \
@@ -2305,6 +2361,8 @@ __MPFR_DECLSPEC void mpfr_mpz_init2 (mpz_t, mp_bitcnt_t);
 __MPFR_DECLSPEC void mpfr_mpz_clear (mpz_ptr);
 
 __MPFR_DECLSPEC int mpfr_odd_p (mpfr_srcptr);
+
+__MPFR_DECLSPEC int mpfr_nbits_ulong (unsigned long);
 
 #ifdef _MPFR_H_HAVE_VA_LIST
 /* Declared only if <stdarg.h> has been included. */

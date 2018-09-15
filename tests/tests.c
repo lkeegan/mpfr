@@ -154,7 +154,6 @@ test_version (void)
        (sprintf (buffer, "%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR),
         strcmp (buffer, gmp_version) != 0)))
     err = 1;
-#endif
 
   /* In some cases, it may be acceptable to have different versions for
      the header and the library, in particular when shared libraries are
@@ -184,6 +183,7 @@ test_version (void)
               " with MPFR.\nIf some other tests fail, please solve that"
               " problem first.\n");
     }
+#endif
 
   /* VL: I get the following error on an OpenSUSE machine, and changing
      the value of shlibpath_overrides_runpath in the libtool file from
