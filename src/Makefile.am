@@ -10,6 +10,7 @@
 
 
 EXTRA_DIST = round_raw_generic.c jyn_asympt.c				\
+	add1sp1_extracted.c mul_1_extracted.c				\
 	amd/mparam.h arm/mparam.h					\
 	generic/coverage/mparam.h generic/mparam.h			\
 	mips/mparam.h powerpc64/mparam.h sparc64/mparam.h		\
@@ -59,7 +60,7 @@ grandom.c fpif.c set_float128.c get_float128.c rndna.c nrandom.c        \
 random_deviate.h random_deviate.c erandom.c mpfr-mini-gmp.c             \
 mpfr-mini-gmp.h fmma.c log_ui.c gamma_inc.c ubf.c invert_limb.h 	\
 invsqrt_limb.h beta.c odd_p.c get_q.c pool.c total_order.c set_d128.c   \
-get_d128.c
+get_d128.c nbits_ulong.c
 
 libmpfr_la_LIBADD = @LIBOBJS@
 
@@ -89,13 +90,6 @@ libmpfr_la_LDFLAGS = $(MPFR_LDFLAGS) $(LIBMPFR_LDFLAGS) -version-info 6:0:0
 # automatically rebuilds get_patches.c before generating the archives.
 $(srcdir)/get_patches.c: $(top_srcdir)/PATCHES $(top_srcdir)/tools/get_patches.sh
 	(cd $(top_srcdir) && ./tools/get_patches.sh) > $@ || rm -f $@
-
-# Do not add get_patches.c to CLEANFILES so that this file doesn't
-# need to be (re)built as long as no patches are applied. Anyway the
-# update of this file should be regarded as part of the patch process,
-# and "make clean" shouldn't remove it, just like it doesn't remove
-# what has been changed by "patch".
-#CLEANFILES = get_patches.c
 
 # For check-gmp-symbols
 GMPC = $(top_builddir)/src/gmp.c
@@ -145,6 +139,11 @@ check-exported-symbols: $(LTLIBRARIES)
 	  fi; \
 	fi
 
+# Do not add get_patches.c to CLEANFILES so that this file doesn't
+# need to be (re)built as long as no patches are applied. Anyway the
+# update of this file should be regarded as part of the patch process,
+# and "make clean" shouldn't remove it, just like it doesn't remove
+# what has been changed by "patch".
 CLEANFILES = $(GMPC) $(GMPI)
 
 .PHONY: check-gmp-symbols check-exported-symbols

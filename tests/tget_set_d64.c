@@ -533,7 +533,7 @@ check_random_bytes (void)
             printf ("check_random_bytes failed\n");
             printf ("x.d="); print_decimal64 (x.d);
             printf ("y="); mpfr_dump (y);
-            printf ("e="); print_decimal64 (e);
+            printf ("e  ="); print_decimal64 (e);
             exit (1);
           }
     }

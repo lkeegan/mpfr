@@ -216,7 +216,14 @@ dnl Warning! The following tests must be done before Autoconf selects
 dnl a compiler. This means that some macros such as AC_PROG_CC and
 dnl AM_PROG_AR must be put after the following code.
 
-if test -z "$user_redefine_cc" && test "$cross_compiling" != yes ; then
+dnl We do not do this check if mini-gmp is used. Note that the status of
+dnl --enable-mini-gmp is already available even though this option will
+dnl be handled later (at this time, --with-mini-gmp is not handled yet).
+
+if test -z "$user_redefine_cc" && \
+   test "$cross_compiling" != yes && \
+   test "${enable_mini_gmp+set}" != set && \
+   test "${with_mini_gmp+set}" != set ; then
 
 dnl We need to guess the C preprocessor instead of using AC_PROG_CPP,
 dnl since AC_PROG_CPP implies AC_PROG_CC, which chooses a compiler
@@ -361,16 +368,26 @@ AC_ARG_ENABLE(float128,
 
 test_libgmp=__gmpz_init
 
+dnl Remove this option?
+dnl This option assumes that mini-gmp has already been built (like if
+dnl it were a real GMP) and that the corresponding gmp.h is the one of
+dnl mini-gmp. Thus the --enable-mini-gmp is misused, because the fact
+dnl that mini-gmp is enabled or not is what the gmp.h file contains.
+dnl Said otherwise, this should have just been an autodetection.
+dnl Note: A future --with-mini-gmp option may make this one obsolete.
 AC_ARG_ENABLE(mini-gmp,
    [  --enable-mini-gmp       build MPFR with mini-gmp (experimental) [[default=no]]],
    [ case $enableval in
       yes) AC_DEFINE([MPFR_USE_MINI_GMP],1,[Use mini-gmp])
-           # With mini-gmp, mp_limb_t is always unsigned long.
-           AC_COMPUTE_INT(nettle_cv_gmp_numb_bits, [(sizeof(unsigned long) * CHAR_BIT)],
-              [#include <limits.h>],
-              [AC_MSG_FAILURE([cannot find value of GMP_NUMB_BITS])])
-           AC_MSG_RESULT([$nettle_cv_gmp_numb_bits bits])
-           AC_DEFINE_UNQUOTED([GMP_NUMB_BITS], $nettle_cv_gmp_numb_bits, [number of bits in a limb])
+           # first check if mini-gmp defines GMP_NUMB_BITS
+           AC_COMPUTE_INT(mini_gmp_numb_bits, [(GMP_NUMB_BITS)],
+              [#include <gmp.h>],
+              # if not found in mini-gmp.h, we assume unsigned long
+              [AC_COMPUTE_INT(mini_gmp_numb_bits, [(sizeof(unsigned long) * CHAR_BIT)],
+                 [#include <limits.h>],
+                 [AC_MSG_FAILURE([cannot find value of GMP_NUMB_BITS])])])
+           AC_MSG_RESULT([$mini_gmp_numb_bits bits])
+           AC_DEFINE_UNQUOTED([GMP_NUMB_BITS], $mini_gmp_numb_bits, [number of bits in a limb])
            AC_DEFINE([GMP_NAIL_BITS], 0, [number of nails in a limb])
            test_libgmp=mpz_init;;
       no)  ;;
@@ -402,6 +419,16 @@ AC_ARG_ENABLE(lto,
             ;;
       no)   ;;
       *)    AC_MSG_ERROR([bad value for --enable-lto: yes or no]) ;;
+     esac])
+
+AC_ARG_ENABLE(formally-proven-code,
+   [  --enable-formally-proven-code
+                          use formally proven code when available
+                          (needs a C99 compiler) [[default=no]]],
+   [ case $enableval in
+      yes) AC_DEFINE([MPFR_WANT_PROVEN_CODE],1,[Want formally proven code]) ;;
+      no)  ;;
+      *) AC_MSG_ERROR([bad value for --enable-formally-proven-code: yes or no]) ;;
      esac])
 
 dnl Warning: This test is *only* for CFLAGS settings.

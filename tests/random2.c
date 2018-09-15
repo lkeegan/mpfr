@@ -23,7 +23,12 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include "mpfr-test.h"
 
+#if GMP_NUMB_BITS < 16
+#define LOGBITS_PER_BLOCK 3
+#else
 #define LOGBITS_PER_BLOCK 4
+#endif
+
 #if GMP_NUMB_BITS < 32
 #define BITS_PER_RANDCALL GMP_NUMB_BITS
 #else
@@ -71,8 +76,8 @@ mpfr_random2 (mpfr_ptr x, mp_size_t size, mpfr_exp_t exp,
 
   /* Start off at a random bit position in the most significant limb.  */
   bit_pos = GMP_NUMB_BITS - 1;
-  ran >>= 6;                            /* Ideally   log2(GMP_NUMB_BITS) */
-  ran_nbits = BITS_PER_RANDCALL - 6;    /* Ideally - log2(GMP_NUMB_BITS) */
+  ran >>= MPFR_LOG2_GMP_NUMB_BITS;      /* Ideally   log2(GMP_NUMB_BITS) */
+  ran_nbits = BITS_PER_RANDCALL - MPFR_LOG2_GMP_NUMB_BITS; /* Ideally - log2(GMP_NUMB_BITS) */
 
   /* Bit 0 of ran chooses string of ones/string of zeroes.
      Make most significant limb be non-zero by setting bit 0 of RAN.  */
@@ -95,15 +100,15 @@ mpfr_random2 (mpfr_ptr x, mp_size_t size, mpfr_exp_t exp,
           /* Generate a string of nb ones.  */
           if (nb > bit_pos)
             {
-              xp[ri--] = acc | (((mp_limb_t) 2 << bit_pos) - 1);
+              xp[ri--] = acc | MPFR_LIMB_MASK (bit_pos + 1);
               bit_pos += GMP_NUMB_BITS;
               bit_pos -= nb;
-              acc = (~MPFR_LIMB_ONE) << bit_pos;
+              acc = MPFR_LIMB_LSHIFT (MPFR_LIMB_MAX, bit_pos + 1);
             }
           else
             {
               bit_pos -= nb;
-              acc |= (((mp_limb_t) 2 << nb) - 2) << bit_pos;
+              acc |= MPFR_LIMB_LSHIFT (MPFR_LIMB_MASK (nb), bit_pos + 1);
             }
         }
       else

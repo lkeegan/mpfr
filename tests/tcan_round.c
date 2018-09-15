@@ -212,6 +212,7 @@ check_can_round (void)
   int i, u[3] = { 0, 1, 256 };
   int inex;
   int expected, got;
+  int maxerr;
 
   mpfr_inits2 (4 * GMP_NUMB_BITS, x, xinf, xsup, yinf, ysup, (mpfr_ptr) 0);
 
@@ -239,10 +240,16 @@ check_can_round (void)
                 }
               MPFR_ASSERTN (mpfr_get_exp (x) == precx);
 
-              for (err = precy; err <= precy + 3; err++)
+              maxerr = precy + 3;
+              if (4 * GMP_NUMB_BITS < maxerr)
+                maxerr = 4 * GMP_NUMB_BITS;
+              for (err = precy; err <= maxerr; err++)
                 {
                   mpfr_set_ui_2exp (xinf, 1, precx - err, MPFR_RNDN);
                   inex = mpfr_add (xsup, x, xinf, MPFR_RNDN);
+                  /* Since EXP(x) = precx, and xinf = 2^(precx-err),
+                     x + xinf is exactly representable on 4 * GMP_NUMB_BITS
+                     nbits as long as err <= 4 * GMP_NUMB_BITS */
                   MPFR_ASSERTN (inex == 0);
                   inex = mpfr_sub (xinf, x, xinf, MPFR_RNDN);
                   MPFR_ASSERTN (inex == 0);
@@ -265,12 +272,14 @@ check_can_round (void)
                           {
                             printf ("Error in check_can_round on:\n"
                                     "precx=%d, precy=%d, i=%d, err=%d, "
-                                    "rnd1=%s, rnd2=%s: got %d\n",
+                                    "rnd1=%s, rnd2=%s: expected %d, got %d\n",
                                     precx, precy, i, err,
                                     mpfr_print_rnd_mode ((mpfr_rnd_t) rnd1),
                                     mpfr_print_rnd_mode ((mpfr_rnd_t) rnd2),
-                                    got);
+                                    expected, got);
                             printf ("x="); mpfr_dump (x);
+                            printf ("yinf="); mpfr_dump (yinf);
+                            printf ("ysup="); mpfr_dump (ysup);
                             exit (1);
                           }
                       }
