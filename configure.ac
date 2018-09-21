@@ -32,7 +32,9 @@ dnl Older Automake versions than 1.13 may still be supported, but no longer
 dnl tested, and many things have changed in 1.13. Moreover the INSTALL file
 dnl and MPFR manual assume that MPFR has been built using Automake 1.13+
 dnl (due to parallel tests, introduced by default in Automake 1.13).
-AM_INIT_AUTOMAKE([1.13 no-define dist-bzip2 dist-xz dist-zip])
+dnl The subdir-objects option is needed due to configuration related to
+dnl mini-gmp, which has sources in an external directory.
+AM_INIT_AUTOMAKE([1.13 no-define dist-bzip2 dist-xz dist-zip subdir-objects])
 AM_MAINTAINER_MODE(enable)
 
 AC_CONFIG_MACRO_DIR([m4])
@@ -121,6 +123,26 @@ AC_ARG_WITH(gmp_build,
    fi
    ])
 
+AC_ARG_WITH(mini_gmp,
+   [  --with-mini-gmp=DIR     use mini-gmp (sources in DIR) instead of GMP
+                          (experimental, please read doc/mini-gmp file)],
+   [
+   MPFR_PARSE_DIRECTORY(["$withval"],[withval])
+   if test -z "$gmp_lib_path" && test -z "$with_gmp_include" && \
+      test -z "$use_gmp_build"; then
+     if test -f "$withval/mini-gmp.c" && test -f "$withval/mini-gmp.h"; then
+       AC_DEFINE([MPFR_USE_MINI_GMP],1,[Use mini-gmp])
+       CPPFLAGS="$CPPFLAGS -I$withval"
+       mini_gmp_path="$withval"
+       AC_SUBST(mini_gmp_path)
+     else
+       AC_MSG_FAILURE([mini-gmp.{c,h} not found in $withval])
+     fi
+   else
+     AC_MSG_FAILURE([Do not use --with-mini-gmp and other --with-gmp options simultaneously.])
+   fi
+  ])
+
 AC_ARG_WITH(mulhigh_size,
    [  --with-mulhigh-size=NUM internal threshold table for mulhigh],
    AC_DEFINE_UNQUOTED([MPFR_MULHIGH_SIZE],$withval, [Mulhigh size]))
@@ -204,6 +226,9 @@ AC_ARG_ENABLE(tune-for-coverage,
       *)    AC_MSG_ERROR([bad value for --enable-tune-for-coverage]) ;;
      esac])
 
+dnl Makefile.am files can use "if MINI_GMP" / ... / "endif".
+AM_CONDITIONAL([MINI_GMP], [test -n "$mini_gmp_path"])
+
 
 dnl
 dnl Setup CC and CFLAGS
@@ -216,13 +241,10 @@ dnl Warning! The following tests must be done before Autoconf selects
 dnl a compiler. This means that some macros such as AC_PROG_CC and
 dnl AM_PROG_AR must be put after the following code.
 
-dnl We do not do this check if mini-gmp is used. Note that the status of
-dnl --enable-mini-gmp is already available even though this option will
-dnl be handled later (at this time, --with-mini-gmp is not handled yet).
+dnl We do not do this check if mini-gmp is used.
 
 if test -z "$user_redefine_cc" && \
    test "$cross_compiling" != yes && \
-   test "${enable_mini_gmp+set}" != set && \
    test "${with_mini_gmp+set}" != set ; then
 
 dnl We need to guess the C preprocessor instead of using AC_PROG_CPP,
@@ -366,34 +388,6 @@ AC_ARG_ENABLE(float128,
       *)   AC_MSG_ERROR([bad value for --enable-float128: yes or no]) ;;
      esac])
 
-test_libgmp=__gmpz_init
-
-dnl Remove this option?
-dnl This option assumes that mini-gmp has already been built (like if
-dnl it were a real GMP) and that the corresponding gmp.h is the one of
-dnl mini-gmp. Thus the --enable-mini-gmp is misused, because the fact
-dnl that mini-gmp is enabled or not is what the gmp.h file contains.
-dnl Said otherwise, this should have just been an autodetection.
-dnl Note: A future --with-mini-gmp option may make this one obsolete.
-AC_ARG_ENABLE(mini-gmp,
-   [  --enable-mini-gmp       build MPFR with mini-gmp (experimental) [[default=no]]],
-   [ case $enableval in
-      yes) AC_DEFINE([MPFR_USE_MINI_GMP],1,[Use mini-gmp])
-           # first check if mini-gmp defines GMP_NUMB_BITS
-           AC_COMPUTE_INT(mini_gmp_numb_bits, [(GMP_NUMB_BITS)],
-              [#include <gmp.h>],
-              # if not found in mini-gmp.h, we assume unsigned long
-              [AC_COMPUTE_INT(mini_gmp_numb_bits, [(sizeof(unsigned long) * CHAR_BIT)],
-                 [#include <limits.h>],
-                 [AC_MSG_FAILURE([cannot find value of GMP_NUMB_BITS])])])
-           AC_MSG_RESULT([$mini_gmp_numb_bits bits])
-           AC_DEFINE_UNQUOTED([GMP_NUMB_BITS], $mini_gmp_numb_bits, [number of bits in a limb])
-           AC_DEFINE([GMP_NAIL_BITS], 0, [number of nails in a limb])
-           test_libgmp=mpz_init;;
-      no)  ;;
-      *) AC_MSG_ERROR([bad value for --enable-mini-gmp: yes or no]) ;;
-     esac])
-
 AC_ARG_ENABLE(debug-prediction,
    [  --enable-debug-prediction
                           [[for developers]] enable debug of branch prediction
@@ -520,9 +514,60 @@ TUNE_LIBS="$LIBS"
 LIBS="$old_LIBS"
 AC_SUBST(TUNE_LIBS)
 
+dnl Under Linux, make sure that the old dtags are used if LD_LIBRARY_PATH
+dnl is defined. The issue is that with the new dtags, LD_LIBRARY_PATH has
+dnl the precedence over the run path, so that if a compatible MPFR library
+dnl is installed in some directory from $LD_LIBRARY_PATH, then the tested
+dnl MPFR library will be this library instead of the MPFR library from the
+dnl build tree. Other OS with the same issue might be added later.
 dnl
-dnl Setup GMP detection
+dnl References:
+dnl   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=859732
+dnl   http://lists.gnu.org/archive/html/libtool/2017-05/msg00000.html
 dnl
+dnl We need to check whether --disable-new-dtags is supported as alternate
+dnl linkers may be used (e.g., with tcc: CC=tcc LD=tcc).
+dnl
+case $host in
+  *-*-linux*)
+    if test -n "$LD_LIBRARY_PATH"; then
+      saved_LDFLAGS="$LDFLAGS"
+      LDFLAGS="$LDFLAGS -Wl,--disable-new-dtags"
+      AC_MSG_CHECKING(whether --disable-new-dtags is supported by the linker)
+      AC_LINK_IFELSE([AC_LANG_SOURCE([[
+int main (void) { return 0; }
+      ]])],
+      [AC_MSG_RESULT(yes (use it since LD_LIBRARY_PATH is set))],
+      [AC_MSG_RESULT(no)
+       LDFLAGS="$saved_LDFLAGS"
+      ])
+    fi
+    ;;
+esac
+
+dnl
+dnl For mpfr-longlong.h - TODO: should be replaced (see acinclude.m4).
+dnl
+
+GMP_C_ATTRIBUTE_MODE
+
+
+dnl
+dnl Setup related to GMP / mini-gmp
+dnl
+
+if test -z "$mini_gmp_path" ; then
+
+dnl Setup for GMP
+
+dnl Avoid a configure failure with automatic dependency tracking due to
+dnl   libminigmp_la_SOURCES = $(mini_gmp_path)/mini-gmp.h [...]
+dnl in src/Makefile.am; this failure comes from the fact that lines with
+dnl $(mini_gmp_path)/$(DEPDIR)/... are added to src/Makefile even though
+dnl the rules related to $(mini_gmp_path) are in an Automake conditional
+dnl that is false when $mini_gmp_path is an empty string. This is probably
+dnl a bug in Automake.
+mini_gmp_path=.
 
 dnl Check GMP Header
 AC_MSG_CHECKING(for gmp.h)
@@ -577,57 +622,14 @@ error
   ;;
 esac
 
-dnl Under Linux, make sure that the old dtags are used if LD_LIBRARY_PATH
-dnl is defined. The issue is that with the new dtags, LD_LIBRARY_PATH has
-dnl the precedence over the run path, so that if a compatible MPFR library
-dnl is installed in some directory from $LD_LIBRARY_PATH, then the tested
-dnl MPFR library will be this library instead of the MPFR library from the
-dnl build tree. Other OS with the same issue might be added later.
-dnl
-dnl References:
-dnl   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=859732
-dnl   http://lists.gnu.org/archive/html/libtool/2017-05/msg00000.html
-dnl
-dnl We need to check whether --disable-new-dtags is supported as alternate
-dnl linkers may be used (e.g., with tcc: CC=tcc LD=tcc).
-dnl
-case $host in
-  *-*-linux*)
-    if test -n "$LD_LIBRARY_PATH"; then
-      saved_LDFLAGS="$LDFLAGS"
-      LDFLAGS="$LDFLAGS -Wl,--disable-new-dtags"
-      AC_MSG_CHECKING(whether --disable-new-dtags is supported by the linker)
-      AC_LINK_IFELSE([AC_LANG_SOURCE([[
-int main (void) { return 0; }
-      ]])],
-      [AC_MSG_RESULT(yes (use it since LD_LIBRARY_PATH is set))],
-      [AC_MSG_RESULT(no)
-       LDFLAGS="$saved_LDFLAGS"
-      ])
-    fi
-    ;;
-esac
-
-dnl
-dnl For mpfr-longlong.h - TODO: should be replaced (see acinclude.m4).
-dnl
-
-GMP_C_ATTRIBUTE_MODE
-
-
-dnl
-dnl Setup GMP detection (continued)
-dnl
-
 dnl Check minimal GMP version
 dnl We only guarantee that with a *functional* and recent enough GMP version,
 dnl MPFR will compile; we do not guarantee that GMP will compile.
 dnl In particular fat builds are broken in GMP 4.3.2 and GMP 5.0.0
 dnl (at least on 64-bit Core 2 under Linux),
 dnl see <https://gmplib.org/list-archives/gmp-bugs/2011-August/002345.html>.
-if test -z "$enable_mini_gmp" ; then
-  AC_MSG_CHECKING(for recent GMP)
-  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+AC_MSG_CHECKING(for recent GMP)
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #include "gmp.h"
 #if (__GNU_MP_VERSION*100+__GNU_MP_VERSION_MINOR*10 < 500)
 # error "GMP 5.0.0 or newer is required"
@@ -637,7 +639,6 @@ error
    AC_MSG_RESULT(no)
    AC_MSG_ERROR([GMP 5.0.0 or newer is required])
 ])
-fi
 
 dnl Check if gmp.h is usable at link time; this may detect errors such as
 dnl with GMP 4.1, which uses "extern __inline__" unconditionally with all
@@ -696,7 +697,7 @@ See 'config.log' for details (search for GMP_NUMB_BITS).])],
        [AC_MSG_RESULT([cannot test])])
 
 dnl Check if we can link with GMP
-AC_CHECK_LIB(gmp, $test_libgmp, [LIBS="-lgmp $LIBS"],
+AC_CHECK_LIB(gmp, __gmpz_init, [LIBS="-lgmp $LIBS"],
  [AC_MSG_ERROR([libgmp not found or uses a different ABI (including static vs shared).
 Please read the INSTALL file -- see "In case of problem".])])
 
@@ -709,11 +710,10 @@ dnl incorrect and even have security implications.
 dnl WARNING! LD_RUN_PATH is not taken into account by the GNU gold ld,
 dnl e.g. from binutils-gold 2.22-5 under Debian; see
 dnl   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=660813
-if test -z "$enable_mini_gmp" ; then
-  saved_LD_RUN_PATH="$LD_RUN_PATH"
-  LD_RUN_PATH="${LD_RUN_PATH:+$LD_RUN_PATH$PATH_SEPARATOR}$gmp_lib_path"
-  export LD_RUN_PATH
-  AC_RUN_IFELSE([AC_LANG_PROGRAM([[
+saved_LD_RUN_PATH="$LD_RUN_PATH"
+LD_RUN_PATH="${LD_RUN_PATH:+$LD_RUN_PATH$PATH_SEPARATOR}$gmp_lib_path"
+export LD_RUN_PATH
+AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <string.h>
 #include "gmp.h"
@@ -756,8 +756,7 @@ if test -z "$enable_mini_gmp" ; then
     AC_MSG_WARN([==========================================================])
     ],AC_MSG_RESULT([cannot test])
   )
-  LD_RUN_PATH="$saved_LD_RUN_PATH"
-fi
+LD_RUN_PATH="$saved_LD_RUN_PATH"
 
 dnl __gmpn_sbpi1_divappr_q is an internal GMP symbol; thus its behavior
 dnl may change or this symbol may be removed in the future (without being
@@ -776,6 +775,27 @@ AC_CHECK_FUNCS([__gmpn_rsblsh1_n])
 
 MPFR_CHECK_MP_LIMB_T_VS_LONG
 MPFR_CHECK_MP_LIMB_T_VS_INTMAX
+
+else
+
+dnl Setup for mini-gmp
+
+dnl First check whether mini-gmp defines GMP_NUMB_BITS.
+AC_MSG_CHECKING(for GMP_NUMB_BITS)
+how="from mini-gmp.h"
+AC_COMPUTE_INT(mini_gmp_numb_bits, [(GMP_NUMB_BITS)],
+   [#include <mini-gmp.h>],
+   [how="not in mini-gmp.h; guessed"
+    AC_COMPUTE_INT(mini_gmp_numb_bits, [(sizeof(unsigned long) * CHAR_BIT)],
+       [#include <limits.h>],
+       [AC_MSG_FAILURE([cannot define GMP_NUMB_BITS])])
+    AC_DEFINE_UNQUOTED([GMP_NUMB_BITS], $mini_gmp_numb_bits, [number of bits in a limb])
+  ])
+AC_MSG_RESULT([$mini_gmp_numb_bits bits ($how)])
+
+fi
+
+dnl End of setup related to GMP / mini-gmp
 
 dnl The getrusage function is needed for MPFR bench (cf tools/bench)
 AC_CHECK_FUNCS([getrusage])

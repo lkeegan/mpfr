@@ -1,9 +1,26 @@
 How to compile GNU MPFR with mini-gmp
 =====================================
 
-This was tested with MPFR svn 13047 and GMP 6.1.2 on x86_64 GNU/Linux:
+To build and test MPFR against mini-gmp:
+
+  ./configure --with-mini-gmp=DIR [other configure options]
+  make
+  make check
+
+"make" will build mini-gmp with the same compiler as for MPFR.
+
+For "make check", tests that use features not supported by mini-gmp
+(mpq_t, mpf_t, and the gmp_*printf functions) are skipped.
+
+Note: To use this version of the MPFR library, you need to define
+the MPFR_USE_MINI_GMP macro before including mpfr.h (alternatively,
+you can modify mpfr.h to define this macro at the beginning). But
+this will currently not be usable since mini-gmp.h does not declare
+gmp_randstate_t (you need to modify either mini-gmp.h or mpfr.h).
+
+This was tested with MPFR svn r13226 and GMP 6.1.2 on x86_64 GNU/Linux:
 ============================================================================
-Testsuite summary for MPFR 4.0.0-dev
+Testsuite summary for MPFR 4.1.0-dev
 ============================================================================
 # TOTAL: 183
 # PASS:  173
@@ -12,21 +29,4 @@ Testsuite summary for MPFR 4.0.0-dev
 # FAIL:  0
 # XPASS: 0
 # ERROR: 0
-
-1) extract the GMP tarball in say /tmp/gmp-6.1.2
-   go into /tmp/gmp-6.1.2/mini-gmp
-   gcc -O2 -g -fPIC -c mini-gmp.c
-   ar r libgmp.a mini-gmp.o
-
-2) create a GMP install directory in say /tmp
-   mkdir /tmp/include
-   mkdir /tmp/lib
-   cp libgmp.a /tmp/lib
-   cp mini-gmp.h /tmp/include/gmp.h
-
-3) extract the MPFR tarball in say /tmp/mpfr
-   ./configure --with-gmp=/tmp --enable-mini-gmp --disable-shared
-
-Note: to use this version of the MPFR library, you need to define
-the MPFR_USE_MINI_GMP macro before including mpfr.h (alternatively,
-you can modify mpfr.h to define this macro at the beginning).
+============================================================================

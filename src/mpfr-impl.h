@@ -88,7 +88,11 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #endif
 #include "mpfr-thread.h"
 
+#ifndef MPFR_USE_MINI_GMP
 #include "gmp.h"
+#else
+#include "mini-gmp.h"
+#endif
 
 /* With the current code, MPFR_LONG_WITHIN_LIMB must be defined if an
    unsigned long fits in a limb. Since one cannot rely on the configure
@@ -1197,8 +1201,10 @@ typedef uintmax_t mpfr_ueexp_t;
 #define MPFR_LIMB_MSB(l) ((mp_limb_t) ((l) & MPFR_LIMB_HIGHBIT))
 
 /* Mask for the low 's' bits of a limb */
-#define MPFR_LIMB_MASK(s) \
-  ((mp_limb_t) (MPFR_LIMB_LSHIFT (MPFR_LIMB_ONE, s) - MPFR_LIMB_ONE))
+#define MPFR_LIMB_MASK(s)                                               \
+  (MPFR_ASSERTD (s >= 0 && s <= GMP_NUMB_BITS),                         \
+   s == GMP_NUMB_BITS ? MPFR_LIMB_MAX :                                 \
+   (mp_limb_t) (MPFR_LIMB_LSHIFT (MPFR_LIMB_ONE, s) - MPFR_LIMB_ONE))
 
 /******************************************************
  **********************  Memory  **********************

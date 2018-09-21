@@ -17,6 +17,7 @@ EXTRA_DIST = round_raw_generic.c jyn_asympt.c				\
 	x86/mparam.h x86_64/core2/mparam.h x86_64/mparam.h
 
 include_HEADERS = mpfr.h mpf2mpfr.h
+nodist_include_HEADERS =
 
 BUILT_SOURCES = mparam.h
 
@@ -90,6 +91,20 @@ libmpfr_la_LDFLAGS = $(MPFR_LDFLAGS) $(LIBMPFR_LDFLAGS) -version-info 6:0:0
 # automatically rebuilds get_patches.c before generating the archives.
 $(srcdir)/get_patches.c: $(top_srcdir)/PATCHES $(top_srcdir)/tools/get_patches.sh
 	(cd $(top_srcdir) && ./tools/get_patches.sh) > $@ || rm -f $@
+
+if MINI_GMP
+# The mini-gmp.{c,h} files are external files, not part of MPFR, thus they
+# must not be put in the tarballs by "make dist". Hence the use of nodist_
+# on the corresponding sources (this is needed even when --with-mini-gmp
+# has not been used).
+nodist_include_HEADERS += $(mini_gmp_path)/mini-gmp.h
+# The noinst_ below seems OK as libminigmp should be included in libmpfr,
+# and this is confirmed by ldd (replacing noinst_ by lib_ does not seem to
+# do this and makes linking of the test programs fail).
+noinst_LTLIBRARIES = libminigmp.la
+nodist_libminigmp_la_SOURCES = $(mini_gmp_path)/mini-gmp.h $(mini_gmp_path)/mini-gmp.c
+libmpfr_la_LIBADD += libminigmp.la
+endif
 
 # For check-gmp-symbols
 GMPC = $(top_builddir)/src/gmp.c
