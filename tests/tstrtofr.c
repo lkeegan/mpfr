@@ -22,6 +22,12 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include "mpfr-test.h"
 
+/* The implicit \0 is useless, but we do not write num_to_text[62] otherwise
+   g++ complains. */
+static const char num_to_text36[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+static const char num_to_text62[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  "abcdefghijklmnopqrstuvwxyz";
+
 static void
 check_special (void)
 {
@@ -1273,6 +1279,31 @@ bug20170308 (void)
   mpfr_set_emin (emin);
 }
 
+/* r13299 fails with 8-bit limbs (micro-gmp/8). */
+static void
+bug20181127 (void)
+{
+  char s[] = "9.Z6nrLVSMG1bDcCF2ONJdX@-183295525";  /* base 58 */
+  mpfr_t x, y;
+
+  mpfr_inits2 (6, x, y, (mpfr_ptr) 0);
+  mpfr_set_ui_2exp (x, 5, -1073741701, MPFR_RNDN);
+  mpfr_strtofr (y, s, NULL, 58, MPFR_RNDZ);
+  if (! mpfr_equal_p (x, y))
+    {
+      printf ("Error in bug20181127 on %s (base 58)\n", s);
+      printf ("Expected x = ");
+      mpfr_dump (x);
+      printf ("Got      y = ");
+      mpfr_dump (y);
+      printf ("*Note* In base 58, x ~= ");
+      mpfr_out_str (stdout, 58, 8, x, MPFR_RNDN);
+      printf ("\n");
+      exit (1);
+    }
+  mpfr_clears (x, y, (mpfr_ptr) 0);
+}
+
 static void
 coverage (void)
 {
@@ -1303,6 +1334,158 @@ coverage (void)
 #endif
 }
 
+#define BSIZE 512
+
+static void
+random_tests (void)
+{
+  char s0[BSIZE], s1[BSIZE], s2[BSIZE+64];
+  mpfr_t x0, x1, x2;
+  int prec, i;
+
+  for (prec = MPFR_PREC_MIN; prec < 300; prec++)
+    {
+      mpfr_inits2 (prec, x0, x1, x2, (mpfr_ptr) 0);
+
+      for (i = 0; i < 20; i++)
+        {
+          const char *num_to_text;
+          mpfr_exp_t e0, e1;
+          int base, j, k, neg;
+          int noteq = 0;
+          char d;
+
+          /* We want the same exponent for x0 and its successor x1.
+             This is not possible for precision 1 in base 2. */
+          do
+            base = 2 + (randlimb () % 61);
+          while (prec == 1 && base == 2);
+
+          num_to_text = base <= 36 ? num_to_text36 : num_to_text62;
+
+          do
+            {
+              /* Let's consider only positive numbers. We should test
+                 negative numbers, but they should be built later, just
+                 for the test itself. */
+              tests_default_random (x0, 0,
+                                    mpfr_get_emin (), mpfr_get_emax (), 1);
+              mpfr_set (x1, x0, MPFR_RNDN);
+              mpfr_nextabove (x1);
+              mpfr_get_str (s0, &e0, base, BSIZE - 1, x0, MPFR_RNDU);
+              mpfr_get_str (s1, &e1, base, BSIZE - 1, x1, MPFR_RNDD);
+            }
+          while (! (mpfr_regular_p (x0) && mpfr_regular_p (x1) && e0 == e1));
+
+          /* 0 < x0 <= (s0,e) <= (s1,e) <= x1 with e = e0 = e1.
+             Let's build a string s2 randomly formed by:
+             - the common prefix of s0 and s1;
+             - some of the following digits of s0 (possibly none);
+             - the next digit of s0 + 1;
+             - some of the following digits of s1 (possibly none).
+             Then 0 < x0 <= (s0,e) < (s2,e) <= (s1,e) <= x1, and with
+             a very high probability that (s2,e) < (s1,e); noteq is
+             set to true in this case.
+             For instance, if:
+               s0 = 123456789
+               s1 = 124012345
+             one can have, e.g.:
+               s2 = 12345734
+               s2 = 123556789
+               s2 = 124
+               s2 = 124012
+             s2 is not taken completely randomly between s0 and s1, but it
+             will be built rather easily, and with the randomness of x0,
+             we should cover all cases, with s2 very close to s0, s2 very
+             close to s1, or not too close to either. */
+
+          neg = randlimb () & 1;
+          s2[0] = neg ? '-' : '+';
+          s2[1] = '.';
+
+          for (j = 0;
+               MPFR_ASSERTN (s0[j] != 0 && s1[j] != 0), s0[j] == s1[j];
+               j++)
+            s2[j+2] = s0[j];
+
+          /* k is the position of the first differing digit. */
+          k = j;
+
+          while (j < BSIZE - 2 && randlimb () % 8 != 0)
+            {
+              MPFR_ASSERTN (s0[j] != 0);
+              s2[j+2] = s0[j];
+              j++;
+            }
+
+          MPFR_ASSERTN (s0[j] != 0);
+          /* We will increment the next digit. Thus while s0[j] is the
+             maximum digit, go back until this is no longer the case
+             (the first digit after the common prefix cannot be the
+             maximum digit, so that we will stop early enough). */
+          while ((d = s0[j]) == num_to_text[base - 1])
+            j--;
+          noteq = j != k;
+          s2[j+2] = d = *(strchr (num_to_text, d) + 1);
+          if (d != s1[j])
+            noteq = 1;
+          j++;
+
+          while (j < BSIZE - 1 && randlimb () % 8 != 0)
+            {
+              MPFR_ASSERTN (s1[j] != 0);
+              s2[j+2] = s1[j];
+              j++;
+            }
+
+          sprintf (s2 + (j+2), "@%" MPFR_EXP_FSPEC "d", (mpfr_eexp_t) e0);
+
+          while (noteq == 0 && j < BSIZE - 1)
+            {
+              if (s1[j] != '0')
+                noteq = 1;
+              j++;
+            }
+
+          if (neg)
+            {
+              mpfr_neg (x0, x0, MPFR_RNDN);
+              mpfr_neg (x1, x1, MPFR_RNDN);
+            }
+
+          if (noteq)
+            {
+              mpfr_strtofr (x2, s2, NULL, base, MPFR_RNDZ);
+              if (! mpfr_equal_p (x2, x0))
+                {
+                  printf ("Error in random_tests for prec=%d i=%d base=%d\n",
+                          prec, i, base);
+                  printf ("s0 = %s\ns1 = %s\ns2 = %s\n", s0, s1, s2);
+                  printf ("x0 = ");
+                  mpfr_dump (x0);
+                  printf ("x2 = ");
+                  mpfr_dump (x2);
+                  exit (1);
+                }
+            }
+
+          mpfr_strtofr (x2, s2, NULL, base, MPFR_RNDA);
+          if (! mpfr_equal_p (x2, x1))
+            {
+              printf ("Error in random_tests for prec=%d i=%d base=%d\n",
+                      prec, i, base);
+              printf ("s0 = %s\ns1 = %s\ns2 = %s\n", s0, s1, s2);
+              printf ("x1 = ");
+              mpfr_dump (x1);
+              printf ("x2 = ");
+              mpfr_dump (x2);
+              exit (1);
+            }
+        }
+      mpfr_clears (x0, x1, x2, (mpfr_ptr) 0);
+    }
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -1320,6 +1503,8 @@ main (int argc, char *argv[])
   bug20120829 ();
   bug20161217 ();
   bug20170308 ();
+  bug20181127 ();
+  random_tests ();
 
   tests_end_mpfr ();
   return 0;
