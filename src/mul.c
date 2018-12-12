@@ -117,6 +117,7 @@ mpfr_mul3 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
   /* now tmp[0]..tmp[k-1] contains the product of both mantissa,
      with tmp[k-1]>=2^(GMP_NUMB_BITS-2) */
   b1 >>= GMP_NUMB_BITS - 1; /* msb from the product */
+  MPFR_ASSERTD (b1 == 0 || b1 == 1);
 
   /* if the mantissas of b and c are uniformly distributed in ]1/2, 1],
      then their product is in ]1/4, 1/2] with probability 2*ln(2)-1 ~ 0.386
@@ -127,6 +128,7 @@ mpfr_mul3 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
   cc = mpfr_round_raw (MPFR_MANT (a), tmp, bq + cq,
                        MPFR_IS_NEG_SIGN(sign_product),
                        MPFR_PREC (a), rnd_mode, &inexact);
+  MPFR_ASSERTD (cc == 0 || cc == 1);
 
   /* cc = 1 ==> result is a power of two */
   if (MPFR_UNLIKELY(cc))
@@ -135,7 +137,11 @@ mpfr_mul3 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
   MPFR_TMP_FREE(marker);
 
   {
-    mpfr_exp_t ax2 = ax + (mpfr_exp_t) (b1 - 1 + cc);
+    /* We need to cast b1 to a signed integer type in order to use
+       signed integer arithmetic only, as the expression can involve
+       negative integers. Let's recall that both b1 and cc are 0 or 1,
+       and since cc is an int, let's choose int for this part. */
+    mpfr_exp_t ax2 = ax + ((int) b1 - 1 + cc);
     if (MPFR_UNLIKELY( ax2 > __gmpfr_emax))
       return mpfr_overflow (a, rnd_mode, sign_product);
     if (MPFR_UNLIKELY( ax2 < __gmpfr_emin))
@@ -186,14 +192,17 @@ mpfr_mul (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
       fprintf (stderr, "mpfr_mul return different values for %s\n"
                "Prec_a = %" MPFR_EXP_FSPEC "d, "
                "Prec_b = %" MPFR_EXP_FSPEC "d, "
-               "Prec_c = %" MPFR_EXP_FSPEC "d\nb = ",
+               "Prec_c = %" MPFR_EXP_FSPEC "d\n",
                mpfr_print_rnd_mode (rnd_mode),
                (mpfr_eexp_t) MPFR_PREC (a),
                (mpfr_eexp_t) MPFR_PREC (b),
                (mpfr_eexp_t) MPFR_PREC (c));
-      mpfr_fdump (stderr, b);
+      /* Note: We output tb and tc instead of b and c, in case a = b or c
+         (this is why tb and tc have been created in the first place). */
+      fprintf (stderr, "b = ");
+      mpfr_fdump (stderr, tb);
       fprintf (stderr, "c = ");
-      mpfr_fdump (stderr, c);
+      mpfr_fdump (stderr, tc);
       fprintf (stderr, "OldMul: ");
       mpfr_fdump (stderr, ta);
       fprintf (stderr, "NewMul: ");
@@ -1056,7 +1065,8 @@ mpfr_mul (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
           mpn_lshift (tmp, tmp, tn, 1); /* tn <= k, so no stack corruption */
       }
 
-  ax2 = ax + (mpfr_exp_t) (b1 - 1);
+  /* b1 is 0 or 1 (most significant bit from the raw product) */
+  ax2 = ax + ((int) b1 - 1);
   MPFR_RNDRAW (inexact, a, tmp, bq + cq, rnd_mode, sign, ax2++);
   MPFR_TMP_FREE (marker);
   MPFR_EXP (a) = ax2; /* Can't use MPFR_SET_EXP: Expo may be out of range */

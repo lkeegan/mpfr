@@ -18,6 +18,10 @@ you can modify mpfr.h to define this macro at the beginning). But
 this will currently not be usable since mini-gmp.h does not declare
 gmp_randstate_t (you need to modify either mini-gmp.h or mpfr.h).
 
+Remark: the random functions provided by MPFR configured with mini-gmp
+use the lrand48() function, thus one should avoid this configuration if one
+needs some really serious random functions.
+
 This was tested with MPFR svn r13226 and GMP 6.1.2 on x86_64 GNU/Linux:
 ============================================================================
 Testsuite summary for MPFR 4.1.0-dev
@@ -30,3 +34,23 @@ Testsuite summary for MPFR 4.1.0-dev
 # XPASS: 0
 # ERROR: 0
 ============================================================================
+
+How to use mini-gmp with reduced limb size
+==========================================
+
+Following the idea of Micro-GMP [1], the GMP developers have adapted mini-gmp
+so that it can be used with a reduced limb size.
+
+For that, you have to take a GMP snapshot from December 09, 2018, or later
+(see https://gmplib.org/download/snapshot/).
+
+Then edit the first line of mini-gmp.h to have for example:
+
+  #include <stdint.h>
+  typedef uint8_t mp_limb_t;
+  #define GMP_LIMB_BITS 8
+  #define __GMP_SHORT_LIMB
+
+Then you can configure MPFR with that version of mini-gmp, as indicated above.
+
+[1] https://members.loria.fr/PZimmermann/talks/microgmp.pdf
