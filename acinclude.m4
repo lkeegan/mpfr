@@ -1,6 +1,6 @@
 dnl  MPFR specific autoconf macros
 
-dnl  Copyright 2000, 2002-2018 Free Software Foundation, Inc.
+dnl  Copyright 2000, 2002-2019 Free Software Foundation, Inc.
 dnl  Contributed by the AriC and Caramba projects, INRIA.
 dnl
 dnl  This file is part of the GNU MPFR Library.
@@ -17,7 +17,7 @@ dnl  License for more details.
 dnl
 dnl  You should have received a copy of the GNU Lesser General Public License
 dnl  along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
-dnl  http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+dnl  https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 dnl  51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 
 dnl  autoconf 2.60 is necessary because of the use of AC_PROG_SED.

@@ -1,6 +1,6 @@
 /* Test file for mpfr_set_str.
 
-Copyright 2004-2018 Free Software Foundation, Inc.
+Copyright 2004-2019 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -17,7 +17,7 @@ License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
 along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
-http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include "mpfr-test.h"
@@ -910,6 +910,11 @@ check_overflow (void)
               "  https://gcc.gnu.org/bugzilla/show_bug.cgi?id=87276 "
               "(about this test)\nWorkaround: disable code hoisting "
               "with -fno-code-hoisting in CFLAGS.\n");
+      /* Note: In Debian, this error is obtained with gcc-snapshot from
+         20180908-1 to 20181127-1. With gcc-snapshot from 20181209-1 to
+         20190102-1 (at least), the MPFR build no longer seems affected
+         in general, but using --with-gmp-build=... together with
+         --enable-assert still triggers this failure. */
 #endif
       exit (1);
     }
