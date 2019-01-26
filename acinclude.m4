@@ -79,7 +79,7 @@ dnl in glibc's bits/pthreadtypes.h (via <pthread.h>), not sure why...
       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <pthread.h>
 ]], [[
-pthread_rwlock_t lock;
+pthread_rwlock_t lock; (void) lock;
 ]])],
         [AC_MSG_RESULT([yes])
          mpfr_pthread_ok=yes],
@@ -1055,11 +1055,13 @@ else
 /* "before" is 16 bytes to ensure there's no padding between it and "x".
    We're not expecting any "long double" bigger than 16 bytes or with
    alignment requirements stricter than 16 bytes.  */
-struct {
+typedef struct {
   char         before[16];
   long double  x;
   char         after[8];
-} foo = {
+} foo_t;
+
+foo_t foo = {
   { '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
     '\001', '\043', '\105', '\147', '\211', '\253', '\315', '\357' },
   -123456789.0,
