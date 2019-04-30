@@ -127,47 +127,30 @@ static const char num_to_text[] = "0123456789abcdef";
 */
 #define READ_INT(ap, format, var)                                       \
   do {                                                                  \
-    int _loop = 1;                                                      \
     MPFR_ASSERTD ((var) == 0);                                          \
-    while (_loop && *(format))                                          \
+    if (*(format) == '*')                                               \
       {                                                                 \
-        int _i;                                                         \
-        switch (*(format))                                              \
+        (var) = va_arg ((ap), int);                                     \
+        ++(format);                                                     \
+      }                                                                 \
+    else                                                                \
+      for ( ; *(format) >= '0' && *(format) <= '9' ; ++(format))        \
+        if (!(overflow))                                                \
           {                                                             \
-          case '0':                                                     \
-          case '1':                                                     \
-          case '2':                                                     \
-          case '3':                                                     \
-          case '4':                                                     \
-          case '5':                                                     \
-          case '6':                                                     \
-          case '7':                                                     \
-          case '8':                                                     \
-          case '9':                                                     \
-            if (!(overflow))                                            \
+            if ((var) > MPFR_INTMAX_MAX / 10)                           \
+              (overflow) = 1;                                           \
+            else                                                        \
               {                                                         \
-                if ((var) > MPFR_INTMAX_MAX / 10)                       \
+                int _i;                                                 \
+                (var) *= 10;                                            \
+                _i = *(format) - '0';                                   \
+                MPFR_ASSERTN (_i >= 0 && _i <= 9);                      \
+                if ((var) > MPFR_INTMAX_MAX - _i)                       \
                   (overflow) = 1;                                       \
                 else                                                    \
-                  {                                                     \
-                    (var) *= 10;                                        \
-                    _i = *(format) - '0';                               \
-                    MPFR_ASSERTN (_i >= 0 && _i <= 9);                  \
-                    if ((var) > MPFR_INTMAX_MAX - _i)                   \
-                      (overflow) = 1;                                   \
-                    else                                                \
-                      (var) += _i;                                      \
-                  }                                                     \
+                  (var) += _i;                                          \
               }                                                         \
-            ++(format);                                                 \
-            break;                                                      \
-          case '*':                                                     \
-            (var) = va_arg ((ap), int);                                 \
-            ++(format);                                                 \
-          default:                                                      \
-            _loop = 0;                                                  \
           }                                                             \
-      }                                                                 \
   } while (0)
 
 /* arg_t contains all the types described by the 'type' field of the
@@ -279,7 +262,7 @@ specinfo_is_valid (struct printf_spec spec)
 
 /* Note: additional flags should be added to the MPFR_PREC_ARG code
    for gmp_asprintf (when supported). */
-static const char *
+MPFR_RETURNS_NONNULL static const char *
 parse_flags (const char *format, struct printf_spec *specinfo)
 {
   while (*format)
@@ -318,7 +301,7 @@ parse_flags (const char *format, struct printf_spec *specinfo)
   return format;
 }
 
-static const char *
+MPFR_RETURNS_NONNULL static const char *
 parse_arg_type (const char *format, struct printf_spec *specinfo)
 {
   switch (*format)
@@ -458,6 +441,8 @@ typedef wint_t mpfr_va_wint;
 #define CASE_LONG_LONG_ARG(specinfo, ap)
 #endif
 
+/* Note: (specinfo).width may be incorrect in case of overflow,
+   but it is not used by CONSUME_VA_ARG. */
 #define CONSUME_VA_ARG(specinfo, ap)            \
   do {                                          \
     switch ((specinfo).arg_type)                \
@@ -974,7 +959,7 @@ floor_log10 (mpfr_srcptr x)
 
 #define NDIGITS 8
 
-static char *
+MPFR_RETURNS_NONNULL static char *
 mpfr_get_str_wrapper (mpfr_exp_t *exp, int base, size_t n, const mpfr_t op,
                       const struct printf_spec spec)
 {
@@ -2121,12 +2106,19 @@ mpfr_vasnprintf_aux (char **ptr, char *Buf, size_t size, const char *fmt,
       if (spec.width < 0)  /* integer read via '*', no overflow */
         {
           spec.left = 1;
-          if (MPFR_UNLIKELY (spec.width < - MPFR_INTMAX_MAX))
+          /* Since the type of the integer is int, spec.width >= INT_MIN,
+             so that an overflow is possible here only if mpfr_intmax_t
+             has the same size of int. The INT_MIN < - MPFR_INTMAX_MAX
+             test allows the compiler to optimize when it is false. */
+          if (MPFR_UNLIKELY (INT_MIN < - MPFR_INTMAX_MAX &&
+                             spec.width < - MPFR_INTMAX_MAX))
             overflow = 1;
           else
             spec.width = - spec.width;
         }
-      MPFR_ASSERTD (spec.width >= 0);
+      /* Note: We will make sure that spec.width is not used in case of
+         overflow. */
+      MPFR_ASSERTD (overflow || spec.width >= 0);
 
       if (*fmt == '.')
         {
@@ -2175,6 +2167,7 @@ mpfr_vasnprintf_aux (char **ptr, char *Buf, size_t size, const char *fmt,
               break;
             case 'N':
               ++fmt;
+              MPFR_FALLTHROUGH;
             default:
               spec.rnd_mode = MPFR_RNDN;
             }

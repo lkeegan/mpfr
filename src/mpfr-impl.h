@@ -138,26 +138,6 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 
 /******************************************************
- *****************  (U)INTMAX_MAX  ********************
- ******************************************************/
-
-/* Let's try to fix UINTMAX_MAX and INTMAX_MAX if these macros don't work
-   (e.g. with gcc -ansi -pedantic-errors in 32-bit mode under GNU/Linux),
-   see <https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=582698>. */
-#ifdef _MPFR_H_HAVE_INTMAX_T
-# ifdef MPFR_HAVE_INTMAX_MAX
-#  define MPFR_UINTMAX_MAX UINTMAX_MAX
-#  define MPFR_INTMAX_MAX INTMAX_MAX
-#  define MPFR_INTMAX_MIN INTMAX_MIN
-# else
-#  define MPFR_UINTMAX_MAX ((uintmax_t) -1)
-#  define MPFR_INTMAX_MAX ((intmax_t) (MPFR_UINTMAX_MAX >> 1))
-#  define MPFR_INTMAX_MIN (INT_MIN + INT_MAX - MPFR_INTMAX_MAX)
-# endif
-#endif
-
-
-/******************************************************
  *************  Attribute definitions  ****************
  ******************************************************/
 
@@ -215,6 +195,15 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define MPFR_MAYBE_UNUSED __attribute__ ((unused))
 #else
 #define MPFR_MAYBE_UNUSED
+#endif
+
+/* This MPFR_FALLTHROUGH macro allows one to make fallthrough in switch case
+   explicit. Use this macro at the end of a switch case if it falls through,
+   in order to avoid a -Wimplicit-fallthrough warning. */
+#if __MPFR_GNUC(7,0)
+#define MPFR_FALLTHROUGH __attribute__ ((fallthrough))
+#else
+#define MPFR_FALLTHROUGH
 #endif
 
 

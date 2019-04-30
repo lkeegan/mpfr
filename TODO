@@ -627,7 +627,7 @@ Table of contents:
   constants) because we do not have the control of memory allocation for
   mpz_init.
 
-- use GCC's nonnull and returns_nonnull attributes where applicable.
+- use GCC's nonnull attribute (available since GCC 4.0) where applicable.
 
 
 ##############################################################################
