@@ -3,8 +3,6 @@
 #
 # Run this from the build.vc11 directory
 
-from __future__ import print_function
-
 import sys, os, shutil, string, copy, subprocess
 
 test = 'lib'
