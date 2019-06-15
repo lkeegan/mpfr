@@ -120,8 +120,7 @@ mpfr_sub1sp1 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
 
   if (bx == cx)
     {
-      a0 = bp[0] - cp[0];
-      if (a0 == 0) /* result is zero */
+      if (MPFR_UNLIKELY(bp[0] == cp[0])) /* result is zero */
         {
           if (rnd_mode == MPFR_RNDD)
             MPFR_SET_NEG(a);
@@ -130,13 +129,16 @@ mpfr_sub1sp1 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
           MPFR_SET_ZERO(a);
           MPFR_RET (0);
         }
-      else if (a0 > bp[0]) /* borrow: |c| > |b| */
+      else if (cp[0] > bp[0]) /* borrow: |c| > |b| */
         {
+          a0 = cp[0] - bp[0];
           MPFR_SET_OPPOSITE_SIGN (a, b);
-          a0 = -a0;
         }
       else /* bp[0] > cp[0] */
-        MPFR_SET_SAME_SIGN (a, b);
+        {
+          a0 = bp[0] - cp[0];
+          MPFR_SET_SAME_SIGN (a, b);
+        }
 
       /* now a0 != 0 */
       MPFR_ASSERTD(a0 != 0);

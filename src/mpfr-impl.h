@@ -57,6 +57,7 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include <stdlib.h>
 #include <limits.h>
+#include <float.h>  /* for FLT_RADIX, etc., tested below */
 
 
 /******************************************************
@@ -603,6 +604,11 @@ __MPFR_DECLSPEC extern const mpfr_t __gmpfr_const_log2_RNDU;
 #  undef _MPFR_IEEE_FLOATS
 # endif
 # define _MPFR_IEEE_FLOATS 0
+# undef HAVE_LDOUBLE_IS_DOUBLE
+# undef HAVE_LDOUBLE_IEEE_EXT_LITTLE
+# undef HAVE_LDOUBLE_IEEE_EXT_BIG
+# undef HAVE_LDOUBLE_IEEE_QUAD_BIG
+# undef HAVE_LDOUBLE_IEEE_QUAD_LITTLE
 #endif
 
 #ifndef IEEE_DBL_MANT_DIG
@@ -773,13 +779,12 @@ static double double_zero = 0.0;
     if ((x) != __x)                                     \
       { action; }                                       \
   } while (0)
-# define WANT_LONGDOUBLE_VOLATILE 1
-#endif
 
-/* If we don't have a proper "volatile" then volatile is #defined to empty,
-   in this case call through an external function to stop the compiler
-   optimizing anything. */
-#ifdef WANT_LONGDOUBLE_VOLATILE
+/* Some compilers do not have a proper "volatile" and #define volatile
+   to empty (to avoid a build failure with programs using "volatile"),
+   i.e. "volatile" is just ignored and will not prevent optimizations
+   that could potentially break the IEEE rules. In this case, call an
+   external function, hoping that the compiler will not optimize. */
 # ifdef volatile
 __MPFR_DECLSPEC long double
   __gmpfr_longdouble_volatile (long double) MPFR_CONST_ATTR;
