@@ -322,6 +322,9 @@ To make a release (for the MPFR team):
        * a patched autoconf:
      https://lists.gnu.org/archive/html/autoconf-patches/2014-01/msg00003.html
 
+     Check whether some functions could be declared as pure, const, etc.
+     with GCC, using -Wsuggest-attribute=... options.
+
      Check that there are no abnormal regressions in the timings (both for
      100, 1000, 10000 digits, https://www.mpfr.org/mpfr-current/timings.html,
      and for small precision, using the mbench program, see mpfr/mbench).
@@ -364,9 +367,9 @@ To make a release (for the MPFR team):
   9) * For the release itself (not the release candidates):
      Create a web page for the MPFR release and add the documentation
      (for mpfr.html, use "makeinfo --html --no-split mpfr.texi" from
-     the doc directory). WARNING! Make sure that the .ps file has an
-     a4 papersize; there's a bug in texinfo(?):
-       https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=874632
+     the doc directory). Make sure that both the .dvi and .ps files
+     have an a4 papersize (see technical information later about the
+     MPFR manual).
      Upload the tarballs and the signatures to the MPFR web server
      (via a svn working copy) and to InriaForge.
      Prepare the files for the GNU FTP site with the gnu-sigdir script
@@ -625,7 +628,7 @@ Type punning, strict aliasing, and optimization:
   https://blog.regehr.org/archives/959
 
 To allow MPFR to be built on some buggy compiler, try to follow
-theses rules:
+these rules:
 
    =====================================================================
 
@@ -881,7 +884,7 @@ to the new timeout value in seconds (or 0 to disable the timeout).
 ===========================================================================
 
 This feature is available only for gcc >= 3.0 and glibc >= 2.0.
-To achieve this, theses macros have been added:
+To achieve this, these macros have been added:
 
 +++ MPFR_LOG_VAR(y)
  Log a MPFR variable if requested (INTERNAL).
@@ -935,7 +938,7 @@ its goals too.
 ZivLoop Controller
 
 Ziv strategy is quite used in MPFR. In order to factorize the code, you
-could use theses macros:
+could use these macros:
 
 +++ MPFR_ZIV_DECL(_x)
  Declare a ZivLoop controller
@@ -1102,10 +1105,28 @@ MPFR manual (mpfr.texi):
     info file. So, do not use additional space for .texi indentation.
     This also means that you need to care about the typography. Please
     read Section "Inserting Space" in the Texinfo manual.
-  * Follow the English typography, not the French one!
-  * Beware of the following texinfo bug:
-      https://savannah.gnu.org/bugs/?33329
-      https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=583558
+  * Follow the English typography (no space before punctuation marks,
+    double space after a period, etc.), not the French one.
+
+The MPFR manual in DVI/PS/PDF formats should have an a4 papersize, as
+declared in mpfr.texi (@afourpaper command). The DVI file format (.dvi)
+traditionally does not contain papersize information, which has two
+consequences:
+  * When viewing a .dvi file, one gets the papersize from global settings,
+    which may differ from the papersize declared in the mpfr.texi file.
+    In particular, a4 text on letter paper can be truncated, depending on
+    the margins.
+  * Since the .ps file is built from the .dvi file and makeinfo does not
+    provide the papersize information to the dvips command, the .ps file
+    can get a wrong papersize, depending on the settings on the machine
+    where this file is generated. Papersize information should be checked
+    before distributing the .ps file.
+Nowadays, .dvi files can contain papersize information via "specials",
+and texinfo.tex has been updated to include such information. However,
+the interpretation of such data is based on a common agreement between
+drivers rather on a standard. In short, the papersize issues should no
+longer appear, but this should be checked manually. The bug report:
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=874632
 
 ===========================================================================
 

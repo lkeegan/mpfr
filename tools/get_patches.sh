@@ -1,5 +1,14 @@
 #!/bin/sh
 
+set -e
+
+if [ $# -ne 1 ]; then
+  echo "Usage: $0 <PATCHES_file>" >&2
+  exit 1
+fi
+
+patches=`cat "$1"`
+
 cat <<EOF
 /* mpfr_get_patches -- Patches that have been applied
 
@@ -30,5 +39,6 @@ mpfr_get_patches (void)
 {
 EOF
 
-echo '  return "'`cat PATCHES`'";'
+# $patches is written as a list of words separated by a space character.
+echo '  return "'$patches'";'
 echo '}'

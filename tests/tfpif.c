@@ -27,11 +27,15 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define FILE_NAME_R2 "tfpif_r2.dat" /* fixed file name (read only) with a
                                        precision > MPFR_PREC_MAX */
 
+/* Note: The perror below must be called just after the failing function,
+   thus before fprintf (otherwise one could get an error associated with
+   fprintf). */
+
 static void
 doit (int argc, char *argv[], mpfr_prec_t p1, mpfr_prec_t p2)
 {
-  char *filenameCompressed = FILE_NAME_RW;
-  char *data = FILE_NAME_R;
+  const char *filenameCompressed = FILE_NAME_RW;
+  const char *data = FILE_NAME_R;
   int status;
   FILE *fh;
   mpfr_t x[9];
@@ -58,7 +62,9 @@ doit (int argc, char *argv[], mpfr_prec_t p1, mpfr_prec_t p2)
   fh = fopen (filenameCompressed, "w");
   if (fh == NULL)
     {
-      printf ("Failed to open for writing %s\n", filenameCompressed);
+      perror ("doit");
+      fprintf (stderr, "Failed to open \"%s\" for writing\n",
+               filenameCompressed);
       exit (1);
     }
 
@@ -80,13 +86,20 @@ doit (int argc, char *argv[], mpfr_prec_t p1, mpfr_prec_t p2)
           MPFR_CHANGE_SIGN (x[i]);
       }
 
-  fclose (fh);
+  if (fclose (fh) != 0)
+    {
+      perror ("doit");
+      fprintf (stderr, "Failed to close \"%s\"\n", filenameCompressed);
+      exit (1);
+    }
 
   /* we then read back FILE_NAME_RW and check we get the same numbers x[i] */
   fh = fopen (filenameCompressed, "r");
   if (fh == NULL)
     {
-      printf ("Failed to open for reading %s\n", filenameCompressed);
+      perror ("doit");
+      fprintf (stderr, "Failed to open \"%s\" for reading\n",
+               filenameCompressed);
       exit (1);
     }
 
@@ -141,7 +154,8 @@ doit (int argc, char *argv[], mpfr_prec_t p1, mpfr_prec_t p2)
   fh = src_fopen (data, "r");
   if (fh == NULL)
     {
-      printf ("Failed to open for reading %s in srcdir\n", data);
+      perror ("doit");
+      fprintf (stderr, "Failed to open \"%s\" in srcdir for reading\n", data);
       exit (1);
     }
 
@@ -198,7 +212,7 @@ doit (int argc, char *argv[], mpfr_prec_t p1, mpfr_prec_t p2)
 static void
 check_bad (void)
 {
-  char *filenameCompressed = FILE_NAME_RW;
+  const char *filenameCompressed = FILE_NAME_RW;
   int status;
   FILE *fh;
   mpfr_t x;
@@ -219,20 +233,21 @@ check_bad (void)
   if (status == 0)
     {
       printf ("mpfr_fpif_export did not fail with a NULL file\n");
-      exit(1);
+      exit (1);
     }
   status = mpfr_fpif_import (x, NULL);
   if (status == 0)
     {
       printf ("mpfr_fpif_import did not fail with a NULL file\n");
-      exit(1);
+      exit (1);
     }
 
-  fh = fopen (filenameCompressed, "w+");
+  fh = fopen (filenameCompressed, "w");
   if (fh == NULL)
     {
-      printf ("Failed to open for reading/writing %s, exiting...\n",
-            filenameCompressed);
+      perror ("check_bad");
+      fprintf (stderr, "Failed to open \"%s\" for writing\n",
+              filenameCompressed);
       fclose (fh);
       remove (filenameCompressed);
       exit (1);
@@ -243,7 +258,7 @@ check_bad (void)
       printf ("mpfr_fpif_import did not fail on a empty file\n");
       fclose (fh);
       remove (filenameCompressed);
-      exit(1);
+      exit (1);
     }
 
   for (i = 0; i < BAD; i++)
@@ -266,7 +281,7 @@ check_bad (void)
           printf ("Write error on the test file\n");
           fclose (fh);
           remove (filenameCompressed);
-          exit(1);
+          exit (1);
         }
       rewind (fh);
       status = mpfr_fpif_import (x, fh);
@@ -307,20 +322,27 @@ check_bad (void)
             }
           fclose (fh);
           remove (filenameCompressed);
-          exit(1);
+          exit (1);
         }
       if (i == 9)
         mpfr_set_emax (emax);
     }
 
-  fclose (fh);
+  if (fclose (fh) != 0)
+    {
+      perror ("check_bad");
+      fprintf (stderr, "Failed to close \"%s\"\n", filenameCompressed);
+      exit (1);
+    }
+
   mpfr_clear (x);
 
   fh = fopen (filenameCompressed, "r");
   if (fh == NULL)
     {
-      printf ("Failed to open for reading %s, exiting...\n",
-              filenameCompressed);
+      perror ("check_bad");
+      fprintf (stderr, "Failed to open \"%s\" for reading\n",
+               filenameCompressed);
       exit (1);
     }
 
@@ -329,7 +351,7 @@ check_bad (void)
   if (status == 0)
     {
       printf ("mpfr_fpif_export did not fail on a read only stream\n");
-      exit(1);
+      exit (1);
     }
   fclose (fh);
   remove (filenameCompressed);
@@ -340,7 +362,7 @@ check_bad (void)
 static void
 extra (void)
 {
-  char *data = FILE_NAME_R2;
+  const char *data = FILE_NAME_R2;
   mpfr_t x;
   FILE *fp;
   int ret;
@@ -350,7 +372,8 @@ extra (void)
   fp = src_fopen (data, "r");
   if (fp == NULL)
     {
-      printf ("Failed to open for reading %s in srcdir, exiting...\n", data);
+      perror ("extra");
+      fprintf (stderr, "Failed to open \"%s\" in srcdir for reading\n", data);
       exit (1);
     }
   ret = mpfr_fpif_import (x, fp);

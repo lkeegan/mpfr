@@ -163,9 +163,9 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #endif
 
 #if __MPFR_GNUC(3,0) || __MPFR_ICC(8,1,0)
-# define MPFR_CONST_ATTR    __attribute__ ((const))
+# define MPFR_CONST_FUNCTION_ATTR   __attribute__ ((const))
 #else
-# define MPFR_CONST_ATTR
+# define MPFR_CONST_FUNCTION_ATTR
 #endif
 
 #if __MPFR_GNUC(3,0) || __MPFR_ICC(8,1,0)
@@ -787,7 +787,7 @@ static double double_zero = 0.0;
    external function, hoping that the compiler will not optimize. */
 # ifdef volatile
 __MPFR_DECLSPEC long double
-  __gmpfr_longdouble_volatile (long double) MPFR_CONST_ATTR;
+  __gmpfr_longdouble_volatile (long double) MPFR_CONST_FUNCTION_ATTR;
 #  define LONGDOUBLE_VOLATILE(x)  (__gmpfr_longdouble_volatile (x))
 #  define WANT_GMPFR_LONGDOUBLE_VOLATILE 1
 # else
@@ -1357,7 +1357,7 @@ typedef union { mp_size_t s; mp_limb_t l; } mpfr_size_limb_t;
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define ABS(x) (((x)>0) ? (x) : -(x))
 
-/* Theses macros help the compiler to determine if a test is
+/* These macros help the compiler to determine if a test is
    likely or unlikely. The !! is necessary in case x is larger
    than a long. */
 #if defined MPFR_DEBUG_PREDICTION && __MPFR_GNUC(3,0)
@@ -2150,7 +2150,21 @@ __MPFR_DECLSPEC extern mpfr_prec_t mpfr_log_prec;
 struct mpfr_group_t {
   size_t     alloc;
   mp_limb_t *mant;
+#if MPFR_GROUP_STATIC_SIZE != 0
   mp_limb_t  tab[MPFR_GROUP_STATIC_SIZE];
+#else
+  /* In order to detect memory leaks when testing, MPFR_GROUP_STATIC_SIZE
+     can be set to 0, in which case tab will not be used. ISO C does not
+     support zero-length arrays[*], thus let's use a flexible array member
+     (which will be equivalent here). Note: this is new in C99, but this
+     is just used for testing.
+     [*] Zero-length arrays are a GNU extension:
+           https://gcc.gnu.org/onlinedocs/gcc/Zero-Length.html
+         and as such an extension is forbidden in ISO C, it triggers an
+         error with -Werror=pedantic.
+  */
+  mp_limb_t  tab[];
+#endif
 };
 
 #define MPFR_GROUP_DECL(g) struct mpfr_group_t g

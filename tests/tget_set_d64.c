@@ -480,16 +480,27 @@ powers_of_10 (void)
 }
 
 static void
-coverage (void)
+noncanonical (void)
 {
   /* The code below assumes BID. */
 #ifndef DPD_FORMAT
+  /* The volatile below avoids _Decimal64 constant propagation, which is
+     buggy for non-canonical encoding in various GCC versions on the x86 and
+     x86_64 targets: failure with gcc (Debian 20190719-1) 10.0.0 20190718
+     (experimental) [trunk revision 273586]; the MPFR test was not failing
+     with previous GCC versions, but GCC versions 5 to 9 are also affected
+     on the simple testcase at:
+     https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91226
+  */
+  volatile _Decimal64 d = 9999999999999999.0dd;
   union mpfr_ieee_double_extract x;
   union ieee_double_decimal64 y;
 
+  MPFR_ASSERTN (sizeof (x) == 8);
+  MPFR_ASSERTN (sizeof (y) == 8);
   /* test for non-canonical encoding */
-  y.d64 = 9999999999999999.0dd;
-  x.d = y.d;
+  y.d64 = d;
+  memcpy (&x, &y, 8);
   /* if BID, we have sig=0, exp=1735, manh=231154, manl=1874919423 */
   if (x.s.sig == 0 && x.s.exp == 1735 && x.s.manh == 231154 &&
       x.s.manl == 1874919423)
@@ -497,11 +508,22 @@ coverage (void)
       mpfr_t z;
       mpfr_init2 (z, 54); /* 54 bits ensure z is exact, since 10^16 < 2^54 */
       x.s.manl += 1; /* then the significand equals 10^16 */
-      y.d = x.d;
+      memcpy (&y, &x, 8);
       mpfr_set_decimal64 (z, y.d64, MPFR_RNDN);
-      MPFR_ASSERTN(mpfr_zero_p (z) && mpfr_signbit (z) == 0);
+      if (MPFR_NOTZERO (z) || MPFR_IS_NEG (z))
+        {
+          int i;
+          printf ("Error in noncanonical on");
+          for (i = 0; i < 8; i++)
+            printf (" %02X", ((unsigned char *)&y)[i]);
+          printf ("\nExpected +0, got:\n");
+          mpfr_dump (z);
+          exit (1);
+        }
       mpfr_clear (z);
     }
+  else
+    printf ("Warning! Unexpected value of x in noncanonical.\n");
 #endif
 }
 
@@ -558,7 +580,7 @@ main (int argc, char *argv[])
 #if !defined(MPFR_ERRDIVZERO)
   check_random_bytes ();
 #endif
-  coverage ();
+  noncanonical ();
   check_misc ();
   check_random ();
   check_native ();

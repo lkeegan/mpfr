@@ -9,6 +9,12 @@
 # PARTICULAR PURPOSE.
 
 
+# Since we do not require GNU "make", let's select the POSIX behavior to
+# uniformize the behavior a bit more with various "make" implementations
+# and ease maintenance. This target should be removed only if one day,
+# we need to require GNU "make".
+.POSIX:
+
 AUTOMAKE_OPTIONS = gnu
 
 # ACLOCAL_AMFLAGS will be fully deprecated in Automake 2.0;
@@ -36,7 +42,9 @@ EXTRA_DIST = PATCHES VERSION doc/README.dev doc/check-typography doc/mini-gmp \
 bench:
 	cd tools/bench && $(MAKE) $(AM_MAKEFLAGS) bench
 
-# Various checks for "make dist".
+# Various checks for "make dist" / "make distcheck".
+# Warning! With "make distcheck", neither the top-level directory nor
+# the tools directory is writable.
 # * Check consistency concerning -version-info. Moreover if the VERSION
 #   file doesn't end with "-dev", check that the -version-info value is
 #   up-to-date. Note: this is a heuristic, to detect some mistakes.
@@ -50,7 +58,7 @@ dist-hook:
 	cd $(srcdir) && tools/ck-copyright-notice
 	cd $(srcdir) && tools/ck-news
 	cd $(srcdir) && tools/ck-clz_tab
-	cd $(srcdir) && tools/ck-mparam
+	$(srcdir)/tools/ck-mparam
 	cd $(srcdir)/doc && ./check-typography
 
 # Check that MPFR does not use GMP internal symbols. Of course, do not run
