@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 4.1.0-dev
-@set UPDATED-MONTH August 2019
+@set UPDATED-MONTH September 2019
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -399,7 +399,7 @@ by typing:
 
 In case of failure, you may want to check whether the problem is already
 known. If not, please report this failure to the MPFR mailing-list
-@samp{mpfr@@inria.fr}. For details, @xref{Reporting Bugs}.
+@samp{mpfr@@inria.fr}. For details, see @ref{Reporting Bugs}.
 
 @item
 @samp{make install}
@@ -691,10 +691,10 @@ is equal to 1.
 Warning! MPFR needs to increase the precision internally, in order to
 provide accurate results (and in particular, correct rounding). Do not
 attempt to set the precision to any value near @code{MPFR_PREC_MAX},
-otherwise MPFR will abort due to an assertion failure. Moreover, you
-may reach some memory limit on your platform, in which case the program
-may abort, crash or have undefined behavior (depending on your C
-implementation).
+otherwise MPFR will abort due to an assertion failure. However, in practice,
+the real limitation will probably be the available memory on your platform,
+and in case of lack of memory, the program may abort, crash or have
+undefined behavior (depending on your C implementation).
 
 @cindex Exponent
 @tindex @code{mpfr_exp_t}
@@ -904,7 +904,7 @@ such a case is always explicitly specified in @ref{MPFR Interface}.
 @c to change the libtool interface number (this would have more drawbacks
 @c that advantages in practice), like for any bug fix.
 Example: @code{mpfr_hypot} on (NaN,0) gives NaN, but @code{mpfr_hypot}
-on (NaN,+Inf) gives +Inf (as specified in @ref{Special Functions}),
+on (NaN,+Inf) gives +Inf (as specified in @ref{Transcendental Functions}),
 since for any finite or infinite input @var{x}, @code{mpfr_hypot} on
 (@var{x},+Inf) gives +Inf.
 
@@ -1100,7 +1100,6 @@ Here are a few hints to get the best efficiency out of MPFR:
 @comment  node-name,  next,  previous,  up
 @chapter MPFR Interface
 @cindex Floating-point functions
-@cindex Float functions
 
 The floating-point functions expect arguments of type @code{mpfr_t}.
 
@@ -1141,15 +1140,16 @@ MPFR code (libc functions, memory allocator, etc.) may do so.
 * Assignment Functions::
 * Combined Initialization and Assignment Functions::
 * Conversion Functions::
-* Basic Arithmetic Functions::
+* Arithmetic Functions::
 * Comparison Functions::
-* Special Functions::
+* Transcendental Functions::
 * Input and Output Functions::
 * Formatted Output Functions::
 * Integer and Remainder Related Functions::
 * Rounding-Related Functions::
 * Miscellaneous Functions::
 * Exception Related Functions::
+* Memory Handling Functions::
 * Compatibility with MPF::
 * Custom Interface::
 * Internals::
@@ -1544,7 +1544,7 @@ rounded in the direction @var{rnd}.
 See @code{mpfr_set_str}.
 @end deftypefun
 
-@node Conversion Functions, Basic Arithmetic Functions, Combined Initialization and Assignment Functions, MPFR Interface
+@node Conversion Functions, Arithmetic Functions, Combined Initialization and Assignment Functions, MPFR Interface
 @comment  node-name,  next,  previous,  up
 @cindex Conversion functions
 @section Conversion Functions
@@ -1784,12 +1784,10 @@ As a consequence, for @code{MPFR_RNDF}, @code{mpfr_fits_ulong_p} will return
 non-zero for a non-negative number less or equal to @code{ULONG_MAX}.
 @end deftypefun
 
-@node Basic Arithmetic Functions, Comparison Functions, Conversion Functions, MPFR Interface
+@node Arithmetic Functions, Comparison Functions, Conversion Functions, MPFR Interface
 @comment  node-name,  next,  previous,  up
-@cindex Basic arithmetic functions
-@cindex Float arithmetic functions
 @cindex Arithmetic functions
-@section Basic Arithmetic Functions
+@section Arithmetic Functions
 
 @deftypefun int mpfr_add (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_add_ui (mpfr_t @var{rop}, mpfr_t @var{op1}, unsigned long int @var{op2}, mpfr_rnd_t @var{rnd})
@@ -1907,38 +1905,6 @@ from its rootn function. It is marked as deprecated and will be removed in
 a future release.
 @end deftypefun
 
-@deftypefun int mpfr_pow (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_pow_ui (mpfr_t @var{rop}, mpfr_t @var{op1}, unsigned long int @var{op2}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_pow_si (mpfr_t @var{rop}, mpfr_t @var{op1}, long int @var{op2}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_pow_z (mpfr_t @var{rop}, mpfr_t @var{op1}, mpz_t @var{op2}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_ui_pow_ui (mpfr_t @var{rop}, unsigned long int @var{op1}, unsigned long int @var{op2}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_ui_pow (mpfr_t @var{rop}, unsigned long int @var{op1}, mpfr_t @var{op2}, mpfr_rnd_t @var{rnd})
-Set @var{rop} to @m{@var{op1}^{op2}, @var{op1} raised to @var{op2}},
-rounded in the direction @var{rnd}.
-Special values are handled as described in the ISO C99 and IEEE@tie{}754-2008
-standards for the @code{pow} function:
-@itemize @bullet
-@item @code{pow(@pom{}0, @var{y})} returns plus or minus infinity for @var{y} a negative odd integer.
-@item @code{pow(@pom{}0, @var{y})} returns plus infinity for @var{y} negative and not an odd integer.
-@item @code{pow(@pom{}0, @var{y})} returns plus or minus zero for @var{y} a positive odd integer.
-@item @code{pow(@pom{}0, @var{y})} returns plus zero for @var{y} positive and not an odd integer.
-@item @code{pow(-1, @pom{}Inf)} returns 1.
-@item @code{pow(+1, @var{y})} returns 1 for any @var{y}, even a NaN@.
-@item @code{pow(@var{x}, @pom{}0)} returns 1 for any @var{x}, even a NaN@.
-@item @code{pow(@var{x}, @var{y})} returns NaN for finite negative @var{x} and finite non-integer @var{y}.
-@item @code{pow(@var{x}, -Inf)} returns plus infinity for @math{0 < @GMPabs{x} < 1}, and plus zero for @math{@GMPabs{x} > 1}.
-@item @code{pow(@var{x}, +Inf)} returns plus zero for @math{0 < @GMPabs{x} < 1}, and plus infinity for @math{@GMPabs{x} > 1}.
-@item @code{pow(-Inf, @var{y})} returns minus zero for @var{y} a negative odd integer.
-@item @code{pow(-Inf, @var{y})} returns plus zero for @var{y} negative and not an odd integer.
-@item @code{pow(-Inf, @var{y})} returns minus infinity for @var{y} a positive odd integer.
-@item @code{pow(-Inf, @var{y})} returns plus infinity for @var{y} positive and not an odd integer.
-@item @code{pow(+Inf, @var{y})} returns plus zero for @var{y} negative, and plus infinity for @var{y} positive.
-@end itemize
-Note: When 0 is of integer type, it is regarded as +0 by these functions.
-We do not use the usual limit rules in this case, as these rules are not
-used for @code{pow}.
-@end deftypefun
-
 @deftypefun int mpfr_neg (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_abs (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to @math{-@var{op}} and the absolute value of @var{op}
@@ -1977,9 +1943,80 @@ rounded in the direction @var{rnd}. Just decreases the exponent by @var{op2}
 when @var{rop} and @var{op1} are identical.
 @end deftypefun
 
-@node Comparison Functions, Special Functions, Basic Arithmetic Functions, MPFR Interface
+@deftypefun int mpfr_fac_ui (mpfr_t @var{rop}, unsigned long int  @var{op}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to the factorial of @var{op}, rounded in the direction @var{rnd}.
+@end deftypefun
+
+@deftypefun int mpfr_fma (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_t @var{op3}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_fms (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_t @var{op3}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to @math{(@var{op1} @GMPtimes{} @var{op2}) + @var{op3}}
+(resp.@: @math{(@var{op1} @GMPtimes{} @var{op2}) - @var{op3}})
+rounded in the direction @var{rnd}.  Concerning special values (signed zeros,
+infinities, NaN), these functions behave like a multiplication followed by a
+separate addition or subtraction.  That is, the fused operation matters only
+for rounding.
+@end deftypefun
+
+@deftypefun int mpfr_fmma (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_t @var{op3}, mpfr_t @var{op4}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_fmms (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_t @var{op3}, mpfr_t @var{op4}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to @math{(@var{op1} @GMPtimes{} @var{op2}) + (@var{op3} @GMPtimes{} @var{op4})}
+(resp.@: @math{(@var{op1} @GMPtimes{} @var{op2}) - (@var{op3} @GMPtimes{} @var{op4})})
+rounded in the direction @var{rnd}.
+In case the computation of @math{@var{op1} @GMPtimes{} @var{op2}} overflows or
+underflows (or that of @math{@var{op3} @GMPtimes{} @var{op4}}), the result
+@var{rop} is computed as if the two intermediate products were computed with
+rounding toward zero.
+@end deftypefun
+
+@deftypefun int mpfr_hypot (mpfr_t @var{rop}, mpfr_t @var{x}, mpfr_t @var{y}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to the Euclidean norm of @var{x} and @var{y},
+@ifnottex
+i.e., the square root of the sum of the squares of @var{x} and @var{y},
+@end ifnottex
+@tex
+i.e., $\sqrt{x^2+y^2}$,
+@end tex
+rounded in the direction @var{rnd}.
+Special values are handled as described in the ISO C99 (Section@tie{}F.9.4.3)
+and IEEE@tie{}754-2008 (Section@tie{}9.2.1) standards:
+If @var{x} or @var{y} is an infinity, then +Inf is returned in @var{rop},
+even if the other number is NaN@.
+@end deftypefun
+
+@deftypefun int mpfr_sum (mpfr_t @var{rop}, const mpfr_ptr @var{tab}[], unsigned long int @var{n}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to the sum of all elements of @var{tab}, whose size is @var{n},
+correctly rounded in the direction @var{rnd}. Warning: for efficiency reasons,
+@var{tab} is an array of pointers
+to @code{mpfr_t}, not an array of @code{mpfr_t}.
+If @var{n} = 0, then the result is +0, and if @var{n} = 1, then the function
+is equivalent to @code{mpfr_set}.
+For the special exact cases, the result is the same as the one obtained
+with a succession of additions (@code{mpfr_add}) in infinite precision.
+In particular, if the result is an exact zero and @math{@var{n} @ge{} 1}:
+@itemize @bullet
+@item if all the inputs have the same sign (i.e., all +0 or all @minus{}0),
+then the result has the same sign as the inputs;
+@item otherwise, either because all inputs are zeros with at least a +0 and
+a @minus{}0, or because some inputs are non-zero (but they globally cancel),
+the result is +0, except for the @code{MPFR_RNDD} rounding mode, where it is
+@minus{}0.
+@end itemize
+@end deftypefun
+
+@deftypefun int mpfr_dot (mpfr_t @var{rop}, const mpfr_ptr @var{a}[], const mpfr_ptr @var{b}[], unsigned long int @var{n}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to the dot product of elements of @var{a} by those of @var{b},
+whose common size is @var{n},
+correctly rounded in the direction @var{rnd}. Warning: for efficiency reasons,
+@var{a} and @var{b} are arrays of pointers to @code{mpfr_t}.
+This function is experimental, and does not yet handle intermediate overflows
+and underflows.
+@end deftypefun
+
+For the power functions (with an integer exponent or not), see @ref{mpfr_pow}
+in @ref{Transcendental Functions}.
+
+@node Comparison Functions, Transcendental Functions, Arithmetic Functions, MPFR Interface
 @comment  node-name,  next,  previous,  up
-@cindex Float comparisons functions
 @cindex Comparison functions
 @section Comparison Functions
 
@@ -2077,22 +2114,32 @@ In particular, @code{mpfr_total_order (x, x)} returns true,
 The sign bit of NaN also matters.
 @end deftypefun
 
-@node Special Functions, Input and Output Functions, Comparison Functions, MPFR Interface
-@cindex Special functions
-@section Special Functions
+@node Transcendental Functions, Input and Output Functions, Comparison Functions, MPFR Interface
+@cindex Transcendental functions
+@section Transcendental Functions
 
 All those functions, except explicitly stated (for example
 @code{mpfr_sin_cos}), return a @ref{ternary value}, i.e., zero for an
 exact return value, a positive value for a return value larger than the
 exact result, and a negative value otherwise.
 
-Important note: in some domains, computing special functions (even more
-with correct rounding) is expensive, even for small precision,
-for example the trigonometric and Bessel functions for large argument.
-For some functions, the memory usage might depend not only on the output
-precision: it is the case of the @code{mpfr_rootn_ui} function where the
-memory usage is also linear in the argument @var{k},
-and of the incomplete Gamma function (dependence on the precision of @var{op}).
+Important note: In some domains, computing transcendental functions
+(even more with correct rounding) is expensive, even in small precision,
+for example the trigonometric and Bessel functions with a large argument.
+For some functions, the algorithm complexity and memory usage does not
+depend only on the output precision: for instance, the memory usage of
+@code{mpfr_rootn_ui} is also linear in the argument @var{k}, and the
+memory usage of the incomplete Gamma function also depends on the
+precision of the input @var{op}. It is also theoretically possible that
+some functions on some particular inputs might be very hard to round
+(i.e. the Table Maker's Dilemma occurs in much larger precisions than
+normally expected from the context), meaning that the internal precision
+needs to be increased even more; but it is conjectured that the needed
+precision has a reasonable bound.
+@c Let's not give too many details, but by context, it is implied that
+@c the input precision is involved if the cases have been built so that
+@c they are hard to round, like in function bad_cases in the test suite
+@c (tests/tests.c).
 
 @deftypefun int mpfr_log (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_log_ui (mpfr_t @var{rop}, unsigned long @var{op}, mpfr_rnd_t @var{rnd})
@@ -2126,6 +2173,39 @@ rounded in the direction @var{rnd}.
 @deftypefun int mpfr_expm1 (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to @m{e^{op}-1,the exponential of @var{op} followed by a
 subtraction by one}, rounded in the direction @var{rnd}.
+@end deftypefun
+
+@anchor{mpfr_pow}
+@deftypefun int mpfr_pow (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_pow_ui (mpfr_t @var{rop}, mpfr_t @var{op1}, unsigned long int @var{op2}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_pow_si (mpfr_t @var{rop}, mpfr_t @var{op1}, long int @var{op2}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_pow_z (mpfr_t @var{rop}, mpfr_t @var{op1}, mpz_t @var{op2}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_ui_pow_ui (mpfr_t @var{rop}, unsigned long int @var{op1}, unsigned long int @var{op2}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_ui_pow (mpfr_t @var{rop}, unsigned long int @var{op1}, mpfr_t @var{op2}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to @m{@var{op1}^{op2}, @var{op1} raised to @var{op2}},
+rounded in the direction @var{rnd}.
+Special values are handled as described in the ISO C99 and IEEE@tie{}754-2008
+standards for the @code{pow} function:
+@itemize @bullet
+@item @code{pow(@pom{}0, @var{y})} returns plus or minus infinity for @var{y} a negative odd integer.
+@item @code{pow(@pom{}0, @var{y})} returns plus infinity for @var{y} negative and not an odd integer.
+@item @code{pow(@pom{}0, @var{y})} returns plus or minus zero for @var{y} a positive odd integer.
+@item @code{pow(@pom{}0, @var{y})} returns plus zero for @var{y} positive and not an odd integer.
+@item @code{pow(-1, @pom{}Inf)} returns 1.
+@item @code{pow(+1, @var{y})} returns 1 for any @var{y}, even a NaN@.
+@item @code{pow(@var{x}, @pom{}0)} returns 1 for any @var{x}, even a NaN@.
+@item @code{pow(@var{x}, @var{y})} returns NaN for finite negative @var{x} and finite non-integer @var{y}.
+@item @code{pow(@var{x}, -Inf)} returns plus infinity for @math{0 < @GMPabs{x} < 1}, and plus zero for @math{@GMPabs{x} > 1}.
+@item @code{pow(@var{x}, +Inf)} returns plus zero for @math{0 < @GMPabs{x} < 1}, and plus infinity for @math{@GMPabs{x} > 1}.
+@item @code{pow(-Inf, @var{y})} returns minus zero for @var{y} a negative odd integer.
+@item @code{pow(-Inf, @var{y})} returns plus zero for @var{y} negative and not an odd integer.
+@item @code{pow(-Inf, @var{y})} returns minus infinity for @var{y} a positive odd integer.
+@item @code{pow(-Inf, @var{y})} returns plus infinity for @var{y} positive and not an odd integer.
+@item @code{pow(+Inf, @var{y})} returns plus zero for @var{y} negative, and plus infinity for @var{y} positive.
+@end itemize
+Note: When 0 is of integer type, it is regarded as +0 by these functions.
+We do not use the usual limit rules in this case, as these rules are not
+used for @code{pow}.
 @end deftypefun
 
 @deftypefun int mpfr_cos (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -2234,10 +2314,6 @@ cotangent of @var{op}, rounded in the direction @var{rnd}.
 @deftypefunx int mpfr_atanh (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to the inverse hyperbolic cosine, sine or tangent of @var{op},
 rounded in the direction @var{rnd}.
-@end deftypefun
-
-@deftypefun int mpfr_fac_ui (mpfr_t @var{rop}, unsigned long int  @var{op}, mpfr_rnd_t @var{rnd})
-Set @var{rop} to the factorial of @var{op}, rounded in the direction @var{rnd}.
 @end deftypefun
 
 @deftypefun int mpfr_eint (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -2353,27 +2429,6 @@ NaN or negative, @var{rop} is always set to NaN@. When @var{op} is +Inf,
 or @minus{}Inf depending on the parity and sign of @var{n}.
 @end deftypefun
 
-@deftypefun int mpfr_fma (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_t @var{op3}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_fms (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_t @var{op3}, mpfr_rnd_t @var{rnd})
-Set @var{rop} to @math{(@var{op1} @GMPtimes{} @var{op2}) + @var{op3}}
-(resp.@: @math{(@var{op1} @GMPtimes{} @var{op2}) - @var{op3}})
-rounded in the direction @var{rnd}.  Concerning special values (signed zeros,
-infinities, NaN), these functions behave like a multiplication followed by a
-separate addition or subtraction.  That is, the fused operation matters only
-for rounding.
-@end deftypefun
-
-@deftypefun int mpfr_fmma (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_t @var{op3}, mpfr_t @var{op4}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_fmms (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_t @var{op3}, mpfr_t @var{op4}, mpfr_rnd_t @var{rnd})
-Set @var{rop} to @math{(@var{op1} @GMPtimes{} @var{op2}) + (@var{op3} @GMPtimes{} @var{op4})}
-(resp.@: @math{(@var{op1} @GMPtimes{} @var{op2}) - (@var{op3} @GMPtimes{} @var{op4})})
-rounded in the direction @var{rnd}.
-In case the computation of @math{@var{op1} @GMPtimes{} @var{op2}} overflows or
-underflows (or that of @math{@var{op3} @GMPtimes{} @var{op4}}), the result
-@var{rop} is computed as if the two intermediate products were computed with
-rounding toward zero.
-@end deftypefun
-
 @deftypefun int mpfr_agm (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to the arithmetic-geometric mean of @var{op1} and @var{op2},
 rounded in the direction @var{rnd}.
@@ -2388,21 +2443,6 @@ If any operand is negative and the other one is not zero,
 set @var{rop} to NaN@.
 If any operand is zero and the other one is finite (resp.@: infinite),
 set @var{rop} to +0 (resp.@: NaN)@.
-@end deftypefun
-
-@deftypefun int mpfr_hypot (mpfr_t @var{rop}, mpfr_t @var{x}, mpfr_t @var{y}, mpfr_rnd_t @var{rnd})
-Set @var{rop} to the Euclidean norm of @var{x} and @var{y},
-@ifnottex
-i.e., the square root of the sum of the squares of @var{x} and @var{y},
-@end ifnottex
-@tex
-i.e., $\sqrt{x^2+y^2}$,
-@end tex
-rounded in the direction @var{rnd}.
-Special values are handled as described in the ISO C99 (Section@tie{}F.9.4.3)
-and IEEE@tie{}754-2008 (Section@tie{}9.2.1) standards:
-If @var{x} or @var{y} is an infinity, then +Inf is returned in @var{rop},
-even if the other number is NaN@.
 @end deftypefun
 
 @deftypefun int mpfr_ai (mpfr_t @var{rop}, mpfr_t @var{x}, mpfr_rnd_t @var{rnd})
@@ -2429,76 +2469,8 @@ calculations if a lower or equal precision is requested. To free these caches,
 use @code{mpfr_free_cache} or @code{mpfr_free_cache2}.
 @end deftypefun
 
-@deftypefun void mpfr_free_cache (void)
-Free all caches and pools used by MPFR internally (those local to the
-current thread and those shared by all threads).
-You should call this function before terminating a thread, even if you did
-not call @code{mpfr_const_*} functions directly (they could have been called
-internally).
-@end deftypefun
-
-@deftypefun void mpfr_free_cache2 (mpfr_free_cache_t @var{way})
-Free various caches and pools used by MPFR internally,
-as specified by @var{way}, which is a set of flags:
-@itemize @bullet
-@item those local to the current thread if flag @code{MPFR_FREE_LOCAL_CACHE}
-is set;
-@item those shared by all threads if flag @code{MPFR_FREE_GLOBAL_CACHE}
-is set.
-@end itemize
-The other bits of @var{way} are currently ignored and are reserved for
-future use; they should be zero.
-
-Note: @code{mpfr_free_cache2(MPFR_FREE_LOCAL_CACHE|MPFR_FREE_GLOBAL_CACHE)}
-is currently equivalent to @code{mpfr_free_cache()}.
-@end deftypefun
-
-@deftypefun void mpfr_free_pool (void)
-Free the pools used by MPFR internally.
-Note: This function is automatically called after the thread-local caches
-are freed (with @code{mpfr_free_cache} or @code{mpfr_free_cache2}).
-@end deftypefun
-
-@deftypefun int mpfr_mp_memory_cleanup (void)
-This function should be called before calling @code{mp_set_memory_functions}.
-@xref{Memory Handling}, for more information.
-Zero is returned in case of success, non-zero in case of error.
-Errors are currently not possible, but checking the return value
-is recommended for future compatibility.
-@end deftypefun
-
-@deftypefun int mpfr_sum (mpfr_t @var{rop}, const mpfr_ptr @var{tab}[], unsigned long int @var{n}, mpfr_rnd_t @var{rnd})
-Set @var{rop} to the sum of all elements of @var{tab}, whose size is @var{n},
-correctly rounded in the direction @var{rnd}. Warning: for efficiency reasons,
-@var{tab} is an array of pointers
-to @code{mpfr_t}, not an array of @code{mpfr_t}.
-If @var{n} = 0, then the result is +0, and if @var{n} = 1, then the function
-is equivalent to @code{mpfr_set}.
-For the special exact cases, the result is the same as the one obtained
-with a succession of additions (@code{mpfr_add}) in infinite precision.
-In particular, if the result is an exact zero and @math{@var{n} @ge{} 1}:
-@itemize @bullet
-@item if all the inputs have the same sign (i.e., all +0 or all @minus{}0),
-then the result has the same sign as the inputs;
-@item otherwise, either because all inputs are zeros with at least a +0 and
-a @minus{}0, or because some inputs are non-zero (but they globally cancel),
-the result is +0, except for the @code{MPFR_RNDD} rounding mode, where it is
-@minus{}0.
-@end itemize
-@end deftypefun
-
-@deftypefun int mpfr_dot (mpfr_t @var{rop}, const mpfr_ptr @var{a}[], const mpfr_ptr @var{b}[], unsigned long int @var{n}, mpfr_rnd_t @var{rnd})
-Set @var{rop} to the dot product of elements of @var{a} by those of @var{b},
-whose common size is @var{n},
-correctly rounded in the direction @var{rnd}. Warning: for efficiency reasons,
-@var{a} and @var{b} are arrays of pointers to @code{mpfr_t}.
-This function is experimental, and does not yet handle intermediate overflows
-and underflows.
-@end deftypefun
-
-@node Input and Output Functions, Formatted Output Functions, Special Functions, MPFR Interface
+@node Input and Output Functions, Formatted Output Functions, Transcendental Functions, MPFR Interface
 @comment  node-name,  next,  previous,  up
-@cindex Float input and output functions
 @cindex Input functions
 @cindex Output functions
 @cindex I/O functions
@@ -2514,10 +2486,11 @@ include the @code{<stdio.h>} standard header before @file{mpfr.h},
 to allow @file{mpfr.h} to define prototypes for these functions.
 
 @deftypefun size_t mpfr_out_str (FILE *@var{stream}, int @var{base}, size_t @var{n}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
-Output @var{op} on stream @var{stream} as a text string in base @var{base},
-rounded in the direction @var{rnd}.
-The base may vary from 2 to 62 (any other value yields undefined behavior).
-The argument @var{n} has the same meaning as in @code{mpfr_get_str}:
+Output @var{op} on stream @var{stream} as a text string in
+base @GMPabs{@var{base}}, rounded in the direction @var{rnd}.
+The base may vary from 2 to 62 or from @minus{}2 to @minus{}36
+(any other value yields undefined behavior). The argument @var{n} has
+the same meaning as in @code{mpfr_get_str} (@pxref{mpfr_get_str}):
 Print @var{n} significant digits exactly, or if @var{n} is 0, the number
 @code{mpfr_get_str_ndigits(@var{base},@var{p})} where @var{p} is the
 precision of @var{op} (@pxref{mpfr_get_str_ndigits}).
@@ -2530,8 +2503,8 @@ For the regular numbers, the format of the output is the following: the
 most significant digit, then a decimal-point character (defined by the
 current locale), then the remaining @var{n}@minus{}1 digits (including
 trailing zeros), then the exponent prefix, then the exponent in decimal.
-The exponent prefix is @samp{e} when @var{base} is less or equal to 10,
-@samp{@@} when @var{base} is greater than 10. @xref{mpfr_get_str} for
+The exponent prefix is @samp{e} when @math{@GMPabs{@var{base}} @le{} 10},
+and @samp{@@} when @math{@GMPabs{@var{base}} > 10}. @xref{mpfr_get_str} for
 information on the digits depending on the base.
 @c The term "exponent prefix" is used in the mpfr_strtofr description.
 
@@ -2623,7 +2596,6 @@ trailing bits; @samp{U} if this is a UBF number (internal use only);
 
 @node Formatted Output Functions, Integer and Remainder Related Functions, Input and Output Functions, MPFR Interface
 @comment  node-name,  next,  previous,  up
-@cindex Float output functions
 @cindex Output functions
 @cindex I/O functions
 @section Formatted Output Functions
@@ -3398,7 +3370,7 @@ Return a string saying which thresholds file has been used at compile time.
 This file is normally selected from the processor type.
 @end deftypefun
 
-@node Exception Related Functions, Compatibility with MPF, Miscellaneous Functions, MPFR Interface
+@node Exception Related Functions, Memory Handling Functions, Miscellaneous Functions, MPFR Interface
 @comment  node-name,  next,  previous,  up
 @cindex Exception related functions
 @section Exception Related Functions
@@ -3640,7 +3612,53 @@ Restore the flags specified by @var{mask} to their state represented
 in @var{flags}.
 @end deftypefun
 
-@node Compatibility with MPF, Custom Interface, Exception Related Functions, MPFR Interface
+@node Memory Handling Functions, Compatibility with MPF, Exception Related Functions, MPFR Interface
+@comment  node-name,  next,  previous,  up
+@cindex Memory handling functions
+@section Memory Handling Functions
+
+These are general functions concerning memory handling
+(@pxref{Memory Handling}, for more information).
+
+@deftypefun void mpfr_free_cache (void)
+Free all caches and pools used by MPFR internally (those local to the
+current thread and those shared by all threads).
+You should call this function before terminating a thread, even if you did
+not call @code{mpfr_const_*} functions directly (they could have been called
+internally).
+@end deftypefun
+
+@deftypefun void mpfr_free_cache2 (mpfr_free_cache_t @var{way})
+Free various caches and pools used by MPFR internally,
+as specified by @var{way}, which is a set of flags:
+@itemize @bullet
+@item those local to the current thread if flag @code{MPFR_FREE_LOCAL_CACHE}
+is set;
+@item those shared by all threads if flag @code{MPFR_FREE_GLOBAL_CACHE}
+is set.
+@end itemize
+The other bits of @var{way} are currently ignored and are reserved for
+future use; they should be zero.
+
+Note: @code{mpfr_free_cache2(MPFR_FREE_LOCAL_CACHE|MPFR_FREE_GLOBAL_CACHE)}
+is currently equivalent to @code{mpfr_free_cache()}.
+@end deftypefun
+
+@deftypefun void mpfr_free_pool (void)
+Free the pools used by MPFR internally.
+Note: This function is automatically called after the thread-local caches
+are freed (with @code{mpfr_free_cache} or @code{mpfr_free_cache2}).
+@end deftypefun
+
+@deftypefun int mpfr_mp_memory_cleanup (void)
+This function should be called before calling @code{mp_set_memory_functions}.
+@xref{Memory Handling}, for more information.
+Zero is returned in case of success, non-zero in case of error.
+Errors are currently not possible, but checking the return value
+is recommended for future compatibility.
+@end deftypefun
+
+@node Compatibility with MPF, Custom Interface, Memory Handling Functions, MPFR Interface
 @cindex Compatibility with MPF
 @section Compatibility With MPF
 
@@ -4228,6 +4246,11 @@ is set were unspecified.
 Note: this function has been renamed to @code{mpfr_get_z_2exp}
 in MPFR@tie{}3.0, but @code{mpfr_get_z_exp} is still available for
 compatibility reasons.
+
+@item @code{mpfr_out_str} changed in MPFR@tie{}4.1.
+The argument @var{base} can now be negative (from @minus{}2 to
+@minus{}36), in order to follow @code{mpfr_get_str} and GMP's
+@code{mpf_out_str} functions.
 
 @item @code{mpfr_set_exp} changed in MPFR@tie{}4.0.
 Before MPFR@tie{}4.0, the exponent was set whatever the contents of the MPFR

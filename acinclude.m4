@@ -1025,8 +1025,15 @@ dnl  IA-64 is 16 bytes in LP64 mode, or 12 bytes in ILP32 mode.  The
 dnl  relevant part in all cases (big and little endian) consists of the
 dnl  first 10 bytes.
 dnl
-dnl  Warning! This does not work with GCC's and clang's LTO (-flto), where
-dnl  the generated object file does not contain the structure as is.
+dnl  We compile and link (with "-o conftest$EXEEXT") instead of just
+dnl  compiling (with "-c"), so that this test works with GCC's and
+dnl  clang's LTO (-flto). If we just compile with LTO, the generated
+dnl  object file does not contain the structure as is. This new test
+dnl  is inspired by the one used by GMP for the double type:
+dnl    https://gmplib.org/repo/gmp/rev/33eb0998a052
+dnl    https://gmplib.org/repo/gmp/rev/cbc6dbf95a10
+dnl  "$EXEEXT" had to be added, otherwise the test was failing on
+dnl  MS-Windows (see Autoconf manual).
 dnl
 dnl  Enhancements:
 dnl
@@ -1051,6 +1058,7 @@ if test "$ac_cv_type_long_double" != yes; then
 else
   cat >conftest.c <<\EOF
 [
+#include <stdio.h>
 /* "before" is 16 bytes to ensure there's no padding between it and "x".
    We're not expecting any "long double" bigger than 16 bytes or with
    alignment requirements stricter than 16 bytes.  */
@@ -1066,9 +1074,16 @@ foo_t foo = {
   -123456789.0,
   { '\376', '\334', '\272', '\230', '\166', '\124', '\062', '\020' }
 };
+
+int main (void) {
+  int i;
+  for (i = 0; i < 8; i++)
+    printf ("%d %Lf\n", foo.before[i] + foo.after[i], foo.x);
+  return 0;
+}
 ]
 EOF
-  mpfr_compile="$CC $CFLAGS $CPPFLAGS -c conftest.c >&AS_MESSAGE_LOG_FD 2>&1"
+  mpfr_compile="$CC $CFLAGS $CPPFLAGS conftest.c -o conftest$EXEEXT >&AS_MESSAGE_LOG_FD 2>&1"
   if AC_TRY_EVAL(mpfr_compile); then
     cat >conftest.awk <<\EOF
 [
@@ -1348,14 +1363,11 @@ END {
 }
 ]
 EOF
-    mpfr_cv_c_long_double_format=`od -b conftest.$OBJEXT | $AWK -f conftest.awk`
+    mpfr_cv_c_long_double_format=`od -b conftest$EXEEXT | $AWK -f conftest.awk`
     case $mpfr_cv_c_long_double_format in
     unknown*)
-      echo "cannot match anything, conftest.$OBJEXT contains" >&AS_MESSAGE_LOG_FD
-      od -b conftest.$OBJEXT >&AS_MESSAGE_LOG_FD
-      if $EGREP -q '\.gnu\.lto|ThinLTO' conftest.$OBJEXT; then
-        mpfr_cv_c_long_double_format="unknown (recognition prevented by LTO)"
-      fi
+      echo "cannot match anything, conftest$EXEEXT contains" >&AS_MESSAGE_LOG_FD
+      od -b conftest$EXEEXT >&AS_MESSAGE_LOG_FD
       ;;
     esac
   else

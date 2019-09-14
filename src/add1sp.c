@@ -81,6 +81,10 @@ int mpfr_add1sp (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
   inexact = mpfr_add1sp_ref (a, b, c, rnd_mode);
   flags = __gmpfr_flags;
 
+  /* Convert the ternary values to (-1,0,1). */
+  inexact2 = VSIGN (inexact2);
+  inexact = VSIGN (inexact);
+
   if (! mpfr_equal_p (tmpa, a) || inexact != inexact2 || flags != flags2)
     {
       fprintf (stderr, "add1 & add1sp return different values for %s\n"
@@ -96,9 +100,10 @@ int mpfr_add1sp (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
       mpfr_fdump (stderr, tmpa);
       fprintf (stderr, "add1sp: ");
       mpfr_fdump (stderr, a);
-      fprintf (stderr, "Inexact sp = %d | Inexact = %d\n"
-               "Flags sp = %u | Flags = %u\n",
-               inexact, inexact2, flags, flags2);
+      fprintf (stderr, "add1  : ternary = %2d, flags =", inexact2);
+      flags_fout (stderr, flags2);
+      fprintf (stderr, "add1sp: ternary = %2d, flags =", inexact);
+      flags_fout (stderr, flags);
       MPFR_ASSERTN (0);
     }
   mpfr_clears (tmpa, tmpb, tmpc, (mpfr_ptr) 0);
@@ -153,9 +158,16 @@ mpfr_add1sp1 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
       ap[0] = a0 ^ rb;
       sb = 0; /* since b + c fits on p+1 bits, the sticky bit is zero */
     }
-  else if (bx > cx)
+  else
     {
-    BGreater1:
+      if (bx < cx)  /* swap b and c */
+        {
+          mpfr_exp_t tx;
+          mp_limb_t *tp;
+          tx = bx; bx = cx; cx = tx;
+          tp = bp; bp = cp; cp = tp;
+        }
+      MPFR_ASSERTD (bx > cx);
       d = (mpfr_uexp_t) bx - cx;
       mask = MPFR_LIMB_MASK(sh);
       /* TODO: Should the case d < sh be removed, i.e. seen as a particular
@@ -168,7 +180,7 @@ mpfr_add1sp1 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
           a0 = bp[0] + (cp[0] >> d);
           if (a0 < bp[0]) /* carry */
             {
-              MPFR_ASSERTD ((a0 & 1) == 0);
+              MPFR_ASSERTD ((a0 & MPFR_LIMB_ONE) == 0);
               a0 = MPFR_LIMB_HIGHBIT | (a0 >> 1);
               bx ++;
             }
@@ -182,7 +194,7 @@ mpfr_add1sp1 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
           a0 = bp[0] + (cp[0] >> d);
           if (a0 < bp[0]) /* carry */
             {
-              sb |= a0 & 1;
+              sb |= a0 & MPFR_LIMB_ONE;
               a0 = MPFR_LIMB_HIGHBIT | (a0 >> 1);
               bx ++;
             }
@@ -196,14 +208,6 @@ mpfr_add1sp1 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
           rb = 0; /* since p < GMP_NUMB_BITS */
           sb = 1; /* since c <> 0 */
         }
-    }
-  else /* bx < cx: swap b and c */
-    {
-      mpfr_exp_t tx;
-      mp_limb_t *tp;
-      tx = bx; bx = cx; cx = tx;
-      tp = bp; bp = cp; cp = tp;
-      goto BGreater1;
     }
 
   /* Note: we could keep the output significand in a0 for the rounding,
@@ -276,9 +280,16 @@ mpfr_add1sp1n (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
       bx ++;
       sb = 0; /* since b + c fits on p+1 bits, the sticky bit is zero */
     }
-  else if (bx > cx)
+  else
     {
-    BGreater1:
+      if (bx < cx)  /* swap b and c */
+        {
+          mpfr_exp_t tx;
+          mp_limb_t *tp;
+          tx = bx; bx = cx; cx = tx;
+          tp = bp; bp = cp; cp = tp;
+        }
+      MPFR_ASSERTD (bx > cx);
       d = (mpfr_uexp_t) bx - cx;
       if (d < GMP_NUMB_BITS) /* 1 <= d < GMP_NUMB_BITS */
         {
@@ -287,7 +298,7 @@ mpfr_add1sp1n (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
           if (a0 < bp[0]) /* carry */
             {
               ap[0] = MPFR_LIMB_HIGHBIT | (a0 >> 1);
-              rb = a0 & 1;
+              rb = a0 & MPFR_LIMB_ONE;
               bx ++;
             }
           else /* no carry */
@@ -303,14 +314,6 @@ mpfr_add1sp1n (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
           ap[0] = bp[0];
           rb = d == GMP_NUMB_BITS;
         }
-    }
-  else /* bx < cx: swap b and c */
-    {
-      mpfr_exp_t tx;
-      mp_limb_t *tp;
-      tx = bx; bx = cx; cx = tx;
-      tp = bp; bp = cp; cp = tp;
-      goto BGreater1;
     }
 
   /* Note: we could keep the output significand in a0 for the rounding,
@@ -386,9 +389,16 @@ mpfr_add1sp2 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
       ap[0] = a0 ^ rb;
       sb = 0; /* since b + c fits on p+1 bits, the sticky bit is zero */
     }
-  else if (bx > cx)
+  else
     {
-    BGreater2:
+      if (bx < cx)  /* swap b and c */
+        {
+          mpfr_exp_t tx;
+          mp_limb_t *tp;
+          tx = bx; bx = cx; cx = tx;
+          tp = bp; bp = cp; cp = tp;
+        }
+      MPFR_ASSERTD (bx > cx);
       d = (mpfr_uexp_t) bx - cx;
       mask = MPFR_LIMB_MASK(sh);
       if (d < GMP_NUMB_BITS) /* 0 < d < GMP_NUMB_BITS */
@@ -399,7 +409,7 @@ mpfr_add1sp2 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
           if (a1 < bp[1]) /* carry in high word */
             {
             exponent_shift:
-              sb |= a0 & 1;
+              sb |= a0 & MPFR_LIMB_ONE;
               /* shift a by 1 */
               a0 = (a1 << (GMP_NUMB_BITS - 1)) | (a0 >> 1);
               ap[1] = MPFR_LIMB_HIGHBIT | (a1 >> 1);
@@ -432,14 +442,6 @@ mpfr_add1sp2 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
           sb = 1; /* since c <> 0 */
         }
     }
-  else /* bx < cx: swap b and c */
-    {
-      mpfr_exp_t tx;
-      mp_limb_t *tp;
-      tx = bx; bx = cx; cx = tx;
-      tp = bp; bp = cp; cp = tp;
-      goto BGreater2;
-    }
 
   /* now perform rounding */
   if (MPFR_UNLIKELY(bx > __gmpfr_emax))
@@ -464,6 +466,137 @@ mpfr_add1sp2 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
     {
     add_one_ulp:
       ap[0] += MPFR_LIMB_ONE << sh;
+      ap[1] += (ap[0] == 0);
+      if (MPFR_UNLIKELY(ap[1] == 0))
+        {
+          ap[1] = MPFR_LIMB_HIGHBIT;
+          /* no need to have MPFR_LIKELY here, since we are in a rare branch */
+          if (bx + 1 <= __gmpfr_emax)
+            MPFR_SET_EXP (a, bx + 1);
+          else /* overflow */
+            return mpfr_overflow (a, rnd_mode, MPFR_SIGN(a));
+        }
+      MPFR_RET(MPFR_SIGN(a));
+    }
+}
+
+/* same as mpfr_add1sp, but for p = 2*GMP_NUMB_BITS */
+static int
+mpfr_add1sp2n (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
+{
+  mpfr_exp_t bx = MPFR_GET_EXP (b);
+  mpfr_exp_t cx = MPFR_GET_EXP (c);
+  mp_limb_t *ap = MPFR_MANT(a);
+  mp_limb_t *bp = MPFR_MANT(b);
+  mp_limb_t *cp = MPFR_MANT(c);
+  mp_limb_t rb; /* round bit */
+  mp_limb_t sb; /* sticky bit */
+  mp_limb_t a1, a0;
+  mpfr_uexp_t d;
+
+  if (bx == cx)
+    {
+      /* since bp[1], cp[1] >= MPFR_LIMB_HIGHBIT, a carry always occurs */
+      a0 = bp[0] + cp[0];
+      a1 = bp[1] + cp[1] + (a0 < bp[0]);
+      rb = a0 & MPFR_LIMB_ONE;
+      sb = 0; /* since b + c fits on p+1 bits, the sticky bit is zero */
+      ap[0] = (a1 << (GMP_NUMB_BITS - 1)) | (a0 >> 1);
+      ap[1] = MPFR_LIMB_HIGHBIT | (a1 >> 1);
+      bx ++;
+    }
+  else
+    {
+      if (bx < cx)  /* swap b and c */
+        {
+          mpfr_exp_t tx;
+          mp_limb_t *tp;
+          tx = bx; bx = cx; cx = tx;
+          tp = bp; bp = cp; cp = tp;
+        }
+      MPFR_ASSERTD (bx > cx);
+      d = (mpfr_uexp_t) bx - cx;
+      if (d >= 2 * GMP_NUMB_BITS)
+        {
+          if (d == 2 * GMP_NUMB_BITS)
+            {
+              rb = 1;
+              sb = (cp[0] != MPFR_LIMB_ZERO ||
+                    cp[1] > MPFR_LIMB_HIGHBIT);
+            }
+          else
+            {
+              rb = 0;
+              sb = 1;
+            }
+          ap[0] = bp[0];
+          ap[1] = bp[1];
+        }
+      else
+        {
+          /* First, compute (a0,a1) = b + (c >> d), and determine sb from
+             the bits shifted out such that (MSB, other bits) is regarded
+             as (rounding bit, sticky bit), assuming no carry. */
+          if (d < GMP_NUMB_BITS) /* 0 < d < GMP_NUMB_BITS */
+            {
+              sb = cp[0] << (GMP_NUMB_BITS - d);
+              a0 = bp[0] + ((cp[1] << (GMP_NUMB_BITS - d)) | (cp[0] >> d));
+              a1 = bp[1] + (cp[1] >> d) + (a0 < bp[0]);
+            }
+          else /* GMP_NUMB_BITS <= d < 2 * GMP_NUMB_BITS */
+            {
+              /* The most significant bit of sb should be the rounding bit,
+                 while the other bits represent the sticky bit:
+                 * if d = GMP_NUMB_BITS, we get cp[0];
+                 * if d > GMP_NUMB_BITS: we get the least d-GMP_NUMB_BITS bits
+                   of cp[1], and those from cp[0] as the LSB of sb. */
+              sb = (d == GMP_NUMB_BITS) ? cp[0]
+                : (cp[1] << (2*GMP_NUMB_BITS-d)) | (cp[0] != 0);
+              a0 = bp[0] + (cp[1] >> (d - GMP_NUMB_BITS));
+              a1 = bp[1] + (a0 < bp[0]);
+            }
+          if (a1 < bp[1]) /* carry in high word */
+            {
+              rb = a0 << (GMP_NUMB_BITS - 1);
+              /* and sb is the real sticky bit. */
+              /* Shift the result by 1 to the right. */
+              ap[0] = (a1 << (GMP_NUMB_BITS - 1)) | (a0 >> 1);
+              ap[1] = MPFR_LIMB_HIGHBIT | (a1 >> 1);
+              bx ++;
+            }
+          else
+            {
+              rb = MPFR_LIMB_MSB (sb);
+              sb <<= 1;
+              ap[0] = a0;
+              ap[1] = a1;
+            }
+        }
+    }
+
+  /* now perform rounding */
+  if (MPFR_UNLIKELY(bx > __gmpfr_emax))
+    return mpfr_overflow (a, rnd_mode, MPFR_SIGN(a));
+
+  MPFR_SET_EXP (a, bx);
+  if ((rb == 0 && sb == 0) || rnd_mode == MPFR_RNDF)
+    MPFR_RET(0);
+  else if (rnd_mode == MPFR_RNDN)
+    {
+      if (rb == 0 || (sb == 0 && (ap[0] & MPFR_LIMB_ONE) == 0))
+        goto truncate;
+      else
+        goto add_one_ulp;
+    }
+  else if (MPFR_IS_LIKE_RNDZ(rnd_mode, MPFR_IS_NEG(a)))
+    {
+    truncate:
+      MPFR_RET(-MPFR_SIGN(a));
+    }
+  else /* round away from zero */
+    {
+    add_one_ulp:
+      ap[0] += MPFR_LIMB_ONE;
       ap[1] += (ap[0] == 0);
       if (MPFR_UNLIKELY(ap[1] == 0))
         {
@@ -512,9 +645,16 @@ mpfr_add1sp3 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
       ap[0] = a0 ^ rb;
       sb = 0; /* since b + c fits on p+1 bits, the sticky bit is zero */
     }
-  else if (bx > cx)
+  else
     {
-    BGreater2:
+      if (bx < cx)  /* swap b and c */
+        {
+          mpfr_exp_t tx;
+          mp_limb_t *tp;
+          tx = bx; bx = cx; cx = tx;
+          tp = bp; bp = cp; cp = tp;
+        }
+      MPFR_ASSERTD (bx > cx);
       d = (mpfr_uexp_t) bx - cx;
       mask = MPFR_LIMB_MASK(sh);
       if (d < GMP_NUMB_BITS) /* 0 < d < GMP_NUMB_BITS */
@@ -529,7 +669,7 @@ mpfr_add1sp3 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
           if (a2 < bp[2] || (a2 == bp[2] && cy)) /* carry in high word */
             {
             exponent_shift:
-              sb |= a0 & 1;
+              sb |= a0 & MPFR_LIMB_ONE;
               /* shift a by 1 */
               a0 = (a1 << (GMP_NUMB_BITS - 1)) | (a0 >> 1);
               ap[1] = (a2 << (GMP_NUMB_BITS - 1)) | (a1 >> 1);
@@ -591,14 +731,6 @@ mpfr_add1sp3 (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode,
           rb = 0; /* since p < 3*GMP_NUMB_BITS */
           sb = 1; /* since c <> 0 */
         }
-    }
-  else /* bx < cx: swap b and c */
-    {
-      mpfr_exp_t tx;
-      mp_limb_t *tp;
-      tx = bx; bx = cx; cx = tx;
-      tp = bp; bp = cp; cp = tp;
-      goto BGreater2;
     }
 
   /* now perform rounding */
@@ -757,6 +889,9 @@ mpfr_add1sp (mpfr_ptr a, mpfr_srcptr b, mpfr_srcptr c, mpfr_rnd_t rnd_mode)
 
   if (2 * GMP_NUMB_BITS < p && p < 3 * GMP_NUMB_BITS)
     return mpfr_add1sp3 (a, b, c, rnd_mode, p);
+
+  if (p == 2 * GMP_NUMB_BITS)
+    return mpfr_add1sp2n (a, b, c, rnd_mode);
 #endif
 
   /* We need to get the sign before the possible exchange. */
