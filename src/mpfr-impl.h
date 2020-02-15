@@ -1,6 +1,6 @@
 /* Utilities for MPFR developers, not exported.
 
-Copyright 1999-2019 Free Software Foundation, Inc.
+Copyright 1999-2020 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -1001,6 +1001,8 @@ typedef uintmax_t mpfr_ueexp_t;
 # define MPFR_SET_INVALID_EXP(x)  ((void) 0)
 #endif
 
+/* Compare the exponents of two numbers, which can be either MPFR numbers
+   or UBF numbers. */
 #define MPFR_UBF_EXP_LESS_P(x,y) \
   (MPFR_UNLIKELY (MPFR_IS_UBF (x) || MPFR_IS_UBF (y)) ? \
    mpfr_ubf_exp_less_p (x, y) : MPFR_GET_EXP (x) < MPFR_GET_EXP (y))
@@ -1030,6 +1032,7 @@ typedef uintmax_t mpfr_ueexp_t;
   (MPFR_LIMB_MSB (MPFR_MANT(x)[MPFR_LAST_LIMB(x)]) != 0)
 
 #define MPFR_IS_FP(x)       (!MPFR_IS_NAN(x) && !MPFR_IS_INF(x))
+
 /* Note: contrary to the MPFR_IS_PURE_*(x) macros, the MPFR_IS_SINGULAR*(x)
    macros may be used even when x is being constructed, i.e. its exponent
    field is already set (possibly out-of-range), but its significand field
@@ -1037,6 +1040,12 @@ typedef uintmax_t mpfr_ueexp_t;
    equivalent to !MPFR_IS_SINGULAR(x); see the code below. */
 #define MPFR_IS_SINGULAR(x) (MPFR_EXP(x) <= MPFR_EXP_INF)
 #define MPFR_IS_SINGULAR_OR_UBF(x) (MPFR_EXP(x) <= MPFR_EXP_UBF)
+
+/* The following two macros return true iff the value is a regular number,
+   i.e. it is not a singular number. In debug mode, the format is also
+   checked: valid exponent, but potentially out of range; normalized value.
+   In contexts where UBF's are not accepted or not possible, MPFR_IS_PURE_FP
+   is preferable. If UBF's are accepted, MPFR_IS_PURE_UBF must be used. */
 #define MPFR_IS_PURE_FP(x)                          \
   (!MPFR_IS_SINGULAR(x) &&                          \
    (MPFR_ASSERTD (MPFR_EXP (x) >= MPFR_EMIN_MIN &&  \
@@ -1049,9 +1058,9 @@ typedef uintmax_t mpfr_ueexp_t;
                     MPFR_EXP (x) <= MPFR_EMAX_MAX)) &&  \
                   MPFR_IS_NORMALIZED (x)), 1))
 
+/* Ditto for 2 numbers. */
 #define MPFR_ARE_SINGULAR(x,y) \
   (MPFR_UNLIKELY(MPFR_IS_SINGULAR(x)) || MPFR_UNLIKELY(MPFR_IS_SINGULAR(y)))
-
 #define MPFR_ARE_SINGULAR_OR_UBF(x,y)           \
   (MPFR_UNLIKELY(MPFR_IS_SINGULAR_OR_UBF(x)) || \
    MPFR_UNLIKELY(MPFR_IS_SINGULAR_OR_UBF(y)))
@@ -1097,8 +1106,15 @@ typedef uintmax_t mpfr_ueexp_t;
 /* Special inexact value */
 #define MPFR_EVEN_INEX 2
 
-/* Macros for functions returning two inexact values in an 'int' */
-#define INEXPOS(y) ((y) == 0 ? 0 : (((y) > 0) ? 1 : 2))
+/* Note: the addition/subtraction of 2 comparisons below instead of the
+   use of the ?: operator allows GCC and Clang to generate better code
+   in general; this is the case at least with GCC on x86 (32 & 64 bits),
+   PowerPC and Aarch64 (64-bit ARM), and with Clang on x86_64.
+   VSIGN code based on mini-gmp's GMP_CMP macro; adapted for INEXPOS. */
+
+/* Macros for functions returning two inexact values in an 'int'
+   (exact = 0, positive = 1, negative = 2) */
+#define INEXPOS(y) (((y) != 0) + ((y) < 0))
 #define INEX(y,z) (INEXPOS(y) | (INEXPOS(z) << 2))
 
 /* When returning the ternary inexact value, ALWAYS use one of the
@@ -1109,7 +1125,7 @@ typedef uintmax_t mpfr_ueexp_t;
 #define MPFR_RET_NAN return (__gmpfr_flags |= MPFR_FLAGS_NAN), 0
 
 /* Sign of a native value. */
-#define VSIGN(I) ((I) < 0 ? -1 : (I) > 0)
+#define VSIGN(I) (((I) > 0) - ((I) < 0))
 #define SAME_SIGN(I1,I2) (VSIGN (I1) == VSIGN (I2))
 
 
@@ -1269,7 +1285,6 @@ typedef union { mp_size_t s; mp_limb_t l; } mpfr_size_limb_t;
 #define MPFR_TMP_LIMBS_ALLOC(N) \
   ((mp_limb_t *) MPFR_TMP_ALLOC ((size_t) (N) * MPFR_BYTES_PER_MP_LIMB))
 
-/* temporary allocate 1 limb at xp, and initialize mpfr variable x */
 /* The temporary var doesn't have any size field, but it doesn't matter
  * since only functions dealing with the Heap care about it */
 #define MPFR_TMP_INIT1(xp, x, p)                                     \
@@ -1282,17 +1297,24 @@ typedef union { mp_size_t s; mp_limb_t l; } mpfr_size_limb_t;
   (xp = MPFR_TMP_LIMBS_ALLOC(s),                                     \
    MPFR_TMP_INIT1(xp, x, p))
 
-#define MPFR_TMP_INIT_ABS(d, s)                                      \
- ( MPFR_PREC(d) = MPFR_PREC(s),                                      \
-   MPFR_MANT(d) = MPFR_MANT(s),                                      \
-   MPFR_SET_POS(d),                                                  \
-   MPFR_EXP(d)  = MPFR_EXP(s))
+/* Set y to s*significand(x)*2^e, for example MPFR_ALIAS(y,x,1,MPFR_EXP(x))
+   sets y to |x|, and MPFR_ALIAS(y,x,MPFR_SIGN(x),0) sets y to x*2^f such
+   that 1/2 <= |y| < 1. Does not check y is in the valid exponent range.
+   WARNING! x and y share the same mantissa. So, some operations are
+   not valid if x has been provided via an argument, e.g., trying to
+   modify the mantissa of y, even temporarily, or calling mpfr_clear on y.
+*/
+#define MPFR_ALIAS(y,x,s,e)                     \
+  (MPFR_PREC(y) = MPFR_PREC(x),                 \
+   MPFR_SIGN(y) = (s),                          \
+   MPFR_EXP(y) = (e),                           \
+   MPFR_MANT(y) = MPFR_MANT(x))
 
-#define MPFR_TMP_INIT_NEG(d, s)                                      \
- ( MPFR_PREC(d) = MPFR_PREC(s),                                      \
-   MPFR_MANT(d) = MPFR_MANT(s),                                      \
-   MPFR_SET_OPPOSITE_SIGN(d,s),                                      \
-   MPFR_EXP(d)  = MPFR_EXP(s))
+#define MPFR_TMP_INIT_ABS(y,x) \
+  MPFR_ALIAS (y, x, MPFR_SIGN_POS, MPFR_EXP (x))
+
+#define MPFR_TMP_INIT_NEG(y,x) \
+  MPFR_ALIAS (y, x, - MPFR_SIGN (x), MPFR_EXP (x))
 
 
 /******************************************************
@@ -1598,22 +1620,6 @@ do {                                                                  \
 #define MPFR_THOUSANDS_SEPARATOR ((char) '\0')
 #endif
 
-
-/* Set y to s*significand(x)*2^e, for example MPFR_ALIAS(y,x,1,MPFR_EXP(x))
-   sets y to |x|, and MPFR_ALIAS(y,x,MPFR_SIGN(x),0) sets y to x*2^f such
-   that 1/2 <= |y| < 1. Does not check y is in the valid exponent range.
-   WARNING! x and y share the same mantissa. So, some operations are
-   not valid if x has been provided via an argument, e.g., trying to
-   modify the mantissa of y, even temporarily, or calling mpfr_clear on y.
-*/
-#define MPFR_ALIAS(y,x,s,e)                     \
-  do                                            \
-    {                                           \
-      MPFR_PREC(y) = MPFR_PREC(x);              \
-      MPFR_SIGN(y) = (s);                       \
-      MPFR_EXP(y) = (e);                        \
-      MPFR_MANT(y) = MPFR_MANT(x);              \
-    } while (0)
 
 /* Size of an array, as a constant expression. */
 #define numberof_const(x)  (sizeof (x) / sizeof ((x)[0]))
@@ -2537,6 +2543,21 @@ extern "C" {
    with variadic functions, as the compiler will not be able to check
    in general. See fmma.c as an example of usage.
 
+   In general, the type used for values that may be UBF must be either
+   mpfr_ubf_t or mpfr_ubf_ptr. The type mpfr_ptr or mpfr_srcptr may be
+   used for UBF only in the case where the pointer has been converted
+   from mpfr_ubf_ptr, in order to ensure valid alignment. For instance,
+   in mpfr_fmma_aux, one uses mpfr_ubf_t to generate the exact products
+   as UBF; then the corresponding pointers are converted to mpfr_srcptr
+   for mpfr_add (even though they point to UBF).
+
+   Functions that can accept either MPFR arguments (mpfr_ptr type) or
+   UBF arguments (mpfr_ubf_ptr type) must use a pointer type that can
+   always be converted from both, typically mpfr_ptr or mpfr_srcptr.
+   For instance, that's why mpfr_ubf_exp_less_p uses mpfr_srcptr.
+   Note: "void *" could also be used, but mpfr_ptr is more meaningful
+   and practical.
+
    Note that functions used for logging need to support UBF (currently
    done by printing that a number is a UBF, as it may be difficult to
    do more without significant changes). */
@@ -2562,10 +2583,18 @@ __MPFR_DECLSPEC mpfr_exp_t mpfr_ubf_diff_exp (mpfr_srcptr, mpfr_srcptr);
 }
 #endif
 
-#define MPFR_ZEXP(x)                                                    \
-  ((void) (x)->_mpfr_exp /* to check that x has a correct type */,      \
+/* Get the _mpfr_zexp field (pointer to a mpz_t) of a UBF object.
+   For practical reasons, the type of the argument x can be either
+   mpfr_ubf_ptr or mpfr_ptr, since the latter is used in functions
+   that accept both MPFR numbers and UBF's; this is checked by the
+   code "(x)->_mpfr_exp".
+   This macro can be used when building a UBF. So we do not check
+   that the _mpfr_exp field has the value MPFR_EXP_UBF. */
+#define MPFR_ZEXP(x)                            \
+  ((void) (x)->_mpfr_exp,                       \
    ((mpfr_ubf_ptr) (x))->_mpfr_zexp)
 
+/* If x is a UBF, clear its mpz_t exponent. */
 #define MPFR_UBF_CLEAR_EXP(x) \
   ((void) (MPFR_IS_UBF (x) && (mpz_clear (MPFR_ZEXP (x)), 0)))
 

@@ -1,6 +1,6 @@
 /* mpfr_fmma, mpfr_fmms -- Compute a*b +/- c*d
 
-Copyright 2014-2019 Free Software Foundation, Inc.
+Copyright 2014-2020 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -22,6 +22,7 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include "mpfr-impl.h"
 
+/* compute a*b+c*d if neg=0 (fmma), a*b-c*d otherwise (fmms) */
 static int
 mpfr_fmma_aux (mpfr_ptr z, mpfr_srcptr a, mpfr_srcptr b, mpfr_srcptr c,
                mpfr_srcptr d, mpfr_rnd_t rnd, int neg)

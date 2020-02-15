@@ -1,7 +1,7 @@
 /* Test file for mpfr_rint, mpfr_trunc, mpfr_floor, mpfr_ceil, mpfr_round,
    mpfr_rint_trunc, mpfr_rint_floor, mpfr_rint_ceil, mpfr_rint_round.
 
-Copyright 2002-2019 Free Software Foundation, Inc.
+Copyright 2002-2020 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -595,7 +595,7 @@ main (int argc, char *argv[])
                     if (mpfr_sub (u, v, x, MPFR_RNDN))
                       err ("subtraction 2 should be exact", s, x, y, p,
                            (mpfr_rnd_t) r, trint, inexact);
-                    cmp = mpfr_cmp_abs (t, u);
+                    cmp = mpfr_cmpabs (t, u);
                     if (cmp > 0)
                       err ("faithful rounding, but not the nearest integer",
                            s, x, y, p, (mpfr_rnd_t) r, trint, inexact);

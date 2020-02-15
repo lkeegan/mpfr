@@ -80,9 +80,6 @@
     <ClCompile Include="..\..\src\cmp2.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\cmp_abs.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\cmp_d.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -735,6 +732,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\nbits_ulong.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\cmpabs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\cmpabs_ui.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

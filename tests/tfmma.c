@@ -1,6 +1,6 @@
 /* Test file for mpfr_fmma and mpfr_fmms.
 
-Copyright 2016-2019 Free Software Foundation, Inc.
+Copyright 2016-2020 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -553,6 +553,30 @@ bug20180604 (void)
   mpfr_set_emin (emin);
 }
 
+/* this bug was discovered from mpc_mul */
+static void
+bug20200206 (void)
+{
+  mpfr_exp_t emin = mpfr_get_emin ();
+  mpfr_t xre, xim, yre, yim, zre;
+
+  mpfr_set_emin (-1073);
+  mpfr_inits2 (53, xre, xim, yre, yim, zre, (mpfr_ptr) 0);
+  mpfr_set_str (xre, "-0x8.294611b331c8p-904", 16, MPFR_RNDN);
+  mpfr_set_str (xim, "-0x1.859278c2992fap-676", 16, MPFR_RNDN);
+  mpfr_set_str (yre, "0x9.ac54802a95f8p-820", 16, MPFR_RNDN);
+  mpfr_set_str (yim, "0x3.17e59e7612aap-412", 16, MPFR_RNDN);
+  mpfr_fmms (zre, xre, yre, xim, yim, MPFR_RNDN);
+  if (mpfr_regular_p (zre) && mpfr_get_exp (zre) < -1073)
+    {
+      printf ("Error, mpfr_fmms returns an out-of-range exponent:\n");
+      mpfr_dump (zre);
+      exit (1);
+    }
+  mpfr_clears (xre, xim, yre, yim, zre, (mpfr_ptr) 0);
+  mpfr_set_emin (emin);
+}
+
 /* Test double-rounding cases in mpfr_set_1_2, which is called when
    all the precisions are the same. With set.c before r13347, this
    triggers errors for neg=0. */
@@ -621,6 +645,7 @@ main (int argc, char *argv[])
 {
   tests_start_mpfr ();
 
+  bug20200206 ();
   bug20180604 ();
   underflow_tests ();
   random_tests ();

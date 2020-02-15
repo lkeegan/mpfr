@@ -1,7 +1,7 @@
 /* tsprintf.c -- test file for mpfr_sprintf, mpfr_vsprintf, mpfr_snprintf,
    and mpfr_vsnprintf
 
-Copyright 2007-2019 Free Software Foundation, Inc.
+Copyright 2007-2020 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -225,8 +225,8 @@ static int
 decimal (void)
 {
   mpfr_prec_t p = 128;
-  mpfr_t x;
-  mpfr_t z;
+  mpfr_t x, y, z;
+
   mpfr_init (z);
   mpfr_init2 (x, p);
 
@@ -239,12 +239,12 @@ decimal (void)
   check_vsprintf ("000128:", "%-2.6Pd:", p);
   check_vsprintf ("  000128:", "%8.6Pd:", p);
   check_vsprintf ("000128  :", "%-8.6Pd:", p);
-  check_vsprintf ("+128:", "%+d:", p);
-  check_vsprintf (" 128:", "% d:", p);
-  check_vsprintf ("80:", "% x:", p);
-  check_vsprintf ("0x80:", "% #x:", p);
-  check_vsprintf ("0x80:", "%0#+ -x:", p);
-  check_vsprintf ("0200:", "%0#+ -o:", p);
+  check_vsprintf ("+128:", "%+Pd:", p);
+  check_vsprintf (" 128:", "% Pd:", p);
+  check_vsprintf ("80:", "% Px:", p);
+  check_vsprintf ("0x80:", "% #Px:", p);
+  check_vsprintf ("0x80:", "%0#+ -Px:", p);
+  check_vsprintf ("0200:", "%0#+ -Po:", p);
   check_vsprintf ("+0000128 :", "%0+ *.*Pd:", -9, 7, p);
   check_vsprintf ("+12345   :", "%0+ -*.*Pd:", -9, -3, (mpfr_prec_t) 12345);
   /* Do not add a test like "%05.1Pd" as MS Windows is buggy: when
@@ -300,29 +300,38 @@ decimal (void)
 
   /* positive numbers */
   mpfr_set_str (x, "18993474.61279296875", 10, MPFR_RNDN);
+  mpfr_init2 (y, 59);
+  mpfr_set (y, x, MPFR_RNDN);
   mpfr_set_ui (z, 0, MPFR_RNDD);
 
   /* simplest case right justified */
-  check_sprintf ("      1.899347461279296875e+07", "%30Re", x);
+  check_sprintf ("1.899347461279296875000000000000000000000e+07", "%30Re", x);
+  check_sprintf ("      1.899347461279296875e+07", "%30Re", y);
   check_sprintf ("                         2e+07", "%30.0Re", x);
   check_sprintf ("               18993474.612793", "%30Rf", x);
   check_sprintf ("              18993474.6127930", "%30.7Rf", x);
   check_sprintf ("                   1.89935e+07", "%30Rg", x);
   check_sprintf ("                         2e+07", "%30.0Rg", x);
   check_sprintf ("          18993474.61279296875", "%30.19Rg", x);
+  check_sprintf ("        0.0000000000000000e+00", "%30Re", z);
+  check_sprintf ("                      0.000000", "%30Rf", z);
+  check_sprintf ("                             0", "%30Rg", z);
+  check_sprintf ("                       0.00000", "%#30Rg", z);
   check_sprintf ("                         0e+00", "%30.0Re", z);
   check_sprintf ("                             0", "%30.0Rf", z);
   check_sprintf ("                        0.0000", "%30.4Rf", z);
   check_sprintf ("                             0", "%30.0Rg", z);
   check_sprintf ("                             0", "%30.4Rg", z);
   /* sign or space, pad with leading zeros */
-  check_sprintf (" 000001.899347461279296875E+07", "% 030RE", x);
+  check_sprintf (" 1.899347461279296875000000000000000000000E+07", "% 030RE", x);
+  check_sprintf (" 000001.899347461279296875E+07", "% 030RE", y);
   check_sprintf (" 0000000000000000001.89935E+07", "% 030RG", x);
   check_sprintf (" 0000000000000000000000002E+07", "% 030.0RE", x);
   check_sprintf (" 0000000000000000000000000E+00", "% 030.0RE", z);
   check_sprintf (" 00000000000000000000000000000", "% 030.0RF", z);
   /* sign + or -, left justified */
-  check_sprintf ("+1.899347461279296875e+07     ", "%+-30Re", x);
+  check_sprintf ("+1.899347461279296875000000000000000000000e+07", "%+-30Re", x);
+  check_sprintf ("+1.899347461279296875e+07     ", "%+-30Re", y);
   check_sprintf ("+2e+07                        ", "%+-30.0Re", x);
   check_sprintf ("+0e+00                        ", "%+-30.0Re", z);
   check_sprintf ("+0                            ", "%+-30.0Rf", z);
@@ -342,7 +351,8 @@ decimal (void)
   check_sprintf ("+0000.0E+00", "%0+#11.1RZE", z);
   check_sprintf ("+00000000.0", "%0+#11.1RZF", z);
   /* pad with leading zero */
-  check_sprintf ("0000001.899347461279296875e+07", "%030RDe", x);
+  check_sprintf ("1.899347461279296875000000000000000000000e+07", "%030RDe", x);
+  check_sprintf ("0000001.899347461279296875e+07", "%030RDe", y);
   check_sprintf ("00000000000000000000000001e+07", "%030.0RDe", x);
   /* sign or space, decimal point, left justified */
   check_sprintf (" 1.8E+07   ", "%- #11.1RDE", x);
@@ -363,8 +373,12 @@ decimal (void)
 
   /* neighborhood of 1 */
   mpfr_set_str (x, "0.99993896484375", 10, MPFR_RNDN);
-  check_sprintf ("9.9993896484375E-01 ", "%-20RE", x);
-  check_sprintf ("9.9993896484375E-01 ", "%-20.RE", x);
+  mpfr_set_prec (y, 43);
+  mpfr_set (y, x, MPFR_RNDN);
+  check_sprintf ("9.999389648437500000000000000000000000000E-01", "%-20RE", x);
+  check_sprintf ("9.999389648437500000000000000000000000000E-01", "%-20.RE", x);
+  check_sprintf ("9.9993896484375E-01 ", "%-20RE", y);
+  check_sprintf ("9.9993896484375E-01 ", "%-20.RE", y);
   check_sprintf ("1E+00               ", "%-20.0RE", x);
   check_sprintf ("1.0E+00             ", "%-20.1RE", x);
   check_sprintf ("1.00E+00            ", "%-20.2RE", x);
@@ -399,7 +413,7 @@ decimal (void)
 
   /* powers of 10 */
   mpfr_set_str (x, "1e17", 10, MPFR_RNDN);
-  check_sprintf ("1e+17", "%Re", x);
+  check_sprintf ("1.000000000000000000000000000000000000000e+17", "%Re", x);
   check_sprintf ("1.000e+17", "%.3Re", x);
   check_sprintf ("100000000000000000", "%.0Rf", x);
   check_sprintf ("100000000000000000.0", "%.1Rf", x);
@@ -407,7 +421,7 @@ decimal (void)
   check_sprintf ("100000000000000000.0", "%'.1Rf", x);
 
   mpfr_ui_div (x, 1, x, MPFR_RNDN); /* x=1e-17 */
-  check_sprintf ("1e-17", "%Re", x);
+  check_sprintf ("1.000000000000000000000000000000000000000e-17", "%Re", x);
   check_sprintf ("0.000000", "%Rf", x);
   check_sprintf ("1e-17", "%Rg", x);
   check_sprintf ("0.0", "%.1RDf", x);
@@ -595,7 +609,7 @@ decimal (void)
   /* regression in MPFR 3.1.0 (bug introduced in r7761, fixed in r7931) */
   check_sprintf ("-10", "%.2Rg", x);
 
-  mpfr_clears (x, z, (mpfr_ptr) 0);
+  mpfr_clears (x, y, z, (mpfr_ptr) 0);
   return 0;
 }
 
@@ -641,6 +655,8 @@ hexadecimal (void)
   check_sprintf ("   0xf.edcba987654321p+24", "%25RNa", x);
   check_sprintf ("                  0x1p+28", "%25.0Ra", x);
   check_sprintf ("                   0x0p+0", "%25.0Ra", z);
+  check_sprintf ("                   0x0p+0", "%25Ra", z);
+  check_sprintf ("                  0x0.p+0", "%#25Ra", z);
   /* sign or space, pad with leading zeros */
   check_sprintf (" 0X00F.EDCBA987654321P+24", "% 025RA", x);
   check_sprintf (" 0X000000000000000001P+28", "% 025.0RA", x);
@@ -766,6 +782,7 @@ binary (void)
   /* simplest case: right justified */
   check_sprintf ("    1.1100101011001101p+9", "%25Rb", x);
   check_sprintf ("                     0p+0", "%25Rb", z);
+  check_sprintf ("                    0.p+0", "%#25Rb", z);
   /* sign or space, pad with leading zeros */
   check_sprintf (" 0001.1100101011001101p+9", "% 025Rb", x);
   check_sprintf (" 000000000000000000000p+0", "% 025Rb", z);
@@ -849,9 +866,9 @@ mixed (void)
   rnd = MPFR_RNDD;
 
   check_vsprintf ("121%", "%i%%", i);
-  check_vsprintf ("121% -1.2345678875E+07", "%i%% %RNE", i, x);
+  check_vsprintf ("121% -1.2345678875000000E+07", "%i%% %RNE", i, x);
   check_vsprintf ("121, -12345679", "%i, %.0Rf", i, x);
-  check_vsprintf ("10610209857723, -1.2345678875e+07", "%Zi, %R*e", mpz, rnd,
+  check_vsprintf ("10610209857723, -1.2345678875000000e+07", "%Zi, %R*e", mpz, rnd,
                   x);
   check_vsprintf ("-12345678.9, 121", "%.1Rf, %i", x, i);
   check_vsprintf ("-12345678, 1e240/45b352", "%.0R*f, %Qx", MPFR_RNDZ, x, mpq);
@@ -880,7 +897,7 @@ mixed (void)
 #ifdef PRINTF_L
   /* under MinGW, -D__USE_MINGW_ANSI_STDIO is required to support %Lf
      see https://gcc.gnu.org/ml/gcc/2013-03/msg00103.html */
-  check_vsprintf ("00000010610209857723, -1.2345678875e+07, 0.032258",
+  check_vsprintf ("00000010610209857723, -1.2345678875000000e+07, 0.032258",
                   "%.*Zi, %R*e, %Lf", 20, mpz, rnd, x, d);
 #endif
 
@@ -907,7 +924,7 @@ static void
 locale_da_DK (void)
 {
   mpfr_prec_t p = 128;
-  mpfr_t x;
+  mpfr_t x, y;
 
   if (setlocale (LC_ALL, "da_DK") == 0 ||
       localeconv()->decimal_point[0] != ',' ||
@@ -927,15 +944,19 @@ locale_da_DK (void)
 
   /* positive numbers */
   mpfr_set_str (x, "18993474.61279296875", 10, MPFR_RNDN);
+  mpfr_init2 (y, 59);
+  mpfr_set (y, x, MPFR_RNDN);
 
   /* simplest case right justified with thousands separator */
-  check_sprintf ("      1,899347461279296875e+07", "%'30Re", x);
+  check_sprintf ("1,899347461279296875000000000000000000000e+07", "%'30Re", x);
+  check_sprintf ("      1,899347461279296875e+07", "%'30Re", y);
   check_sprintf ("                   1,89935e+07", "%'30Rg", x);
   check_sprintf ("        18.993.474,61279296875", "%'30.19Rg", x);
   check_sprintf ("             18.993.474,612793", "%'30Rf", x);
 
   /* sign or space, pad, thousands separator with leading zeros */
-  check_sprintf (" 000001,899347461279296875E+07", "%' 030RE", x);
+  check_sprintf (" 1,899347461279296875000000000000000000000E+07", "%' 030RE", x);
+  check_sprintf (" 000001,899347461279296875E+07", "%' 030RE", y);
   check_sprintf (" 0000000000000000001,89935E+07", "%' 030RG", x);
   check_sprintf (" 000000018.993.474,61279296875", "%' 030.19RG", x);
   check_sprintf (" 00000000000018.993.474,612793", "%' 030RF", x);
@@ -960,6 +981,7 @@ locale_da_DK (void)
   check_sprintf ("100" S2 "0000", "%'.4Rf", x);
 
   mpfr_clear (x);
+  mpfr_clear (y);
 
   setlocale (LC_ALL, "C");
 }

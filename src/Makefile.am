@@ -1,4 +1,4 @@
-# Copyright 2000-2019 Free Software Foundation, Inc.
+# Copyright 2000-2020 Free Software Foundation, Inc.
 # This Makefile.am is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -33,7 +33,7 @@ libmpfr_la_SOURCES = mpfr.h mpf2mpfr.h mpfr-cvers.h mpfr-gmp.h          \
 mpfr-impl.h mpfr-intmax.h mpfr-longlong.h mpfr-sassert.h mpfr-thread.h 	\
 exceptions.c extract.c uceil_exp2.c					\
 uceil_log2.c ufloor_log2.c add.c add1.c add_ui.c agm.c clear.c cmp.c	\
-cmp_abs.c cmp_si.c cmp_ui.c comparisons.c div_2exp.c div_2si.c		\
+cmpabs.c cmp_si.c cmp_ui.c comparisons.c div_2exp.c div_2si.c		\
 div_2ui.c div.c div_ui.c dot.c dump.c eq.c exp10.c exp2.c exp3.c exp.c	\
 frac.c frexp.c get_d.c get_exp.c get_str.c init.c inp_str.c isinteger.c	\
 isinf.c isnan.c isnum.c const_log2.c log.c modf.c mul_2exp.c mul_2si.c	\
@@ -67,7 +67,7 @@ grandom.c fpif.c set_float128.c get_float128.c rndna.c nrandom.c        \
 random_deviate.h random_deviate.c erandom.c mpfr-mini-gmp.c             \
 mpfr-mini-gmp.h fmma.c log_ui.c gamma_inc.c ubf.c invert_limb.h 	\
 invsqrt_limb.h beta.c odd_p.c get_q.c pool.c total_order.c set_d128.c   \
-get_d128.c nbits_ulong.c
+get_d128.c nbits_ulong.c cmpabs_ui.c
 
 nodist_libmpfr_la_SOURCES = $(BUILT_SOURCES)
 

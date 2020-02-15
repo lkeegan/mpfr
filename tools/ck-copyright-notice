@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright 2008-2019 Free Software Foundation, Inc.
+# Copyright 2008-2020 Free Software Foundation, Inc.
 # This script is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -44,6 +44,9 @@ if [ $z -lt $clyr ]; then
   echo "The copyright year of NEWS is out-of-date."
   err=1
 fi
+
+# Note: mpfr.pc.in is not checked as it does not have a copyright notice
+# (it is distributed with MPFR, but regarded as trivial).
 
 for file in $srctests BUGS INSTALL README TODO configure.ac
 do

@@ -1,4 +1,4 @@
-Copyright 1999-2019 Free Software Foundation, Inc.
+Copyright 1999-2020 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -207,7 +207,7 @@ specific architecture.
 --enable-assert         build MPFR with assertions.
 
 --enable-thread-safe    build MPFR as thread safe, using compiler-level
-                        Thread Local Storage (TLS). Note: TLS support is
+                        Thread-Local Storage (TLS). Note: TLS support is
                         roughly tested by configure. If configure detects
                         that TLS does not work (because of the compiler,
                         linker or system libraries), it will output an
@@ -234,9 +234,6 @@ specific architecture.
                         may be useful in cross-compilation). If you use
                         this option, you need to have Libtool 2.4+ on
                         the target system. See Libtool 2.4+'s NEWS file.
-                        Technical information can be found at [1].
-
-[1] http://permalink.gmane.org/gmane.comp.gnu.libtool.patches/10111
 
 Note: By default, the configure script tries to set CC / CFLAGS to GMP's
 ones from gmp.h (__GMP_CC / __GMP_CFLAGS) in order to ensure that MPFR is
@@ -599,12 +596,19 @@ a. Using MinGW
 
 3 - To avoid using the Microsoft runtime (which might not be conform to ISO C),
     you can use the MinGW runtime package (which is an integral part of MinGW).
-    For example, with MinGW versions 3.15 and later you can get an
-    ISO-compliant printf() if you compile your application with either
-    '-ansi', '-posix' or '-D__USE_MINGW_ANSI_STDIO'. In order to have the
-    MPFR formatted output functions based on ISO-compliant printf(), you
-    need to compile GMP (not MPFR) with CC="gcc -D__USE_MINGW_ANSI_STDIO"
-    (since the standard printf modifiers %e, %Ld and %td are passed to GMP).
+
+    With old MinGW versions, you can get an ISO-compliant printf()
+    if you compile your application with either '-ansi', '-posix' or
+    '-D__USE_MINGW_ANSI_STDIO'. But note that this latter option,
+    which was useful in the past (see below) should no longer be used.
+
+    The following applies to old MinGW versions, and may be discouraged
+    with recent MinGW versions.
+
+    In order to have the MPFR formatted output functions based on an
+    ISO-compliant printf(), you need to compile GMP (not MPFR) with
+    CC="gcc -D__USE_MINGW_ANSI_STDIO" (since the standard printf modifiers
+    %e, %Ld and %td are passed to GMP).
 
     To avoid failures of some of the printf-related tests, MPFR needs to
     be compiled with the same __USE_MINGW_ANSI_STDIO as with GMP, i.e.
@@ -665,12 +669,12 @@ Static and dynamic MPFR libraries for the 32- and 64-bit versions of
 Windows can be built with Microsoft Visual Studio 2015 using the
 Microsoft Visual C++ compiler, see:
 
-  https://www.visualstudio.com/
+  https://visualstudio.microsoft.com/
 
 The Intel C++ compiler provided as a part of Intel Parallel Studio XE
 can also be used:
 
-  https://software.intel.com/en-us/intel-parallel-studio-xe
+  https://software.intel.com/en-us/parallel-studio-xe
 
 The relevant build projects are available here:
 

@@ -1,7 +1,7 @@
 /* mpfr_vasnprintf_aux -- helper function for the formatted output functions
    (printf functions family).
 
-Copyright 2007-2019 Free Software Foundation, Inc.
+Copyright 2007-2020 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -109,6 +109,8 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define MPFR_INF_STRING_LC "inf"
 #define MPFR_INF_STRING_UC "INF"
 #define MPFR_INF_STRING_LENGTH 3
+
+#define DEFAULT_DECIMAL_PREC 6
 
 /* The implicit \0 is useless, but we do not write num_to_text[16]
    otherwise g++ complains. */
@@ -1234,15 +1236,13 @@ regular_ab (struct number_parts *np, mpfr_srcptr p,
    Return -1 in case of overflow on the sizes. */
 static int
 regular_eg (struct number_parts *np, mpfr_srcptr p,
-            const struct printf_spec spec, struct decimal_info *dec_info)
+            const struct printf_spec spec, struct decimal_info *dec_info,
+            int keep_trailing_zeros)
 {
   char *str;
   mpfr_exp_t exp;
 
   const int uppercase = spec.spec == 'E' || spec.spec == 'G';
-  const int spec_g = spec.spec == 'g' || spec.spec == 'G';
-  const int keep_trailing_zeros = (spec_g && spec.alt)
-    || (!spec_g && (spec.prec > 0));
 
   /* sign */
   if (MPFR_IS_NEG (p))
@@ -1308,7 +1308,7 @@ regular_eg (struct number_parts *np, mpfr_srcptr p,
           np->fp_ptr = str;
           np->fp_size = str_len;
           /* Warning! str_len has type size_t, which is unsigned. */
-          if ((!spec_g || spec.alt) && spec.prec > 0 && str_len < spec.prec)
+          if (keep_trailing_zeros && spec.prec > 0 && str_len < spec.prec)
             {
               /* add missing trailing zeros */
               np->fp_trailing_zeros = spec.prec - str_len;
@@ -1369,12 +1369,11 @@ regular_eg (struct number_parts *np, mpfr_srcptr p,
    Return -1 in case of overflow on the sizes. */
 static int
 regular_fg (struct number_parts *np, mpfr_srcptr p,
-            const struct printf_spec spec, struct decimal_info *dec_info)
+            const struct printf_spec spec, struct decimal_info *dec_info,
+            int keep_trailing_zeros)
 {
   mpfr_exp_t exp;
   char * str;
-  const int spec_g = (spec.spec == 'g' || spec.spec == 'G');
-  const int keep_trailing_zeros = !spec_g || spec.alt;
 
   /* WARNING: an empty precision field is forbidden (it means precision = 6
      and it should have been changed to 6 before the function call) */
@@ -1429,7 +1428,7 @@ regular_fg (struct number_parts *np, mpfr_srcptr p,
               switch (spec.rnd_mode)
                 {
                 case MPFR_RNDA:
-                case MPFR_RNDF:  /* round_away = 1 needed for spec_g */
+                case MPFR_RNDF:  /* round_away = 1 needed for %Rg */
                   round_away = 1;
                   break;
                 case MPFR_RNDZ:
@@ -1484,7 +1483,7 @@ regular_fg (struct number_parts *np, mpfr_srcptr p,
               else
                 /* only zeros in fractional part */
                 {
-                  MPFR_ASSERTD (!spec_g);
+                  MPFR_ASSERTD (spec.spec == 'f' || spec.spec == 'F');
                   np->fp_leading_zeros = spec.prec;
                 }
             }
@@ -1526,7 +1525,7 @@ regular_fg (struct number_parts *np, mpfr_srcptr p,
                 {
                   MPFR_ASSERTD (str[0] == '1');
                   np->ip_ptr[0] = '1';
-                  if (!spec_g || spec.alt)
+                  if (keep_trailing_zeros)
                     np->fp_leading_zeros = spec.prec;
                 }
               else
@@ -1554,7 +1553,7 @@ regular_fg (struct number_parts *np, mpfr_srcptr p,
                   /* The np->fp_size <= MPFR_INTMAX_MAX test and the
                      cast to mpfr_uintmax_t below allow one to avoid
                      integer overflow. */
-                  if ((!spec_g || spec.alt)
+                  if (keep_trailing_zeros
                       && spec.prec > 0
                       && np->fp_size <= MPFR_INTMAX_MAX
                       && ((mpfr_uintmax_t)
@@ -1760,6 +1759,15 @@ partition_number (struct number_parts *np, mpfr_srcptr p,
           str[1] = '\0';
           np->ip_ptr = register_string (np->sl, str);
 
+          if (spec.prec < 0)  /* empty precision field */
+            {
+              if (spec.spec == 'e' || spec.spec == 'E')
+                spec.prec = mpfr_get_str_ndigits (10, MPFR_GET_PREC (p)) - 1;
+              else if (spec.spec == 'f' || spec.spec == 'F' ||
+                       spec.spec == 'g' || spec.spec == 'G')
+                spec.prec = DEFAULT_DECIMAL_PREC;
+            }
+
           if (spec.prec > 0
               && ((spec.spec != 'g' && spec.spec != 'G') || spec.alt))
             /* fractional part */
@@ -1815,13 +1823,13 @@ partition_number (struct number_parts *np, mpfr_srcptr p,
       else if (spec.spec == 'f' || spec.spec == 'F')
         {
           if (spec.prec < 0)
-            spec.prec = 6;
-          if (regular_fg (np, p, spec, NULL) == -1)
+            spec.prec = DEFAULT_DECIMAL_PREC;
+          if (regular_fg (np, p, spec, NULL, 1) == -1)
             goto error;
         }
       else if (spec.spec == 'e' || spec.spec == 'E')
         {
-          if (regular_eg (np, p, spec, NULL) == -1)
+          if (regular_eg (np, p, spec, NULL, 1) == -1)
             goto error;
         }
       else
@@ -1838,7 +1846,9 @@ partition_number (struct number_parts *np, mpfr_srcptr p,
           mpfr_exp_t x, e, k;
           struct decimal_info dec_info;
 
-          threshold = (spec.prec < 0) ? 6 : (spec.prec == 0) ? 1 : spec.prec;
+          threshold = spec.prec < 0 ? DEFAULT_DECIMAL_PREC :
+            spec.prec == 0 ? 1 : spec.prec;
+          MPFR_ASSERTD (threshold >= 1);
 
           /* Here we cannot call mpfr_get_str_wrapper since we need the full
              significand in dec_info.str.
@@ -1877,14 +1887,14 @@ partition_number (struct number_parts *np, mpfr_srcptr p,
               /* the conversion is with style 'f' */
               spec.prec = threshold - x - 1;
 
-              if (regular_fg (np, p, spec, &dec_info) == -1)
+              if (regular_fg (np, p, spec, &dec_info, spec.alt) == -1)
                 goto error;
             }
           else
             {
               spec.prec = threshold - 1;
 
-              if (regular_eg (np, p, spec, &dec_info) == -1)
+              if (regular_eg (np, p, spec, &dec_info, spec.alt) == -1)
                 goto error;
             }
         }
@@ -2328,6 +2338,11 @@ mpfr_vasnprintf_aux (char **ptr, char *Buf, size_t size, const char *fmt,
                    spec.left ? "-" : "",
                    spec.group ? "'" : "",
                    spec.spec);
+          MPFR_LOG_MSG (("MPFR_PREC_ARG: format for gmp_asprintf: \"%s\"\n",
+                         format));
+          MPFR_LOG_MSG (("MPFR_PREC_ARG: width = %d, prec = %d, value = %"
+                         MPFR_PREC_FORMAT_TYPE "d\n",
+                         (int) spec.width, (int) spec.prec, prec));
           length = gmp_asprintf (&s, format,
                                  (int) spec.width, (int) spec.prec, prec);
           MPFR_ASSERTN (length >= 0);  /* guaranteed by GMP 6 */

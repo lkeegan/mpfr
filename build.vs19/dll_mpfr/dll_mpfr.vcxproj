@@ -235,7 +235,8 @@
     <ClCompile Include="..\..\src\clears.c" />
     <ClCompile Include="..\..\src\cmp.c" />
     <ClCompile Include="..\..\src\cmp2.c" />
-    <ClCompile Include="..\..\src\cmp_abs.c" />
+    <ClCompile Include="..\..\src\cmpabs.c" />
+    <ClCompile Include="..\..\src\cmpabs_ui.c" />
     <ClCompile Include="..\..\src\cmp_d.c" />
     <ClCompile Include="..\..\src\cmp_ld.c" />
     <ClCompile Include="..\..\src\cmp_si.c" />
