@@ -272,6 +272,63 @@ check_tiny (void)
   mpfr_clear (x);
 }
 
+static void
+check_binary128 (void)
+{
+  mpfr_t x, y, z;
+
+  mpfr_init2 (x, 113);
+  mpfr_init2 (y, 113);
+  mpfr_init2 (z, 113);
+
+  /* number closest to a odd multiple of pi/2 in the binary128 format:
+     8794873135033829349702184924722639 * 2^1852 */
+  mpfr_set_str (x, "1b19ee7c329d7d951906d1e11b5cfp1852", 16, MPFR_RNDN);
+  mpfr_cos (y, x, MPFR_RNDN);
+  mpfr_set_str (z, "1.ad1a2037cd7820f748483f5d39c3p-124", 16, MPFR_RNDN);
+  if (! mpfr_equal_p (y, z))
+    {
+      printf ("Error in check_binary128 (cos x)\n");
+      printf ("expected "); mpfr_dump (z);
+      printf ("got      "); mpfr_dump (y);
+      exit (1);
+    }
+  mpfr_sin (y, x, MPFR_RNDN);
+  mpfr_set_ui (z, 1, MPFR_RNDN);
+  if (! mpfr_equal_p (y, z))
+    {
+      printf ("Error in check_binary128 (sin x)\n");
+      printf ("expected "); mpfr_dump (z);
+      printf ("got      "); mpfr_dump (y);
+      exit (1);
+    }
+
+  /* now multiply x by 2, so that it is near an even multiple of pi/2 */
+  mpfr_mul_2ui (x, x, 1, MPFR_RNDN);
+  mpfr_cos (y, x, MPFR_RNDN);
+  mpfr_set_si (z, -1, MPFR_RNDN);
+  if (! mpfr_equal_p (y, z))
+    {
+      printf ("Error in check_binary128 (cos 2x)\n");
+      printf ("expected "); mpfr_dump (z);
+      printf ("got      "); mpfr_dump (y);
+      exit (1);
+    }
+  mpfr_sin (y, x, MPFR_RNDN);
+  mpfr_set_str (z, "3.5a34406f9af041ee90907eba7386p-124", 16, MPFR_RNDN);
+  if (! mpfr_equal_p (y, z))
+    {
+      printf ("Error in check_binary128 (sin 2x)\n");
+      printf ("expected "); mpfr_dump (z);
+      printf ("got      "); mpfr_dump (y);
+      exit (1);
+    }
+
+  mpfr_clear (x);
+  mpfr_clear (y);
+  mpfr_clear (z);
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -371,6 +428,7 @@ main (int argc, char *argv[])
   test_generic (MPFR_SINCOS_THRESHOLD-1, MPFR_SINCOS_THRESHOLD+1, 2);
   test_sign ();
   check_tiny ();
+  check_binary128 ();
 
   data_check ("data/sin", mpfr_sin, "mpfr_sin");
   bad_cases (mpfr_sin, mpfr_asin, "mpfr_sin", 256, -40, 0, 4, 128, 800, 50);
