@@ -22,7 +22,7 @@ along with the GNU MPFR Library; see the file COPYING.LESSER.  If not, see
 https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
-# include "mpfr-impl.h"
+#include "mpfr-impl.h"
 
 /* we return as many bits as we can, keeping just one bit for the sign */
 # define WANTED_BITS (sizeof(long) * CHAR_BIT - 1)
@@ -100,9 +100,11 @@ mpfr_rem1 (mpfr_ptr rem, long *quo, mpfr_rnd_t rnd_q,
   mpz_abs (my, my);
   q_is_odd = 0;
 
-  /* divide my by 2^k if possible to make operations mod my easier */
+  /* Divide my by 2^k if possible to make operations mod my easier.
+     Since my comes from a regular MPFR number, due to the constraints on the
+     exponent and the precision, there can be no integer overflow below. */
   {
-    unsigned long k = mpz_scan1 (my, 0);
+    mpfr_exp_t k = mpz_scan1 (my, 0);
     ey += k;
     mpz_fdiv_q_2exp (my, my, k);
   }
