@@ -679,3 +679,20 @@ can also be used:
 The relevant build projects are available here:
 
   https://github.com/BrianGladman
+
+d. Using the CompCert compiler
+==============================
+
+[this was tested with CompCert 3.7 and MPFR revision 13851 on x86_64-linux]
+
+CompCert (http://compcert.inria.fr/) is a formally verified compiler.
+To compile MPFR with CompCert:
+
+$ ./configure CC=ccomp CFLAGS="-fbitfields -flongdouble -fstruct-passing" --disable-shared
+
+You also need to unset LD_LIBRARY_PATH, and/or you might need to change
+wl="" into wl="-Wl," in the libtool file.
+
+All tests (make check) should pass (tget_set_d64, tget_set_d128 and
+tset_float128 are skipped, since CompCert does not support _Decimal64,
+_Decimal128 nor _Float128).

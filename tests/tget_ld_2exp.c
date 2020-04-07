@@ -129,6 +129,8 @@ bug20090520 (void)
 static void
 bug20180904 (void)
 {
+#if defined(HAVE_LDOUBLE_IEEE_EXT_LITTLE) || \
+    defined(HAVE_LDOUBLE_IEEE_EXT_BIG)
   mpfr_t x;
   long double d = 5.450797408381041489264061250159e-4937L;
   long double e;
@@ -144,6 +146,7 @@ bug20180904 (void)
       exit (1);
     }
   mpfr_clear (x);
+#endif
 }
 
 int

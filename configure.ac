@@ -492,8 +492,6 @@ dnl (i.e. generic code must be used).
 AC_C_BIGENDIAN([AC_DEFINE(HAVE_BIG_ENDIAN)],[AC_DEFINE(HAVE_LITTLE_ENDIAN)],
 [true],[true])
 
-MPFR_CONFIGS
-
 # (Based on GMP 5.1)
 # clock_gettime is in librt on *-*-osf5.1 and on glibc < 2.17, so add -lrt to
 # TUNE_LIBS if needed (e.g. if clock_gettime is not already in the C library).
@@ -536,6 +534,10 @@ int main (void) { return 0; }
     fi
     ;;
 esac
+
+dnl MPFR_CONFIGS uses LDFLAGS, thus must be invoked after LDFLAGS has
+dnl been determined completely.
+MPFR_CONFIGS
 
 dnl
 dnl For mpfr-longlong.h - TODO: should be replaced (see acinclude.m4).
@@ -806,26 +808,17 @@ dnl End of setup related to GMP / mini-gmp
 dnl The getrusage function is needed for MPFR bench (cf tools/bench)
 AC_CHECK_FUNCS([getrusage])
 
-dnl Remove also many MACROS (AC_DEFINE) which are unused by MPFR
-dnl and polluate (and slow down because libtool has to parse them) the build.
+dnl Remove also many MACROS (AC_DEFINE) which are unused by MPFR and
+dnl pollute (and slow down because libtool has to parse them) the build.
 if test -f confdefs.h; then
-  $SED '/#define PACKAGE_/d' <confdefs.h >confdefs.tmp
-  $SED '/#define HAVE_STRING/d' <confdefs.tmp >confdefs.h
-  $SED '/#define HAVE_ALLOCA /d' <confdefs.h >confdefs.tmp
-  $SED '/#define HAVE_DLFCN_H/d' <confdefs.tmp >confdefs.h
-  $SED '/#define HAVE_MEM/d' <confdefs.h >confdefs.tmp
-  $SED '/#define STDC_HEADERS/d' <confdefs.tmp >confdefs.h
-  $SED '/#define HAVE_STRTOL/d' <confdefs.h >confdefs.tmp
-  $SED '/#define HAVE_STDLIB_H/d' <confdefs.tmp >confdefs.h
-  $SED '/#define HAVE_UNISTD_H/d' <confdefs.h >confdefs.tmp
-  $SED '/#define HAVE_STDC_HEADERS/d' <confdefs.tmp >confdefs.h
-  $SED '/#define HAVE_LONG_DOUBLE/d' <confdefs.h >confdefs.tmp
-  $SED '/#define HAVE_SYS_STAT_H/d' <confdefs.tmp >confdefs.h
-  $SED '/#define HAVE_SYS_TYPES_H/d' <confdefs.h >confdefs.tmp
-  $SED '/#define PROTOTYPES/d' <confdefs.tmp >confdefs.h
-  $SED '/#define __PROTOTYPES/d' <confdefs.h >confdefs.tmp
-
-  mv confdefs.tmp confdefs.h
+  for i in PACKAGE_ HAVE_STRING HAVE_DLFCN_H HAVE_MEM STDC_HEADERS \
+           HAVE_STRTOL HAVE_STDLIB_H HAVE_UNISTD_H HAVE_STDC_HEADERS \
+           HAVE_LONG_DOUBLE HAVE_SYS_STAT_H HAVE_SYS_TYPES_H \
+           PROTOTYPES __PROTOTYPES
+  do
+    $SED "/#define $i/d" < confdefs.h > confdefs.tmp
+    mv confdefs.tmp confdefs.h
+  done
 fi
 
 if $EGREP -q -e '-dev$' $srcdir/VERSION; then

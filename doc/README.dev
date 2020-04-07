@@ -426,6 +426,7 @@ List of macros used for building MPFR (also used for checking):
                         ('gmp-impl.h', 'gmp-maparam.h', ...).
 + MPFR_USE_MINI_GMP:    Define to use mini-gmp.
 
++ HAVE_ALLOCA:          Define if alloca() works.
 + HAVE_ALLOCA_H:        Define if the function alloca() is in alloca.h.
 + HAVE_LOCALE_H:        Define if <locale.h> is available.
 + HAVE_LONG_LONG:       Define if the system supports 'long long'.
@@ -480,8 +481,9 @@ Format of long double.
 + MPFR_WANT_FLOAT128:   Define to build conversion functions from/to
                         binary128 floats (_Float128 or __float128).
 
-+ MPFR_ALLOCA_MAX:      Maximum size for the use of alloca by temporary
-                        allocations (default: 16384).
++ MPFR_ALLOCA_MAX:      Maximum size for the use of alloca() by temporary
+                        allocations (default: 16384); if set to 0, alloca()
+                        will not be used, and not even referenced.
                         This macro is not used when MPFR is built with
                         the GMP build directory (--with-gmp-build).
 
