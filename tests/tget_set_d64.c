@@ -482,8 +482,9 @@ powers_of_10 (void)
 static void
 noncanonical (void)
 {
-  /* The code below assumes BID. */
-#ifndef DPD_FORMAT
+  /* The code below assumes BID. It also needs _MPFR_IEEE_FLOATS
+     due to the use of union mpfr_ieee_double_extract. */
+#if _MPFR_IEEE_FLOATS && defined(DECIMAL_BID_FORMAT)
   /* The volatile below avoids _Decimal64 constant propagation, which is
      buggy for non-canonical encoding in various GCC versions on the x86 and
      x86_64 targets: failure with gcc (Debian 20190719-1) 10.0.0 20190718
@@ -572,11 +573,11 @@ main (int argc, char *argv[])
 
   if (verbose)
     {
-#ifdef DPD_FORMAT
-      /* FIXME: DPD_FORMAT is also used when the format is unknown. */
-      printf ("Using DPD format (or unknown)\n");
-#else
-      printf ("Using BID format\n");
+#ifdef DECIMAL_DPD_FORMAT
+      printf ("Using DPD encoding\n");
+#endif
+#ifdef DECIMAL_BID_FORMAT
+      printf ("Using BID encoding\n");
 #endif
     }
 

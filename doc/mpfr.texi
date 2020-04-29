@@ -707,9 +707,9 @@ have an exponent.
 @cindex Rounding
 @tindex @code{mpfr_rnd_t}
 The @dfn{rounding mode} specifies the way to round the result of a
-floating-point operation, in case the exact result can not be represented
-exactly in the destination;
-the corresponding C data type is @code{mpfr_rnd_t}.
+floating-point operation, in case the exact result cannot be represented
+exactly in the destination (@pxref{Rounding}).
+The corresponding C data type is @code{mpfr_rnd_t}.
 
 @cindex Group of flags
 @tindex @code{mpfr_flags_t}
@@ -753,17 +753,17 @@ The following rounding modes are supported:
 
 @itemize @bullet
 
-@item @code{MPFR_RNDN}: round to nearest
-      (roundTiesToEven in IEEE@tie{}754-2008),
-
-@item @code{MPFR_RNDZ}: round toward zero
-      (roundTowardZero in IEEE@tie{}754-2008),
-
-@item @code{MPFR_RNDU}: round toward plus infinity
-      (roundTowardPositive in IEEE@tie{}754-2008),
+@item @code{MPFR_RNDN}: round to nearest, with the even rounding rule
+      (roundTiesToEven in IEEE@tie{}754-2008); see details below.
 
 @item @code{MPFR_RNDD}: round toward minus infinity
-      (roundTowardNegative in IEEE@tie{}754-2008),
+      (roundTowardNegative in IEEE@tie{}754-2008).
+
+@item @code{MPFR_RNDU}: round toward plus infinity
+      (roundTowardPositive in IEEE@tie{}754-2008).
+
+@item @code{MPFR_RNDZ}: round toward zero
+      (roundTowardZero in IEEE@tie{}754-2008).
 
 @item @code{MPFR_RNDA}: round away from zero.
 
@@ -779,13 +779,52 @@ be regarded as bugs and reported, so that they can be fixed.
 
 @end itemize
 
-The @samp{round to nearest} mode works as in the IEEE@tie{}754 standard: in
-case the number to be rounded lies exactly in the middle of two representable
-numbers, it is rounded to the one with the least significant bit set to zero.
-For example, the number 2.5, which is represented by (10.1) in binary, is
-rounded to (10.0)=2 with a precision of two bits, and not to (11.0)=3.
+Note that, in particular for a result equal to zero, the sign is preserved
+by the rounding operation.
+
+@c Note: Because since 2008, IEEE 754 has 2 rounding attributes to nearest,
+@c we must avoid the confusion by being explicit that one uses the even
+@c rounding rule. Moreover, functions that convert a MPFR number to a
+@c string of digits can output in a radix other than 2; in particular
+@c because we do not always recall the rounding rule, we need to be general
+@c enough here.
+The @code{MPFR_RNDN} mode works like roundTiesToEven from the
+IEEE@tie{}754 standard: in case the number to be rounded lies exactly
+in the middle between two consecutive representable numbers, it is
+rounded to the one with an even significand; in radix 2, this means
+that the least significant bit is 0. For example, the number 2.5,
+which is represented by (10.1) in binary, is rounded to (10.0)=2 with
+a precision of two bits, and not to (11.0)=3.
 This rule avoids the @dfn{drift} phenomenon mentioned by Knuth in volume 2
 of The Art of Computer Programming (Section@tie{}4.2.2).
+
+Note: In particular for a 1-digit precision (in radix 2 or other radices,
+as in conversions to a string of digits), one considers the significands
+associated with the exponent of the number to be rounded. For instance,
+to round the number 95 in radix 10 with a 1-digit precision, one considers
+its truncated 1-digit integer significand 9 and the following integer 10
+(since these are consecutive integers, exactly one of them is even).
+10 is the even significand, so that 95 will be rounded to 100, not to 90.
+
+@c VL: There exist multiple equivalent definitions. I tried to give the
+@c most intuitive ones, with the important requirement of being closest
+@c to the input, and to make the definitions similar to each other. For
+@c MPFR_RNDZ and MPFR_RNDA, the use of the absolute value allows one to
+@c emphasize on the "sign symmetry" (there is no ambiguity on the sign
+@c of the result due to the "closest to x" requirement, except for the
+@c sign of 0, but see the note above).
+For the @dfn{directed rounding modes}, a number @var{x} is rounded to
+the number @var{y} that is the closest to @var{x} such that
+@itemize @bullet
+@item @code{MPFR_RNDD}:
+      @var{y} is less than or equal to @var{x};
+@item @code{MPFR_RNDU}:
+      @var{y} is greater than or equal to @var{x};
+@item @code{MPFR_RNDZ}:
+      @GMPabs{@var{y}} is less than or equal to @GMPabs{@var{x}};
+@item @code{MPFR_RNDA}:
+      @GMPabs{@var{y}} is greater than or equal to @GMPabs{@var{x}}.
+@end itemize
 
 The @code{MPFR_RNDF} mode works as follows: the computed value is either
 that corresponding to @code{MPFR_RNDD} or that corresponding to
@@ -817,7 +856,7 @@ The input variables are regarded as exact (in particular, their precision
 does not affect the result).
 
 As a consequence, in case of a non-zero real rounded result, the error
-on the result is less or equal to 1/2 ulp (unit in the last place) of
+on the result is less than or equal to 1/2 ulp (unit in the last place) of
 that result in the rounding to nearest mode, and less than 1 ulp of that
 result in the directed rounding modes (a ulp is the weight of the least
 significant represented bit of the result after rounding).
@@ -1170,8 +1209,11 @@ MPF function initializes to zero instead.)
 
 Normally, a variable should be initialized once only or at
 least be cleared, using @code{mpfr_clear}, between initializations.
-To change the precision of a variable which has already been initialized,
-use @code{mpfr_set_prec}.
+To change the precision of a variable that has already been initialized,
+use @code{mpfr_set_prec} or @code{mpfr_prec_round}; note that if the
+precision is decreased, the unused memory will not be freed, so that
+it may be wise to choose a large enough initial precision in order to
+avoid reallocations.
 The precision @var{prec} must be an integer between @code{MPFR_PREC_MIN} and
 @code{MPFR_PREC_MAX} (otherwise the behavior is undefined).
 @end deftypefun
@@ -1312,7 +1354,7 @@ iterative algorithms like Newton-Raphson, making the computation precision
 closely match the actual accurate part of the numbers.
 
 @deftypefun void mpfr_set_prec (mpfr_t @var{x}, mpfr_prec_t @var{prec})
-Reset the precision of @var{x} to be @strong{exactly} @var{prec} bits,
+Set the precision of @var{x} to be @strong{exactly} @var{prec} bits,
 and set its value to NaN@.
 The previous value stored in @var{x} is lost. It is equivalent to
 a call to @code{mpfr_clear(x)} followed by a call to
@@ -1378,7 +1420,7 @@ system provides the @samp{_Decimal64} and @samp{_Decimal128} data type;
 to use those functions, one should define the macro
 @code{MPFR_WANT_DECIMAL_FLOATS} before including @file{mpfr.h}.
 @code{mpfr_set_q} might fail if the numerator (or the
-denominator) can not be represented as a @code{mpfr_t}.
+denominator) cannot be represented as a @code{mpfr_t}.
 
 For @code{mpfr_set}, the sign of a NaN is propagated in order to mimic the
 IEEE@tie{}754 @code{copy} operation. But contrary to IEEE@tie{}754, the
@@ -1453,8 +1495,8 @@ an optional decimal-point character, and an optional exponent consisting of
 an exponent prefix followed by an optional sign and a non-empty sequence of
 decimal digits. A significand digit is either a decimal digit or a Latin
 letter (62 possible characters), with @samp{A} = 10, @samp{B} = 11, @dots{},
-@samp{Z} = 35; case is ignored in bases less or equal to 36, in bases larger
-than 36, @samp{a} = 36, @samp{b} = 37, @dots{}, @samp{z} = 61.
+@samp{Z} = 35; case is ignored in bases less than or equal to 36, in bases
+larger than 36, @samp{a} = 36, @samp{b} = 37, @dots{}, @samp{z} = 61.
 The value of a significand digit must be strictly less than the base. The
 decimal-point character can be either the one defined by the current locale
 or the period (the first one is accepted for consistency with the C standard
@@ -1782,7 +1824,7 @@ that the corresponding conversion function (for example @code{mpfr_get_ui}
 for @code{mpfr_fits_ulong_p}), when called with faithful rounding,
 will always return a number that is representable in the corresponding type.
 As a consequence, for @code{MPFR_RNDF}, @code{mpfr_fits_ulong_p} will return
-non-zero for a non-negative number less or equal to @code{ULONG_MAX}.
+non-zero for a non-negative number less than or equal to @code{ULONG_MAX}.
 @end deftypefun
 
 @node Arithmetic Functions, Comparison Functions, Conversion Functions, MPFR Interface
@@ -2532,9 +2574,9 @@ See the documentation of @code{mpfr_strtofr} for a detailed description
 of the valid string formats.
 @c Special values can be read as follows (the case does not matter):
 @c @samp{@@NaN@@}, @samp{@@Inf@@}, @samp{+@@Inf@@} and @samp{-@@Inf@@},
-@c possibly followed by other characters; if the base is smaller or equal
-@c to 16, the following strings are accepted too: @samp{NaN}, @samp{Inf},
-@c @samp{+Inf} and @samp{-Inf}.
+@c possibly followed by other characters; if the base is smaller than
+@c or equal to 16, the following strings are accepted too: @samp{NaN},
+@c @samp{Inf}, @samp{+Inf} and @samp{-Inf}.
 
 Return the number of bytes read, or if an error occurred, return 0.
 @end deftypefun
@@ -3011,10 +3053,11 @@ Get the default rounding mode.
 Round @var{x} according to @var{rnd} with precision @var{prec}, which
 must be an integer between @code{MPFR_PREC_MIN} and @code{MPFR_PREC_MAX}
 (otherwise the behavior is undefined).
-If @var{prec} is greater or equal to the precision of @var{x}, then new
-space is allocated for the significand, and it is filled with zeros.
+If @var{prec} is greater than or equal to the precision of @var{x}, then
+new space is allocated for the significand, and it is filled with zeros.
 Otherwise, the significand is rounded to precision @var{prec} with the given
-direction. In both cases, the precision of @var{x} is changed to @var{prec}.
+direction; no memory reallocation to free the unused limbs is done.
+In both cases, the precision of @var{x} is changed to @var{prec}.
 
 Here is an example of how to use @code{mpfr_prec_round} to implement
 Newton's algorithm to compute the inverse of @var{a}, assuming @var{x} is

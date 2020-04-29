@@ -224,6 +224,27 @@ specific architecture.
                         buggy (MPFR tests may fail). In such a case,
                         this option is useful.
 
+--enable-decimal-float  build conversion functions from/to decimal floats.
+                        Note that detection by the configure script is
+                        limited in case of cross-compilation.
+                        Accepted arguments:
+                   yes  Decimal support is requested and the configure
+                        script fails if it detects that decimals do not
+                        work.
+                        The encoding (BID or DPD) will automatically be
+                        detected at configure time or at compile time if
+                        possible (if not, generic code will be used).
+                    no  Decimal support is explicitly disabled.
+                  auto  Decimal support is enabled if the configure script
+                        detects that it works. This is the default when
+                        --{enable,disable}-decimal-float is not given.
+                   bid  Decimal support is requested and the encoding is
+                        assumed to be BID (some check may be done).
+                   dpd  Decimal support is requested and the encoding is
+                        assumed to be DPD (some check may be done).
+               generic  Decimal support is requested and the generic code
+                        is used (mainly for developers).
+
 --enable-gmp-internals  allows the MPFR build to use GMP's undocumented
                         functions (not from the public API). Note that
                         library versioning is not guaranteed to work if
@@ -434,8 +455,8 @@ is to make sure that the dynamic linker configuration is consistent
 with GCC's behavior, for instance by having /usr/local/lib in
 /etc/ld.so.conf or in some file from /etc/ld.so.conf.d (as Debian
 did: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=395177). See
-also https://gcc.gnu.org/ml/gcc-help/2010-01/msg00171.html for more
-information. Alternatively you can use:
+also https://gcc.gnu.org/legacy-ml/gcc-help/2010-01/msg00171.html for
+more information. Alternatively you can use:
   * environment variables. This may sometimes be necessary. If DIR
     is the installation directory of GMP, add DIR/include to your
     CPATH or C_INCLUDE_PATH (for compilers other than GCC, please
