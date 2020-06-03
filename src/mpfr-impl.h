@@ -71,6 +71,11 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #if defined(_MPFR_EXP_FORMAT) && _MPFR_EXP_FORMAT == 4
 /* mpfr_exp_t will be defined as intmax_t */
+# undef MPFR_NEED_INTMAX_H
+# define MPFR_NEED_INTMAX_H 1
+#endif
+
+#ifdef MPFR_NEED_INTMAX_H
 # include "mpfr-intmax.h"
 #endif
 
