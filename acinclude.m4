@@ -149,22 +149,21 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 ]])], [AC_DEFINE([HAVE___VA_COPY]) AC_MSG_RESULT([__va_copy])],
    [AC_MSG_RESULT([memcpy])])])
 
-dnl FIXME: The functions memmove, memset and strtol are really needed by
-dnl MPFR, but if they are implemented as macros, this is also OK (in our
-dnl case).  So, we do not return an error, but their tests are currently
-dnl useless.
-dnl Moreover, for memmove and memset, when gcc -Werror is used, these
-dnl functions are considered to be missing because of a "conflicting
-dnl types for built-in function" error. Possible workarounds if the
-dnl results of this test are used (thus one doesn't want an error):
-dnl   * If "$GCC" is set, disable built-ins by adding -fno-builtin
-dnl     to $CFLAGS for this test (this would yield a failure if such
-dnl     functions are defined only as built-ins, but does this occur
-dnl     in practice?).
-dnl   * Enable -Werror only for the main compilation (and possibly
-dnl     some particular tests) via a new configure option.
-dnl gettimeofday is not defined for MinGW
-AC_CHECK_FUNCS([memmove memset setlocale strtol gettimeofday signal])
+dnl Options like -Werror can yield a failure as AC_CHECK_FUNCS uses some
+dnl fixed prototype for function detection, generally incompatible with
+dnl the standard one. For instance, with GCC, if the function is defined
+dnl as a builtin, one can get a "conflicting types for built-in function"
+dnl error [-Werror=builtin-declaration-mismatch], even though the header
+dnl is not included; when these functions were tested, this occurred with
+dnl memmove and memset. Even though no failures are known with the tested
+dnl functions at this time, let's remove options starting with "-Werror"
+dnl since failures may still be possible.
+dnl
+dnl The gettimeofday function is not defined with MinGW.
+saved_CFLAGS="$CFLAGS"
+CFLAGS=`[echo " $CFLAGS" | $SED 's/ -Werror[^ ]*//g']`
+AC_CHECK_FUNCS([setlocale gettimeofday signal])
+CFLAGS="$saved_CFLAGS"
 
 dnl We cannot use AC_CHECK_FUNCS on sigaction, because while this
 dnl function may be provided by the C library, its prototype and
@@ -527,44 +526,60 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 LIBS="$saved_LIBS"
 
 dnl Try to determine the format of double
-dnl FIXME: Use a test like for long double instead of AC_RUN_IFELSE,
-dnl        which cannot run the test when cross-compiling.
-AC_MSG_CHECKING(format of floating-point type `double')
-AC_RUN_IFELSE([AC_LANG_PROGRAM([[
-]], [[
-union ieee_double_extract
-{
-  double d;
-  unsigned char x[8];
-} t;
-t.d = 2.877939254133025759330166692961938679218292236328125; /* exact */
-if (sizeof (double) != 8)
-   return 0;
-if (sizeof (unsigned char) != 1)
-   return 0;
-if (t.x[0] == 1 && t.x[1] == 2 && t.x[2] == 3 && t.x[3] == 4 &&
-    t.x[4] == 5 && t.x[5] == 6 && t.x[6] == 7 && t.x[7] == 64)
-   return 1; /* little endian */
-else if (t.x[7] == 1 && t.x[6] == 2 && t.x[5] == 3 && t.x[4] == 4 &&
-    t.x[3] == 5 && t.x[2] == 6 && t.x[1] == 7 && t.x[0] == 64)
-   return 2; /* big endian */
-else
-   return 0; /* unknown */
-]])],
-   [mpfr_ieee_double=$?],
-   [mpfr_ieee_double=$?],
-   [mpfr_ieee_double=0])
-case "$mpfr_ieee_double" in
-  1) AC_MSG_RESULT([IEEE little endian])
-     AC_DEFINE(HAVE_DOUBLE_IEEE_LITTLE_ENDIAN) ;;
-  2) AC_MSG_RESULT([IEEE big endian])
-     AC_DEFINE(HAVE_DOUBLE_IEEE_BIG_ENDIAN) ;;
-  *) AC_MSG_RESULT([unknown])
-     AC_MSG_WARN([format of `double' not recognized]) ;;
+MPFR_C_REALFP_FORMAT(double,)
+case $mpfr_cv_c_double_format in
+  "IEEE double, big endian"*)
+    AC_DEFINE(HAVE_DOUBLE_IEEE_BIG_ENDIAN, 1)
+    ;;
+  "IEEE double, little endian"*)
+    AC_DEFINE(HAVE_DOUBLE_IEEE_LITTLE_ENDIAN, 1)
+    ;;
+  unknown*)
+    ;;
+  *)
+    AC_MSG_WARN([format of `double' unsupported or not recognized: $mpfr_cv_c_double_format])
+    ;;
 esac
 
 dnl Now try to determine the format of long double
-MPFR_C_LONG_DOUBLE_FORMAT
+MPFR_C_REALFP_FORMAT(long double,L)
+case $mpfr_cv_c_long_double_format in
+  "IEEE double, big endian"*)
+    AC_DEFINE(HAVE_LDOUBLE_IS_DOUBLE, 1)
+    ;;
+  "IEEE double, little endian"*)
+    AC_DEFINE(HAVE_LDOUBLE_IS_DOUBLE, 1)
+    ;;
+  "IEEE extended, little endian"*)
+    AC_DEFINE(HAVE_LDOUBLE_IEEE_EXT_LITTLE, 1)
+    ;;
+  "IEEE extended, big endian"*)
+    AC_DEFINE(HAVE_LDOUBLE_IEEE_EXT_BIG, 1)
+    ;;
+  "IEEE quad, big endian"*)
+    AC_DEFINE(HAVE_LDOUBLE_IEEE_QUAD_BIG, 1)
+    ;;
+  "IEEE quad, little endian"*)
+    AC_DEFINE(HAVE_LDOUBLE_IEEE_QUAD_LITTLE, 1)
+    ;;
+  "possibly double-double, big endian"*)
+    AC_MSG_WARN([This format is known on GCC/PowerPC platforms,])
+    AC_MSG_WARN([but due to GCC PR26374, we can't test further.])
+    AC_MSG_WARN([You can safely ignore this warning, though.])
+    AC_DEFINE(HAVE_LDOUBLE_MAYBE_DOUBLE_DOUBLE, 1)
+    ;;
+  "possibly double-double, little endian"*)
+    AC_MSG_WARN([This format is known on GCC/PowerPC platforms,])
+    AC_MSG_WARN([but due to GCC PR26374, we can't test further.])
+    AC_MSG_WARN([You can safely ignore this warning, though.])
+    AC_DEFINE(HAVE_LDOUBLE_MAYBE_DOUBLE_DOUBLE, 1)
+    ;;
+  unknown*)
+    ;;
+  *)
+    AC_MSG_WARN([format of `long double' unsupported or not recognized: $mpfr_cv_c_long_double_format])
+    ;;
+esac
 
 dnl Check if thread-local variables are supported.
 dnl At least two problems can occur in practice:
@@ -822,10 +837,8 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #include "mpfr-sassert.h"
 
 /* Test if Static Assertions work */
-MPFR_DECL_STATIC_ASSERT(sizeof(char) <= sizeof(int));
 
 int main (void) {
-  MPFR_DECL_STATIC_ASSERT(sizeof(int) <= sizeof(long));
   int x;
   (void) (x = 1);  /* cast to void: avoid a warning, at least with GCC */
   /* Test of the macro after a declaraction and a statement. */
@@ -896,17 +909,17 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
   if (GMP_NAIL_BITS != 0)
     {
       fprintf (stderr, "GMP_NAIL_BITS != 0\n");
-      return 1;
+      return 81;
     }
   if (GMP_NUMB_BITS != mp_bits_per_limb)
     {
       fprintf (stderr, "GMP_NUMB_BITS != mp_bits_per_limb\n");
-      return 2;
+      return 82;
     }
   if (GMP_NUMB_BITS != sizeof(mp_limb_t) * CHAR_BIT)
     {
       fprintf (stderr, "GMP_NUMB_BITS != sizeof(mp_limb_t) * CHAR_BIT\n");
-      return 3;
+      return 83;
     }
   return 0;
 ]])], [mpfr_cv_check_gmp="yes"],
@@ -925,9 +938,6 @@ dnl MPFR_CHECK_DBL2INT_BUG
 dnl ----------------------
 dnl Check for double-to-integer conversion bug
 dnl https://gforge.inria.fr/tracker/index.php?func=detail&aid=14435
-dnl For the exit status, the lowest values (including some values after 128)
-dnl are reserved for various system errors. So, let's use the largest values
-dnl below 255 for errors in the test itself.
 dnl The following problem has been seen under Solaris in config.log,
 dnl i.e. the failure to link with libgmp wasn't detected in the first
 dnl test:
@@ -950,6 +960,7 @@ AC_DEFUN([MPFR_CHECK_DBL2INT_BUG], [
 AC_REQUIRE([MPFR_CONFIGS])dnl
 AC_CACHE_CHECK([for double-to-integer conversion bug], mpfr_cv_dbl_int_bug, [
 AC_RUN_IFELSE([AC_LANG_PROGRAM([[
+#include <stdio.h>
 #include <gmp.h>
 ]], [[
   double d;
@@ -966,7 +977,11 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
         break;
       u = u >> 1;
     }
-  return (i == 0 && u == 1UL) ? 0 : 254 - i;
+  if (i == 0 && u == 1UL)
+    return 0;
+  fprintf (stderr, "Failure: i = %d, (unsigned long) u = %lu\n",
+           i, (unsigned long) u);
+  return 1;
 ]])], [mpfr_cv_dbl_int_bug="no"],
       [mpfr_cv_dbl_int_bug="yes or failed to exec (exit status is $?)"],
       [mpfr_cv_dbl_int_bug="cannot test, assume not present"])
@@ -980,32 +995,28 @@ esac
 
 dnl MPFR_CHECK_MP_LIMB_T_VS_LONG
 dnl ----------------------------
-dnl Check that a long can fit in a mp_limb_t.
-dnl If so, it set the define MPFR_LONG_WITHIN_LIMB
-dnl FIXME: The following code is wrong when using:
-dnl   -std=c99 -pedantic-errors -Wno-error=overlength-strings
-dnl because static assertions are not supported, so that MPFR_ASSERTN
-dnl is used, but it is not defined by "mpfr-sassert.h". The consequence
-dnl is that the program fails, and MPFR_LONG_WITHIN_LIMB is not defined
-dnl while it should be. Before fixing this bug, find a way to test with
-dnl MPFR_LONG_WITHIN_LIMB undefined; this is necessary for code coverage
-dnl and possibly to find new bugs, like in r12252:
-dnl   ./configure --enable-assert=full \
-dnl     'CFLAGS=-std=c99 -O3 -pedantic-errors -Wno-error=overlength-strings'
+dnl Check whether a long fits in mp_limb_t.
+dnl If static assertions are not supported, one gets "no" even though a long
+dnl fits in mp_limb_t. Therefore, code without MPFR_LONG_WITHIN_LIMB defined
+dnl needs to be portable.
 dnl According to the GMP developers, a limb is always as large as a long,
-dnl except when __GMP_SHORT_LIMB is defined, but this is never defined:
+dnl except when __GMP_SHORT_LIMB is defined. It is currently never defined:
 dnl https://gmplib.org/list-archives/gmp-discuss/2018-February/006190.html
-dnl FIXME: This is not safe. The fact that __GMP_SHORT_LIMB cannot occur
-dnl is not documented, and gmp.h has such a code probably because it may
-dnl occur in the future (or the user may want to override the default
-dnl choice).
+dnl but it is not clear whether this could change in the future.
 AC_DEFUN([MPFR_CHECK_MP_LIMB_T_VS_LONG], [
 AC_REQUIRE([MPFR_CONFIGS])
 AC_CACHE_CHECK([for long to fit in mp_limb_t], mpfr_cv_long_within_limb, [
 saved_CPPFLAGS="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS -I$srcdir/src"
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+dnl AC_LINK_IFELSE is safer than AC_COMPILE_IFELSE, as it will detect
+dnl undefined function-like macros (which otherwise may be regarded
+dnl as valid function calls with AC_COMPILE_IFELSE since prototypes
+dnl are not required by the C standard).
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <gmp.h>
+/* Make sure that a static assertion is used (not MPFR_ASSERTN). */
+#undef MPFR_USE_STATIC_ASSERT
+#define MPFR_USE_STATIC_ASSERT 1
 #include "mpfr-sassert.h"
 ]], [[
   MPFR_STAT_STATIC_ASSERT ((mp_limb_t) -1 >= (unsigned long) -1);
@@ -1025,13 +1036,19 @@ dnl ------------------------------
 dnl Check that an intmax_t can fit in a mp_limb_t.
 AC_DEFUN([MPFR_CHECK_MP_LIMB_T_VS_INTMAX], [
 AC_REQUIRE([MPFR_CONFIGS])
+if test "$ac_cv_type_intmax_t" = yes; then
 AC_CACHE_CHECK([for intmax_t to fit in mp_limb_t], mpfr_cv_intmax_within_limb, [
 saved_CPPFLAGS="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS -I$srcdir/src -DMPFR_NEED_INTMAX_H"
-dnl AC_LINK_IFELSE is safier than AC_COMPILE_IFELSE, which did not detect
-dnl the missing #include "mpfr-sassert.h".
+dnl AC_LINK_IFELSE is safer than AC_COMPILE_IFELSE, as it will detect
+dnl undefined function-like macros (which otherwise may be regarded
+dnl as valid function calls with AC_COMPILE_IFELSE since prototypes
+dnl are not required by the C standard).
 AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <gmp.h>
+/* Make sure that a static assertion is used (not MPFR_ASSERTN). */
+#undef MPFR_USE_STATIC_ASSERT
+#define MPFR_USE_STATIC_ASSERT 1
 #include "mpfr-sassert.h"
 #include "mpfr-intmax.h"
 ]], [[
@@ -1045,6 +1062,7 @@ yes*)
       AC_DEFINE([MPFR_INTMAX_WITHIN_LIMB],1,[intmax_t can be stored in mp_limb_t]) ;;
 esac
 CPPFLAGS="$saved_CPPFLAGS"
+fi
 ])
 
 dnl MPFR_PARSE_DIRECTORY
@@ -1087,66 +1105,55 @@ AC_DEFUN([MPFR_PARSE_DIRECTORY],
 ])
 
 
-dnl  MPFR_C_LONG_DOUBLE_FORMAT
-dnl  -------------------------
-dnl  Determine the format of a long double.
+dnl MPFR_C_REALFP_FORMAT
+dnl --------------------
+dnl Determine the format of a real floating type (first argument),
+dnl actually either double or long double. The second argument is
+dnl the printf length modifier.
 dnl
-dnl  The object file is grepped, so as to work when cross-compiling.
-dnl  Start and end sequences are included to avoid false matches, and
-dnl  allowance is made for the desired data crossing an "od -b" line
-dnl  boundary.  The test number is a small integer so it should appear
-dnl  exactly, without rounding or truncation, etc.
+dnl The object file is grepped, so as to work when cross-compiling.
+dnl Start and end sequences are included to avoid false matches, and
+dnl allowance is made for the desired data crossing an "od -b" line
+dnl boundary.  The test number is a small integer so it should appear
+dnl exactly, without rounding or truncation, etc.
 dnl
-dnl  "od -b" is supported even by Unix V7, and the awk script used doesn't
-dnl  have functions or anything, so even an "old" awk should suffice.
+dnl "od -b" is supported even by Unix V7, and the awk script used doesn't
+dnl have functions or anything, so even an "old" awk should suffice.
 dnl
-dnl  The 10-byte IEEE extended format is generally padded with nul bytes
-dnl  to either 12 or 16 bytes for alignment purposes.  The SVR4 i386 ABI
-dnl  is 12 bytes, or i386 gcc -m128bit-long-double selects 16 bytes.
-dnl  IA-64 is 16 bytes in LP64 mode, or 12 bytes in ILP32 mode.  The
-dnl  relevant part in all cases (big and little endian) consists of the
-dnl  first 10 bytes.
+dnl Concerning long double: The 10-byte IEEE extended format is generally
+dnl padded with null bytes to either 12 or 16 bytes for alignment purposes.
+dnl The SVR4 i386 ABI is 12 bytes, or i386 gcc -m128bit-long-double selects
+dnl 16 bytes. IA-64 is 16 bytes in LP64 mode, or 12 bytes in ILP32 mode.
+dnl The relevant part in all cases (big and little endian) consists of the
+dnl first 10 bytes.
 dnl
-dnl  We compile and link (with "-o conftest$EXEEXT") instead of just
-dnl  compiling (with "-c"), so that this test works with GCC's and
-dnl  clang's LTO (-flto). If we just compile with LTO, the generated
-dnl  object file does not contain the structure as is. This new test
-dnl  is inspired by the one used by GMP for the double type:
-dnl    https://gmplib.org/repo/gmp/rev/33eb0998a052
-dnl    https://gmplib.org/repo/gmp/rev/cbc6dbf95a10
-dnl  "$EXEEXT" had to be added, otherwise the test was failing on
-dnl  MS-Windows (see Autoconf manual).
-dnl
-dnl  Enhancements:
-dnl
-dnl  Could match more formats, but no need to worry until there's code
-dnl  wanting to use them.
-dnl
-dnl  Don't want to duplicate the double matching from GMP_C_DOUBLE_FORMAT,
-dnl  perhaps we should merge with that macro, to match data formats
-dnl  irrespective of the C type in question.  Or perhaps just let the code
-dnl  use DOUBLE macros when sizeof(double) == sizeof(long double).
+dnl We compile and link (with "-o conftest$EXEEXT") instead of just
+dnl compiling (with "-c"), so that this test works with GCC's and
+dnl clang's LTO (-flto). If we just compile with LTO, the generated
+dnl object file does not contain the structure as is. This new test
+dnl is inspired by the one used by GMP for the double type:
+dnl   https://gmplib.org/repo/gmp/rev/33eb0998a052
+dnl   https://gmplib.org/repo/gmp/rev/cbc6dbf95a10
+dnl "$EXEEXT" had to be added, otherwise the test was failing on
+dnl MS-Windows (see Autoconf manual).
 
-AC_DEFUN([MPFR_C_LONG_DOUBLE_FORMAT],
+AC_DEFUN([MPFR_C_REALFP_FORMAT],
 [AC_REQUIRE([AC_PROG_CC])
 AC_REQUIRE([AC_PROG_AWK])
 AC_REQUIRE([AC_OBJEXT])
-AC_CHECK_TYPES([long double])
-AC_CACHE_CHECK([format of floating-point type `long double'],
-                mpfr_cv_c_long_double_format,
-[mpfr_cv_c_long_double_format=unknown
-if test "$ac_cv_type_long_double" != yes; then
-  mpfr_cv_c_long_double_format="not available"
-else
-  cat >conftest.c <<\EOF
+AS_VAR_PUSHDEF([my_Type_var], [mpfr_cv_c_$1_format])dnl
+AC_CACHE_CHECK([format of floating-point type `$1'],
+                my_Type_var,
+[my_Type_var=unknown
+ cat >conftest.c <<\EOF
 [
 #include <stdio.h>
 /* "before" is 16 bytes to ensure there's no padding between it and "x".
-   We're not expecting any "long double" bigger than 16 bytes or with
+   We're not expecting any type bigger than 16 bytes or with
    alignment requirements stricter than 16 bytes.  */
 typedef struct {
   char         before[16];
-  long double  x;
+  $1           x;
   char         after[8];
 } foo_t;
 
@@ -1160,14 +1167,14 @@ foo_t foo = {
 int main (void) {
   int i;
   for (i = 0; i < 8; i++)
-    printf ("%d %Lf\n", foo.before[i] + foo.after[i], foo.x);
+    printf ("%d %$2f\n", foo.before[i] + foo.after[i], foo.x);
   return 0;
 }
 ]
 EOF
-  mpfr_compile="$CC $CFLAGS $CPPFLAGS $LDFLAGS conftest.c -o conftest$EXEEXT >&AS_MESSAGE_LOG_FD 2>&1"
-  if AC_TRY_EVAL(mpfr_compile); then
-    cat >conftest.awk <<\EOF
+ mpfr_compile="$CC $CFLAGS $CPPFLAGS $LDFLAGS conftest.c -o conftest$EXEEXT >&AS_MESSAGE_LOG_FD 2>&1"
+ if AC_TRY_EVAL(mpfr_compile); then
+   cat >conftest.awk <<\EOF
 [
 BEGIN {
   found = 0
@@ -1445,68 +1452,18 @@ END {
 }
 ]
 EOF
-    mpfr_cv_c_long_double_format=`od -b conftest$EXEEXT | $AWK -f conftest.awk`
-    case $mpfr_cv_c_long_double_format in
-    unknown*)
-      echo "cannot match anything, conftest$EXEEXT contains" >&AS_MESSAGE_LOG_FD
-      od -b conftest$EXEEXT >&AS_MESSAGE_LOG_FD
-      ;;
-    esac
-  else
-    AC_MSG_WARN([oops, cannot compile test program])
-  fi
-fi
-rm -f conftest*
-])
-
-AH_VERBATIM([HAVE_LDOUBLE],
-[/* Define one of the following to 1 for the format of a `long double'.
-   If your format is not among these choices, or you don't know what it is,
-   then leave all undefined.
-   IEEE_EXT is the 10-byte IEEE extended precision format.
-   IEEE_QUAD is the 16-byte IEEE quadruple precision format.
-   LITTLE or BIG is the endianness.  */
-#undef HAVE_LDOUBLE_IEEE_EXT_LITTLE
-#undef HAVE_LDOUBLE_IEEE_QUAD_BIG])
-
-case $mpfr_cv_c_long_double_format in
-  "IEEE double, big endian"*)
-    AC_DEFINE(HAVE_LDOUBLE_IS_DOUBLE, 1)
-    ;;
-  "IEEE double, little endian"*)
-    AC_DEFINE(HAVE_LDOUBLE_IS_DOUBLE, 1)
-    ;;
-  "IEEE extended, little endian"*)
-    AC_DEFINE(HAVE_LDOUBLE_IEEE_EXT_LITTLE, 1)
-    ;;
-  "IEEE extended, big endian"*)
-    AC_DEFINE(HAVE_LDOUBLE_IEEE_EXT_BIG, 1)
-    ;;
-  "IEEE quad, big endian"*)
-    AC_DEFINE(HAVE_LDOUBLE_IEEE_QUAD_BIG, 1)
-    ;;
-  "IEEE quad, little endian"*)
-    AC_DEFINE(HAVE_LDOUBLE_IEEE_QUAD_LITTLE, 1)
-    ;;
-  "possibly double-double, big endian"*)
-    AC_MSG_WARN([This format is known on GCC/PowerPC platforms,])
-    AC_MSG_WARN([but due to GCC PR26374, we can't test further.])
-    AC_MSG_WARN([You can safely ignore this warning, though.])
-    AC_DEFINE(HAVE_LDOUBLE_MAYBE_DOUBLE_DOUBLE, 1)
-    ;;
-  "possibly double-double, little endian"*)
-    AC_MSG_WARN([This format is known on GCC/PowerPC platforms,])
-    AC_MSG_WARN([but due to GCC PR26374, we can't test further.])
-    AC_MSG_WARN([You can safely ignore this warning, though.])
-    AC_DEFINE(HAVE_LDOUBLE_MAYBE_DOUBLE_DOUBLE, 1)
-    ;;
-  unknown* | "not available"*)
-    ;;
-  *)
-    AC_MSG_WARN([format of `long double' not recognized: $mpfr_cv_c_long_double_format])
-    ;;
-esac
-])
+   my_Type_var=`od -b conftest$EXEEXT | $AWK -f conftest.awk`
+   case $my_Type_var in
+   unknown*)
+     echo "cannot match anything, conftest$EXEEXT contains" >&AS_MESSAGE_LOG_FD
+     od -b conftest$EXEEXT >&AS_MESSAGE_LOG_FD
+     ;;
+   esac
+ else
+   AC_MSG_WARN([oops, cannot compile test program])
+ fi
+ rm -f conftest*
+])])
 
 dnl  MPFR_CHECK_LIBM
 dnl  ---------------

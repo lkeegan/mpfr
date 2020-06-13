@@ -25,9 +25,9 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 /* Define MPFR version number */
 #define MPFR_VERSION_MAJOR 4
-#define MPFR_VERSION_MINOR 1
+#define MPFR_VERSION_MINOR 2
 #define MPFR_VERSION_PATCHLEVEL 0
-#define MPFR_VERSION_STRING "4.1.0-dev"
+#define MPFR_VERSION_STRING "4.2.0-dev"
 
 /* User macros:
    MPFR_USE_FILE:        Define it to make MPFR define functions dealing
@@ -794,7 +794,7 @@ __MPFR_DECLSPEC void mpfr_custom_init_set (mpfr_ptr, int, mpfr_exp_t,
                                            mpfr_prec_t, void *);
 __MPFR_DECLSPEC int mpfr_custom_get_kind (mpfr_srcptr);
 
-__MPFR_DECLSPEC int mpfr_total_order (mpfr_srcptr, mpfr_srcptr);
+__MPFR_DECLSPEC int mpfr_total_order_p (mpfr_srcptr, mpfr_srcptr);
 
 #if defined (__cplusplus)
 }
