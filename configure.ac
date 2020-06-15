@@ -468,12 +468,20 @@ error
 #endif
   ]], [[]])],[
     AC_MSG_RESULT(no)
-    CFLAGS="-Wmissing-prototypes -Wc++-compat $CFLAGS"
+    dnl The option -Wc++-compat is available in GCC 4.1.0 and newer.
+    [
+    case `$CC --version | $SED -e 's/^[^ ]* //' -e 's/([^)]*) //' -e 1q` in
+      2.*|3.*|4.0*) ;;
+      *) CFLAGS="-Wc++-compat $CFLAGS" ;;
+    esac
+    CFLAGS="-Wmissing-prototypes $CFLAGS"
+    ]
   ],[
     AC_MSG_RESULT(yes)
     CFLAGS="-Wmissing-declarations -Wno-sign-compare $CFLAGS"
   ])
   CFLAGS="-Wall $CFLAGS"
+  AC_MSG_NOTICE([using CFLAGS="$CFLAGS"])
 fi
 
 AM_PROG_CC_C_O
