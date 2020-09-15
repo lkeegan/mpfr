@@ -439,7 +439,7 @@ dnl     to "icc -help", both options are equivalent; it also suggests
 dnl     to use -fp-model <arg> instead of -mp, but what is <arg>? Anyway
 dnl     -mieee-fp solves the tset_d failure due to a negative zero. This
 dnl     option has been introduced in ICC 9.0 for Linux (2005-06):
-dnl     http://www.ncsa.illinois.edu/UserInfo/Resources/Software/Intel/Compilers/9.0/C_ReleaseNotes.htm
+dnl     https://climserv.ipsl.polytechnique.fr/documentation/intel-icc/ReleaseNotes.htm
 AC_MSG_CHECKING(for non-MS-Windows ICC)
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #if (!defined(__ICC) && !defined(__INTEL_COMPILER)) || defined(_WIN32)
@@ -529,7 +529,7 @@ dnl build tree. Other OS with the same issue might be added later.
 dnl
 dnl References:
 dnl   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=859732
-dnl   http://lists.gnu.org/archive/html/libtool/2017-05/msg00000.html
+dnl   https://lists.gnu.org/archive/html/libtool/2017-05/msg00000.html
 dnl
 dnl We need to check whether --disable-new-dtags is supported as alternate
 dnl linkers may be used (e.g., with tcc: CC=tcc LD=tcc).
@@ -812,12 +812,6 @@ AC_COMPUTE_INT(mini_gmp_numb_bits, [(GMP_NUMB_BITS)],
   ])
 CPPFLAGS="$saved_CPPFLAGS"
 AC_MSG_RESULT([$mini_gmp_numb_bits bits ($how)])
-
-dnl We need to check the availability of lrand48 (used by random_limb)
-dnl and srand48 (used by gmp_randseed_ui), in particular because these
-dnl functions are not part of the ISO C standard.
-AC_CHECK_FUNC(lrand48,,AC_MSG_FAILURE([MPFR + mini-gmp requires lrand48]))
-AC_CHECK_FUNC(srand48,,AC_MSG_FAILURE([MPFR + mini-gmp requires srand48]))
 
 fi
 
