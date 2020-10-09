@@ -1689,6 +1689,14 @@ do {                                                                  \
    in practice since the sizes come from the MPFR source), so that
    the value can be used in arbitrary expressions without the risk
    of silently switching to unsigned arithmetic. */
+/* TODO: Make numberof() a constant expression and always use it in
+   the MPFR code instead of numberof_const(). See the tricks at
+     https://gcc.gnu.org/pipermail/gcc/2020-September/233763.html
+     "[PATCH v2] <sys/param.h>: Add nitems() and snitems() macros"
+     by Alejandro Colomar
+   but this needs to be fully tested on various platforms and with
+   various compilers and compilation options.
+   Moreover, change "long" to "ptrdiff_t", as used at the above URL? */
 #undef numberof
 #if 0
 /* The following should work with GCC as documented in its manual,
@@ -2486,7 +2494,7 @@ __MPFR_DECLSPEC void mpfr_gamma_one_and_two_third (mpfr_ptr, mpfr_ptr,
                                                    mpfr_prec_t);
 
 __MPFR_DECLSPEC void mpfr_mpz_init (mpz_ptr);
-__MPFR_DECLSPEC void mpfr_mpz_init2 (mpz_t, mp_bitcnt_t);
+__MPFR_DECLSPEC void mpfr_mpz_init2 (mpz_ptr, mp_bitcnt_t);
 __MPFR_DECLSPEC void mpfr_mpz_clear (mpz_ptr);
 
 __MPFR_DECLSPEC int mpfr_odd_p (mpfr_srcptr);

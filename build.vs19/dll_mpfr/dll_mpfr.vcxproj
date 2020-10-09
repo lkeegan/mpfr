@@ -313,7 +313,7 @@
     <ClCompile Include="..\..\src\get_ui.c" />
     <ClCompile Include="..\..\src\get_uj.c" />
     <ClCompile Include="..\..\src\get_z.c" />
-    <ClCompile Include="..\..\src\get_z_exp.c" />
+    <ClCompile Include="..\..\src\get_z_2exp.c" />
     <ClCompile Include="..\..\src\gmp_op.c" />
     <ClCompile Include="..\..\src\grandom.c" />
     <ClCompile Include="..\..\src\hypot.c" />
@@ -422,7 +422,7 @@
     <ClCompile Include="..\..\src\setmax.c" />
     <ClCompile Include="..\..\src\setmin.c" />
     <ClCompile Include="..\..\src\setsign.c" />
-    <ClCompile Include="..\..\src\set_z_exp.c" />
+    <ClCompile Include="..\..\src\set_z_2exp.c" />
     <ClCompile Include="..\..\src\sgn.c" />
     <ClCompile Include="..\..\src\si_op.c" />
     <ClCompile Include="..\..\src\signbit.c" />

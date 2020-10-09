@@ -278,9 +278,6 @@
     <ClCompile Include="..\..\src\get_z.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\get_z_exp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\gmp_op.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -644,9 +641,6 @@
     <ClCompile Include="..\..\src\zeta_ui.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\set_z_exp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\ai.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -738,6 +732,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\cmpabs_ui.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\set_z_2exp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\get_z_2exp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

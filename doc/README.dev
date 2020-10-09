@@ -760,6 +760,14 @@ Adding a level of indirection is OK, as suggested there, and on:
 
   https://stackoverflow.com/questions/36645660/why-cant-i-cast-a-function-pointer-to-void
 
+To convert an unsigned integer u to the corresponding signed integer with
+the two's complement rule (i.e. modular arithmetic) but in a portable way,
+write e.g. for long:
+
+  u > LONG_MAX ? -1 - (long) ~u : (long) u
+
+(at least GCC and Clang optimize this expression to identity).
+
    =====================================================================
 
 For floating-point constants, do not use the non-standard and useless
@@ -776,6 +784,13 @@ does not conform to the C standard by default. References:
   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85957
 
 [*] https://stackoverflow.com/questions/4331200/what-do-f-and-d-mean-at-the-end-of-numeric-literals
+
+   =====================================================================
+
+In MPFR, _Float128 may be defined as __float128 if the latter is provided
+by the compiler, but not the former. In such a case, do not assume that
+_Float128 and long double are necessarily different types (as required by
+the WG14 N2405 draft "IEC 60559 interchange and extended types").
 
    =====================================================================
 

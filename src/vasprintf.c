@@ -26,7 +26,7 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
    function to return a negative value and set errno to EOVERFLOW.
    [*] The Open Group Base Specifications Issue 7, 2018 edition
        IEEE Std 1003.1-2017 (Revision of IEEE Std 1003.1-2008)
-   http://pubs.opengroup.org/onlinepubs/9699919799/functions/fprintf.html
+   https://pubs.opengroup.org/onlinepubs/9699919799/functions/fprintf.html
    This follows a defect report submitted in 2007 to austin-review-l.
    Even in case of such a failure (just because of the limitation on int),
    we try to support %n, %ln, %jn when possible. That's why the sizes (or
@@ -121,12 +121,22 @@ static const char num_to_text[] = "0123456789abcdef";
 
 /* Read an integer var of type mpfr_intmax_t. In case of overflow, set
    overflow to 1.
+   The variable var must be 0 on input. If there are no digits, it is
+   left to 0.
+   This macro will be used to read the field width and the precision.
+   The behavior will be similar to ISO C99. Note that unless "*" is
+   used, the result will be nonnegative (ISO C99 and C11 just specify
+   "optional decimal integer" for the precision, but the behavior with
+   a hardcoded negative integer is not explicitly defined, thus it is
+   undefined, so that it is fine to reject such integers; the C2x draft
+   now clarifies this: "an optional nonnegative decimal integer").
    Note: Since mpfr_intmax_t = int is theoretically possible, all values
    of var are potentially valid values (via '*'). Hence the need of an
    overflow flag instead of a special value that would indicate overflow.
-   Saturating would not be OK either as the maximum value could be
+   Just saturating would not be OK either as the maximum value could be
    meaningful with %jn and/or in the case mpfr_intmax_t = int, for
-   MPFR_PREC_ARG.
+   MPFR_PREC_ARG, i.e. one must be able to distinguish the maximum value
+   from an overflow.
 */
 #define READ_INT(ap, format, var)                                       \
   do {                                                                  \
@@ -963,7 +973,7 @@ floor_log10 (mpfr_srcptr x)
 #define NDIGITS 8
 
 MPFR_RETURNS_NONNULL static char *
-mpfr_get_str_wrapper (mpfr_exp_t *exp, int base, size_t n, const mpfr_t op,
+mpfr_get_str_wrapper (mpfr_exp_t *exp, int base, size_t n, mpfr_srcptr op,
                       const struct printf_spec spec)
 {
   size_t ndigits;
@@ -2133,13 +2143,16 @@ mpfr_vasnprintf_aux (char **ptr, char *Buf, size_t size, const char *fmt,
 
       if (*fmt == '.')
         {
-          const char *f = ++fmt;
+          ++fmt;
           READ_INT (ap, fmt, spec.prec);
-          if (f == fmt || spec.prec < 0)
+          /* A negative value is possible with ".*" and it will be regarded
+             as a missing precision (ISO C). We need to make sure that such
+             a value is representable in an int (see its use below). */
+          if (spec.prec < 0)
             spec.prec = -1;
         }
       else
-        spec.prec = -1;
+        spec.prec = -1;  /* missing precision */
       MPFR_ASSERTD (spec.prec >= -1);
 
       fmt = parse_arg_type (fmt, &spec);
