@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 4.2.0-dev
-@set UPDATED-MONTH October 2020
+@set UPDATED-MONTH November 2020
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -659,25 +659,33 @@ symbols using these prefixes.
 @cindex Regular number
 @tindex @code{mpfr_t}
 @tindex @code{mpfr_ptr}
+@tindex @code{mpfr_srcptr}
 A @dfn{floating-point number}, or @dfn{float} for short, is an object
 representing a radix-2 floating-point number consisting of a sign,
 an arbitrary-precision normalized significand (also called mantissa),
 and an exponent (an integer in some given range); these are called
-@dfn{regular numbers}. Like in the IEEE@tie{}754 standard, a floating-point
-number can also have three kinds of special values: a signed zero, a
-signed infinity, and Not-a-Number (NaN)@. NaN can represent the default
-value of a floating-point object and the result of some operations for
-which no other results would make sense, such as 0 divided by 0 or
-+Infinity minus +Infinity; unless documented otherwise, the sign bit of
-a NaN is unspecified. Note that contrary to IEEE@tie{}754, MPFR has a single
-kind of NaN and does not have subnormals. Other than that, the behavior
-is very similar to IEEE@tie{}754, but there may be some differences.
+@dfn{regular numbers}. By convention, the radix point of the significand
+is just before the first digit (which is always 1 due to normalization),
+like in the C language, but unlike in IEEE@tie{}754 (thus, for a given
+number, the exponent values in MPFR and in IEEE@tie{}754 differ by 1).
+
+Like in the IEEE@tie{}754 standard, a floating-point number can also
+have three kinds of special values: a signed zero (+0 or @minus{}0),
+a signed infinity (+Inf or @minus{}Inf), and Not-a-Number (NaN)@. NaN
+can represent the default value of a floating-point object and the
+result of some operations for which no other results would make sense,
+such as 0 divided by 0 or +Infinity minus +Infinity; unless documented
+otherwise, the sign bit of a NaN is unspecified. Note that contrary to
+IEEE@tie{}754, MPFR has a single kind of NaN and does not have subnormals.
+Other than that, the behavior is very similar to IEEE@tie{}754, but there
+are some minor differences.
 
 The C data type for such objects is @code{mpfr_t}, internally defined
 as a one-element array of a structure (so that when passed as an
 argument to a function, it is the pointer that is actually passed),
 and @code{mpfr_ptr} is the C data type representing a pointer to this
-structure.
+structure; @code{mpfr_srcptr} is like @code{mpfr_ptr}, but the structure
+is read-only (i.e., const qualified).
 
 @cindex Precision
 @tindex @code{mpfr_prec_t}
@@ -1935,8 +1943,8 @@ If @var{op} is zero, set @var{rop} to zero with the sign obtained by the
 usual limit rules, i.e., the same sign as @var{op} if @var{n} is odd, and
 positive if @var{n} is even.
 
-These functions agree with the rootn function of the IEEE@tie{}754-2008
-standard and the P754/D2.41 draft of the next standard (Section@tie{}9.2).
+These functions agree with the rootn function of the IEEE@tie{}754-2019
+standard.
 Note that it is here restricted to @math{@var{n} @ge{} 0}. Functions
 allowing a negative @var{n} may be implemented in the future.
 @end deftypefun
@@ -3514,7 +3522,8 @@ been set due to internal computations.
 This function rounds @var{x} emulating subnormal number arithmetic:
 if @var{x} is outside the subnormal exponent range of the emulated
 floating-point system, this function just propagates the
-@ref{ternary value} @var{t}; otherwise, it rounds @var{x} to precision
+@ref{ternary value} @var{t}; otherwise, if @code{EXP(@var{x})}
+denotes the exponent of @var{x}, it rounds @var{x} to precision
 @code{EXP(@var{x})-emin+1} according to rounding mode @var{rnd} and previous
 ternary value @var{t}, avoiding double rounding problems.
 More precisely in the subnormal domain, denoting by @m{e,@var{e}} the value of
@@ -3524,8 +3533,8 @@ arithmetic to an integer multiple of @m{2^{e-1}, two to the power
 1.5 multiplied by two to the power @var{e}@minus{}1} when @var{t} is zero
 is rounded to @m{2^e, two to the power @var{e}} with rounding to nearest.
 
-@code{PREC(@var{x})} is not modified by this function.
-@var{rnd} and @var{t} must be the rounding mode
+The precision @code{PREC(@var{x})} of @var{x} is not modified by
+this function. @var{rnd} and @var{t} must be the rounding mode
 and the returned ternary value used when computing @var{x}
 (as in @code{mpfr_check_range}).
 The subnormal exponent range is from @code{emin} to @code{emin+PREC(@var{x})-1}.

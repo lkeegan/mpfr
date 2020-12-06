@@ -356,6 +356,10 @@ typedef enum {
    not __llvm__, and __declspec(deprecated("...")) can be used with
    MSC as above. */
 
+/* ICC up to 19.1.3.304 at least declares itself as interoperable with
+   GCC 4.9, but does not support the returns_nonnull attribute, thus
+   outputs warning #1292. This minor issue has been reported in 2019-04:
+   https://community.intel.com/t5/Intel-C-Compiler/Missing-support-for-returns-nonnull-attribute/td-p/1183013 */
 #if defined(__GNUC__) && \
   (__GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 9))
 # define MPFR_RETURNS_NONNULL __attribute__ ((__returns_nonnull__))
@@ -822,7 +826,7 @@ __MPFR_DECLSPEC int mpfr_total_order_p (mpfr_srcptr, mpfr_srcptr);
   (mpfr_round_nearest_away_begin(rop),                                  \
    mpfr_round_nearest_away_end((rop), func((rop), __VA_ARGS__, MPFR_RNDN)))
 #else
-/* C89 version: function with one input supported */
+/* C90 version: function with one input supported */
 #define mpfr_round_nearest_away(func, rop, op)                          \
   (mpfr_round_nearest_away_begin(rop),                                  \
    mpfr_round_nearest_away_end((rop), func((rop), (op), MPFR_RNDN)))
