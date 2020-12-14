@@ -409,6 +409,7 @@
     <ClCompile Include="..\..\src\setsign.c" />
     <ClCompile Include="..\..\src\set_z_2exp.c" />
     <ClCompile Include="..\..\src\sgn.c" />
+    <ClCompile Include="..\..\src\sinu.c" />
     <ClCompile Include="..\..\src\si_op.c" />
     <ClCompile Include="..\..\src\signbit.c" />
     <ClCompile Include="..\..\src\sin.c" />
