@@ -1,4 +1,4 @@
-/* mpfr_sinu -- sinu(x) = sin(2*pi*x/u)
+/* mpfr_cosu -- cosu(x) = cos(2*pi*x/u)
 
 Copyright 2020 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
@@ -24,17 +24,11 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "mpfr-impl.h"
 
 /* FIXME[VL]: Implement the range reduction in this function.
-   That's the whole point of sinu compared to sin. */
+   That's the whole point of cosu compared to cos. */
 
-/* References:
- * Steve Kargl wrote sinpi and friends for FreeBSD's libm under BSD
-   license:
-   https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=218514
- */
-
-/* put in y the corrected-rounded value of sin(2*pi*x/u) */
+/* put in y the corrected-rounded value of cos(2*pi*x/u) */
 int
-mpfr_sinu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
+mpfr_cosu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
 {
   mpfr_prec_t precy, prec;
   mpfr_exp_t expx, expt, err;
@@ -56,12 +50,10 @@ mpfr_sinu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
           MPFR_SET_NAN (y);
           MPFR_RET_NAN;
         }
-      else /* x is zero */
+      else /* x is zero: cos(0) = 1 */
         {
           MPFR_ASSERTD (MPFR_IS_ZERO (x));
-          MPFR_SET_ZERO (y);
-          MPFR_SET_SAME_SIGN (y, x);
-          MPFR_RET (0);
+          return mpfr_set_ui (y, 1, rnd_mode);
         }
     }
 
@@ -78,8 +70,8 @@ mpfr_sinu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
   for (;;)
     {
       nloops ++;
-      /* We first compute an approximation t of 2*pi*x/u, then call sin(t).
-         If t = 2*pi*x/u + s, then |sin(t) - sin(2*pi*x/u)| <= |s|. */
+      /* We first compute an approximation t of 2*pi*x/u, then call cos(t).
+         If t = 2*pi*x/u + s, then |cos(t) - cos(2*pi*x/u)| <= |s|. */
       mpfr_set_prec (t, prec);
       mpfr_const_pi (t, MPFR_RNDN); /* t = pi * (1 + theta1) where
                                        |theta1| <= 2^-prec */
@@ -88,28 +80,29 @@ mpfr_sinu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
                                             |theta2| <= 2^-prec */
       mpfr_div_ui (t, t, u, MPFR_RNDN);  /* t = 2*pi*x/u * (1 + theta3)^3 where
                                             |theta3| <= 2^-prec */
-      /* if t is zero here, it means the division by u underflows, then
-         sin(t) also underflows, since |sin(x)| <= |x| for say |x| < 1. */
+      /* if t is zero here, it means the division by u underflowd */
       if (MPFR_UNLIKELY (MPFR_IS_ZERO (t)))
         {
-          inexact = mpfr_underflow (y, rnd_mode, MPFR_SIGN(t));
-          MPFR_SAVE_EXPO_UPDATE_FLAGS (expo, MPFR_FLAGS_INEXACT
-                                       | MPFR_FLAGS_UNDERFLOW);
-          underflow = 1;
+          mpfr_set_ui (y, 1, MPFR_RNDZ);
+          if (MPFR_IS_LIKE_RNDZ(rnd_mode,0))
+            {
+              inexact = -1;
+              mpfr_nextbelow (y);
+            }
+          else
+            inexact = 1;
           goto end;
         }
       /* since prec >= 2, |(1 + theta3)^3 - 1| <= 4*theta3 <= 2^(2-prec) */
       expt = MPFR_GET_EXP (t);
       /* we have |s| <= 2^(expt + 2 - prec) */
-      mpfr_sin (t, t, MPFR_RNDA);
-      /* t cannot be zero here, since we excluded t=0 before, which is the
-         only exact case where sin(t)=0, and we round away from zero */
+      mpfr_cos (t, t, MPFR_RNDN);
       err = expt + 2 - prec;
       expt = MPFR_GET_EXP (t); /* new exponent of t */
-      /* the total error is bounded by 2^err + ulp(t) = 2^err + 2^(expt-prec)
-         thus if err <= expt-prec, it is bounded by 2^(expt-prec+1),
+      /* the total error is at most 2^err + ulp(t)/2 = 2^err + 2^(expt-prec-1)
+         thus if err <= expt-prec-1, it is bounded by 2^(expt-prec),
          otherwise it is bounded by 2^(err+1). */
-      err = (err <= expt - prec) ? expt - prec + 1 : err + 1;
+      err = (err <= expt - prec - 1) ? expt - prec : err + 1;
       /* normalize err for mpfr_can_round */
       err = expt - err;
       if (MPFR_CAN_ROUND (t, err, precy, rnd_mode))
@@ -117,28 +110,25 @@ mpfr_sinu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
       /* Check exact cases only after the first level of Ziv' strategy, to
          avoid slowing down the average case. Exact cases are:
          (a) 2*pi*x/u is a multiple of pi/2, i.e., x/u is a multiple of 1/4
-         (b) 2*pi*x/u is +/-pi/6 modulo pi, i.e., x/u = +/-1/12 mod 1/2 */
+         (b) 2*pi*x/u is {pi/3,2pi/3,4pi/3,5pi/3} mod 2pi */
       if (nloops == 1)
         {
           /* detect case (a) */
-          inexact = mpfr_div_ui (t, x, u, MPFR_RNDA);
-          mpfr_mul_2ui (t, t, 2, MPFR_RNDA);
+          inexact = mpfr_div_ui (t, x, u, MPFR_RNDZ);
+          mpfr_mul_2ui (t, t, 2, MPFR_RNDZ);
           if (inexact == 0 && mpfr_integer_p (t))
             {
-              if (!mpfr_odd_p (t))
-                /* t is even: we have a multiple of pi, thus sinu = 0,
-                   for the sign, we follow IEEE 754-2019: sinPi(+n) is +0
-                   and sinPi(-n) is -0 for positive integers n, so that the
-                   function is odd. */
-                mpfr_set_zero (y, MPFR_IS_POS(t) ? +1 : -1);
-              else /* t is odd */
+              if (mpfr_odd_p (t))
+                /* t is odd: we have kpi+pi/2, thus cosu = 0,
+                   for the sign, we always return +0, following IEEE 754-2019:
+                   cosPi(n + 1/2) is +0 for any integer n when n + 1/2 is
+                   representable. */
+                mpfr_set_zero (y, +1);
+              else /* t is even: case kpi */
                 {
-                  inexact = mpfr_sub_ui (t, t, 1, MPFR_RNDZ);
-                  MPFR_ASSERTD(inexact == 0);
-                  inexact = mpfr_div_2ui (t, t, 1, MPFR_RNDZ);
-                  MPFR_ASSERTD(inexact == 0);
-                  if (MPFR_IS_ZERO (t) || !mpfr_odd_p (t))
-                    /* case pi/2: sinu = 1 */
+                  mpfr_div_2ui (t, t, 1, MPFR_RNDZ);
+                  if (!mpfr_odd_p (t))
+                    /* case 2kpi: cosu = 1 */
                     mpfr_set_ui (y, 1, MPFR_RNDZ);
                   else
                     mpfr_set_si (y, -1, MPFR_RNDZ);
@@ -149,29 +139,31 @@ mpfr_sinu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
           if ((u % 3) == 0)
             {
               inexact = mpfr_div_ui (t, x, u / 3, MPFR_RNDZ);
-              /* t should be +/-1/4 mod 3/2 */
-              mpfr_mul_2ui (t, t, 2, MPFR_RNDZ);
-              /* t should be +/-1 mod 6, i.e., in {1,5,7,11} mod 12:
-                 t = 1 mod 6: case pi/6: return 1/2
-                 t = 5 mod 6: case 5pi/6: return 1/2
-                 t = 7 mod 6: case 7pi/6: return -1/2
-                 t = 11 mod 6: case 11pi/6: return -1/2 */
+              /* t should be in {1/2,2/2,4/2,5/2} */
+              mpfr_mul_2ui (t, t, 1, MPFR_RNDZ);
+              /* t should be {1,2,4,5} mod 6:
+                 t = 1 mod 6: case pi/3: return 1/2
+                 t = 2 mod 6: case 2pi/3: return -1/2
+                 t = 4 mod 6: case 4pi/3: return -1/2
+                 t = 5 mod 6: case 5pi/3: return 1/2 */
               if (inexact == 0 && mpfr_integer_p (t))
                 {
                   mpz_t z;
-                  unsigned long mod12;
+                  unsigned long mod6;
                   mpz_init (z);
                   inexact = mpfr_get_z (z, t, MPFR_RNDZ);
                   MPFR_ASSERTN(inexact == 0);
-                  mod12 = mpz_fdiv_ui (z, 12);
+                  mod6 = mpz_fdiv_ui (z, 6);
                   mpz_clear (z);
-                  if (mod12 == 1 || mod12 == 5)
+                  if (mod6 == 1 || mod6 == 5)
                     {
                       mpfr_set_ui_2exp (y, 1, -1, MPFR_RNDZ);
                       goto end;
                     }
-                  else if (mod12 == 7 || mod12 == 11)
+                  else /* we cannot have mod6 = 0 or 3 since those
+                          case belong to (a) */
                     {
+                      MPFR_ASSERTD(mod6 == 2 || mod6 == 4);
                       mpfr_set_si_2exp (y, -1, -1, MPFR_RNDZ);
                       goto end;
                     }

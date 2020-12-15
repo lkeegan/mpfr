@@ -1084,6 +1084,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tset_z_2exp", "dll_mpfr_tes
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tsinu", "dll_mpfr_tests\tsinu\tsinu.vcxproj", "{840AADBA-D1BC-485A-927F-49A044E3D5A3}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tcosu", "dll_mpfr_tests\tcosu\tcosu.vcxproj", "{187F1840-DB62-406B-8F80-85952843DF36}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -2580,6 +2582,14 @@ Global
 		{840AADBA-D1BC-485A-927F-49A044E3D5A3}.Release|Win32.Build.0 = Release|Win32
 		{840AADBA-D1BC-485A-927F-49A044E3D5A3}.Release|x64.ActiveCfg = Release|x64
 		{840AADBA-D1BC-485A-927F-49A044E3D5A3}.Release|x64.Build.0 = Release|x64
+		{187F1840-DB62-406B-8F80-85952843DF36}.Debug|Win32.ActiveCfg = Debug|Win32
+		{187F1840-DB62-406B-8F80-85952843DF36}.Debug|Win32.Build.0 = Debug|Win32
+		{187F1840-DB62-406B-8F80-85952843DF36}.Debug|x64.ActiveCfg = Debug|x64
+		{187F1840-DB62-406B-8F80-85952843DF36}.Debug|x64.Build.0 = Debug|x64
+		{187F1840-DB62-406B-8F80-85952843DF36}.Release|Win32.ActiveCfg = Release|Win32
+		{187F1840-DB62-406B-8F80-85952843DF36}.Release|Win32.Build.0 = Release|Win32
+		{187F1840-DB62-406B-8F80-85952843DF36}.Release|x64.ActiveCfg = Release|x64
+		{187F1840-DB62-406B-8F80-85952843DF36}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -2769,6 +2779,7 @@ Global
 		{EC5E43E3-C1DA-4BF3-9DAD-75A9AEF1F5D4} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
 		{5CDB1EEE-8222-4A53-8D32-3660ABAEEDBB} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
 		{840AADBA-D1BC-485A-927F-49A044E3D5A3} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
+		{187F1840-DB62-406B-8F80-85952843DF36} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DF0C069F-3E76-403F-BEAC-2692113BE006}

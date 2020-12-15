@@ -1,4 +1,4 @@
-/* Test file for mpfr_sinu.
+/* Test file for mpfr_cosu.
 
 Copyright 2020 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
@@ -33,34 +33,34 @@ test_singular (void)
 
   /* check u = 0 */
   mpfr_set_ui (x, 17, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 0, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 0, MPFR_RNDN);
   MPFR_ASSERTN(mpfr_nan_p (y));
 
   /* check x = NaN */
   mpfr_set_nan (x);
-  inexact = mpfr_sinu (y, x, 1, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 1, MPFR_RNDN);
   MPFR_ASSERTN(mpfr_nan_p (y));
 
   /* check x = +Inf */
   mpfr_set_inf (x, 1);
-  inexact = mpfr_sinu (y, x, 1, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 1, MPFR_RNDN);
   MPFR_ASSERTN(mpfr_nan_p (y));
 
   /* check x = -Inf */
   mpfr_set_inf (x, -1);
-  inexact = mpfr_sinu (y, x, 1, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 1, MPFR_RNDN);
   MPFR_ASSERTN(mpfr_nan_p (y));
 
   /* check x = +0 */
   mpfr_set_zero (x, 1);
-  inexact = mpfr_sinu (y, x, 1, MPFR_RNDN);
-  MPFR_ASSERTN(mpfr_zero_p (y) && mpfr_signbit (y) == 0);
+  inexact = mpfr_cosu (y, x, 1, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_cmp_ui (y, 1) == 0);
   MPFR_ASSERTN(inexact == 0);
 
   /* check x = -0 */
   mpfr_set_zero (x, -1);
-  inexact = mpfr_sinu (y, x, 1, MPFR_RNDN);
-  MPFR_ASSERTN(mpfr_zero_p (y) && mpfr_signbit (y) != 0);
+  inexact = mpfr_cosu (y, x, 1, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_cmp_ui (y, 1) == 0);
   MPFR_ASSERTN(inexact == 0);
 
   mpfr_clear (x);
@@ -78,67 +78,67 @@ test_exact (void)
 
   /* check 2*pi*x/u = pi/2 thus x/u = 1/4, for example x=1 and u=4 */
   mpfr_set_ui (x, 1, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 4, MPFR_RNDN);
-  MPFR_ASSERTN(mpfr_cmp_ui (y, 1) == 0 && inexact == 0);
+  inexact = mpfr_cosu (y, x, 4, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_zero_p (y) && mpfr_signbit (y) == 0);
+  MPFR_ASSERTN(inexact == 0);
 
   /* check 2*pi*x/u = pi thus x/u = 1/2, for example x=2 and u=4 */
   mpfr_set_ui (x, 2, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 4, MPFR_RNDN);
-  MPFR_ASSERTN(mpfr_zero_p (y) && mpfr_signbit (y) == 0);
-  MPFR_ASSERTN(inexact == 0);
+  inexact = mpfr_cosu (y, x, 4, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_cmp_si (y, -1) == 0 && inexact == 0);
 
   /* check 2*pi*x/u = 3*pi/2 thus x/u = 3/4, for example x=3 and u=4 */
   mpfr_set_ui (x, 3, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 4, MPFR_RNDN);
-  MPFR_ASSERTN(mpfr_cmp_si (y, -1) == 0 && inexact == 0);
-
-  /* check 2*pi*x/u = 2*pi thus x/u = 1, for example x=4 and u=4 */
-  mpfr_set_ui (x, 4, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 4, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 4, MPFR_RNDN);
   MPFR_ASSERTN(mpfr_zero_p (y) && mpfr_signbit (y) == 0);
   MPFR_ASSERTN(inexact == 0);
 
+  /* check 2*pi*x/u = 2*pi thus x/u = 1, for example x=4 and u=4 */
+  mpfr_set_ui (x, 4, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 4, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_cmp_ui (y, 1) == 0 && inexact == 0);
+
   /* check 2*pi*x/u = -pi/2 thus x/u = -1/4, for example x=-1 and u=4 */
   mpfr_set_si (x, -1, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 4, MPFR_RNDN);
-  MPFR_ASSERTN(mpfr_cmp_si (y, -1) == 0 && inexact == 0);
+  inexact = mpfr_cosu (y, x, 4, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_zero_p (y) && mpfr_signbit (y) == 0);
+  MPFR_ASSERTN(inexact == 0);
 
   /* check 2*pi*x/u = -pi thus x/u = -1/2, for example x=-2 and u=4 */
   mpfr_set_si (x, -2, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 4, MPFR_RNDN);
-  MPFR_ASSERTN(mpfr_zero_p (y) && mpfr_signbit (y) != 0);
-  MPFR_ASSERTN(inexact == 0);
+  inexact = mpfr_cosu (y, x, 4, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_cmp_si (y, -1) == 0 && inexact == 0);
 
   /* check 2*pi*x/u = -3*pi/2 thus x/u = -3/4, for example x=-3 and u=4 */
   mpfr_set_si (x, -3, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 4, MPFR_RNDN);
-  MPFR_ASSERTN(mpfr_cmp_ui (y, 1) == 0 && inexact == 0);
+  inexact = mpfr_cosu (y, x, 4, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_zero_p (y) && mpfr_signbit (y) == 0);
+  MPFR_ASSERTN(inexact == 0);
 
   /* check 2*pi*x/u = -2*pi thus x/u = -1, for example x=-4 and u=4 */
   mpfr_set_si (x, -4, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 4, MPFR_RNDN);
-  MPFR_ASSERTN(mpfr_zero_p (y) && mpfr_signbit (y) != 0);
-  MPFR_ASSERTN(inexact == 0);
+  inexact = mpfr_cosu (y, x, 4, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_cmp_ui (y, 1) == 0 && inexact == 0);
 
-  /* check 2*pi*x/u = pi/6, for example x=1 and u=12 */
+  /* check 2*pi*x/u = pi/3, for example x=1 and u=6 */
   mpfr_set_ui (x, 1, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 12, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 6, MPFR_RNDN);
   MPFR_ASSERTN(mpfr_cmp_ui_2exp (y, 1, -1) == 0 && inexact == 0);
 
-  /* check 2*pi*x/u = 5*pi/6, for example x=5 and u=12 */
+  /* check 2*pi*x/u = 2*pi/3, for example x=2 and u=6 */
+  mpfr_set_ui (x, 2, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 6, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_cmp_si_2exp (y, -1, -1) == 0 && inexact == 0);
+
+  /* check 2*pi*x/u = 4*pi/3, for example x=4 and u=6 */
+  mpfr_set_ui (x, 4, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 6, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_cmp_si_2exp (y, -1, -1) == 0 && inexact == 0);
+
+  /* check 2*pi*x/u = 5*pi/3, for example x=5 and u=6 */
   mpfr_set_ui (x, 5, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 12, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 6, MPFR_RNDN);
   MPFR_ASSERTN(mpfr_cmp_ui_2exp (y, 1, -1) == 0 && inexact == 0);
-
-  /* check 2*pi*x/u = 7*pi/6, for example x=5 and u=12 */
-  mpfr_set_ui (x, 7, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 12, MPFR_RNDN);
-  MPFR_ASSERTN(mpfr_cmp_si_2exp (y, -1, -1) == 0 && inexact == 0);
-
-  /* check 2*pi*x/u = 11*pi/6, for example x=5 and u=12 */
-  mpfr_set_ui (x, 11, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 12, MPFR_RNDN);
-  MPFR_ASSERTN(mpfr_cmp_si_2exp (y, -1, -1) == 0 && inexact == 0);
 
   mpfr_clear (x);
   mpfr_clear (y);
@@ -155,21 +155,21 @@ test_regular (void)
   mpfr_init2 (z, 53);
 
   mpfr_set_ui (x, 17, MPFR_RNDN);
-  inexact = mpfr_sinu (y, x, 42, MPFR_RNDN);
-  /* y should be sin(2*17*pi/42) rounded to nearest */
-  mpfr_set_str (z, "0x9.035be4a906768p-4", 16, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 42, MPFR_RNDN);
+  /* y should be cos(2*17*pi/42) rounded to nearest */
+  mpfr_set_str (z, "-0xd.38462625fd3ap-4", 16, MPFR_RNDN);
   MPFR_ASSERTN(mpfr_equal_p (y, z));
-  MPFR_ASSERTN(inexact > 0);
+  MPFR_ASSERTN(inexact < 0);
 
   mpfr_clear (x);
   mpfr_clear (y);
   mpfr_clear (z);
 }
 
-/* FIXME[VL]: For mpfr_sinu, the range reduction should not be expensive.
+/* FIXME[VL]: For mpfr_cosu, the range reduction should not be expensive.
    If I'm not mistaken, this is linear in the bitsize of the exponent
    since one just needs to compute the argument modulo the integer u. */
-#define TEST_FUNCTION mpfr_sinu
+#define TEST_FUNCTION mpfr_cosu
 #define ULONG_ARG2
 #ifndef MPFR_USE_MINI_GMP
 #define REDUCE_EMAX 262143 /* otherwise arg. reduction is too expensive */
@@ -179,9 +179,9 @@ test_regular (void)
 #include "tgeneric.c"
 
 static int
-mpfr_sin2pi (mpfr_ptr y, mpfr_srcptr x, mpfr_rnd_t r)
+mpfr_cos2pi (mpfr_ptr y, mpfr_srcptr x, mpfr_rnd_t r)
 {
-  return mpfr_sinu (y, x, 1, r);
+  return mpfr_cosu (y, x, 1, r);
 }
 
 int
@@ -195,7 +195,7 @@ main (void)
 
   test_generic (MPFR_PREC_MIN, 100, 1);
 
-  data_check ("data/sin2pi", mpfr_sin2pi, "mpfr_sin2pi");
+  data_check ("data/cos2pi", mpfr_cos2pi, "mpfr_cos2pi");
 
   tests_end_mpfr ();
   return 0;

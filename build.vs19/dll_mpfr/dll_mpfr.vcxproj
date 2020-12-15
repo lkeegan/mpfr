@@ -250,6 +250,7 @@
     <ClCompile Include="..\..\src\copysign.c" />
     <ClCompile Include="..\..\src\cos.c" />
     <ClCompile Include="..\..\src\cosh.c" />
+    <ClCompile Include="..\..\src\cosu.c" />
     <ClCompile Include="..\..\src\cot.c" />
     <ClCompile Include="..\..\src\coth.c" />
     <ClCompile Include="..\..\src\csc.c" />
