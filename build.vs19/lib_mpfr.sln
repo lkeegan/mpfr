@@ -1096,6 +1096,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tsinu", "lib_mpfr_tests\tsi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tcosu", "lib_mpfr_tests\tcosu\tcosu.vcxproj", "{B42213BB-948F-45AA-BEA6-D0A87E1155C7}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ttanu", "lib_mpfr_tests\ttanu\ttanu.vcxproj", "{561D3A58-577E-4FF4-95CD-E26A8EB1E140}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -2616,6 +2618,14 @@ Global
 		{B42213BB-948F-45AA-BEA6-D0A87E1155C7}.Release|Win32.Build.0 = Release|Win32
 		{B42213BB-948F-45AA-BEA6-D0A87E1155C7}.Release|x64.ActiveCfg = Release|x64
 		{B42213BB-948F-45AA-BEA6-D0A87E1155C7}.Release|x64.Build.0 = Release|x64
+		{561D3A58-577E-4FF4-95CD-E26A8EB1E140}.Debug|Win32.ActiveCfg = Debug|Win32
+		{561D3A58-577E-4FF4-95CD-E26A8EB1E140}.Debug|Win32.Build.0 = Debug|Win32
+		{561D3A58-577E-4FF4-95CD-E26A8EB1E140}.Debug|x64.ActiveCfg = Debug|x64
+		{561D3A58-577E-4FF4-95CD-E26A8EB1E140}.Debug|x64.Build.0 = Debug|x64
+		{561D3A58-577E-4FF4-95CD-E26A8EB1E140}.Release|Win32.ActiveCfg = Release|Win32
+		{561D3A58-577E-4FF4-95CD-E26A8EB1E140}.Release|Win32.Build.0 = Release|Win32
+		{561D3A58-577E-4FF4-95CD-E26A8EB1E140}.Release|x64.ActiveCfg = Release|x64
+		{561D3A58-577E-4FF4-95CD-E26A8EB1E140}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -2806,6 +2816,7 @@ Global
 		{F5CA9AEE-FD4D-43B8-9DE5-2A13F1AFF457} = {610C8F32-024C-4868-B514-3F2C9AFCE83F}
 		{E09CE9F0-D27C-43D7-B82E-F3919547967B} = {610C8F32-024C-4868-B514-3F2C9AFCE83F}
 		{B42213BB-948F-45AA-BEA6-D0A87E1155C7} = {610C8F32-024C-4868-B514-3F2C9AFCE83F}
+		{561D3A58-577E-4FF4-95CD-E26A8EB1E140} = {610C8F32-024C-4868-B514-3F2C9AFCE83F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {80692DC6-835F-4417-AF4E-A90510885B49}

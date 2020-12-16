@@ -2269,22 +2269,32 @@ tangent of @var{op}, rounded in the direction @var{rnd}.
 
 @deftypefun int mpfr_cosu (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long @var{u}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_sinu (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long @var{u}, mpfr_rnd_t @var{rnd})
-Set @var{rop} to the cosine (resp. sine) of @m{@var{op} \times 2\pi/u,@var{op} multiplied
-by 2@tie{}Pi and divided by @var{u}}. Thus if @var{u} equals 360, one
-gets the cosine (resp. sine) for @var{op} in degrees.
-For @code{mpfr_cosu},
-when @m{@var{op} \times 2/u,@var{op}
-multiplied by 2 and divided by @var{u}} is a half-integer, the result is +0,
-following IEEE@tie{}754-2019 (cosPi),
-so that the function is even.
-For @code{mpfr_sinu},
-when @m{@var{op} \times 2/u,@var{op}
-multiplied by 2 and divided by @var{u}} is an integer, the result is zero
-with the same sign as @var{op}, following IEEE@tie{}754-2019 (sinPi),
-so that the function is odd.
+@deftypefunx int mpfr_tanu (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long @var{u}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to the cosine (resp.@: sine and tangent) of
+@m{@var{op} \times 2\pi/u,@var{op} multiplied by 2@tie{}Pi and divided
+by @var{u}}. For example, if @var{u} equals 360, one gets the cosine
+(resp.@: sine and tangent) for @var{op} in degrees. For @code{mpfr_cosu},
+when @m{@var{op} \times 2/u,@var{op} multiplied by 2 and divided by @var{u}}
+is a half-integer, the result is +0, following IEEE@tie{}754-2019 (cosPi),
+so that the function is even. For @code{mpfr_sinu},
+when @m{@var{op} \times 2/u,@var{op} multiplied by 2 and divided by @var{u}}
+is an integer, the result is zero with the same sign as @var{op}, following
+IEEE@tie{}754-2019 (sinPi), so that the function is odd.
+Similarly, the function @code{mpfr_tanu} follows IEEE@tie{}754-2019 (tanPi).
 
-Note: these functions are experimental and their interface might change in future
-versions.
+Note: these functions are experimental and their interface might change in
+future versions.
+@end deftypefun
+
+@deftypefun int mpfr_cospi (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_sinpi (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_tanpi (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to the cosine (resp.@: sine and tangent) of
+@m{@var{op} \times \pi,@var{op} multiplied by Pi}. See the description of
+@code{mpfr_sinu}, @code{mpfr_cosu} and @code{mpfr_tanu} for special values.
+
+Note: these functions are experimental and their interface might change in
+future versions.
 @end deftypefun
 
 @deftypefun int mpfr_sin_cos (mpfr_t @var{sop}, mpfr_t @var{cop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -2416,7 +2426,7 @@ to @var{op}}.
 
 @deftypefun int mpfr_gamma (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_gamma_inc (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_t @var{op2}, mpfr_rnd_t @var{rnd})
-Set @var{rop} to the value of the Gamma function on @var{op}, resp. the
+Set @var{rop} to the value of the Gamma function on @var{op}, resp.@: the
 incomplete Gamma function on @var{op} and @var{op2},
 rounded in the direction @var{rnd}.
 (In the literature, @code{mpfr_gamma_inc} is called upper
@@ -2835,8 +2845,8 @@ wanted precision which have the same exponent, otherwise, it is rounded away
 from zero.
 For instance, 85 is displayed as "8e+1" and 95 is displayed as "1e+2" with the
 format specification @code{"%.0RNe"}.
-This also applies when the @samp{g} (resp. @samp{G}) conversion specifier uses
-the @samp{e} (resp. @samp{E}) style.
+This also applies when the @samp{g} (resp.@: @samp{G}) conversion specifier
+uses the @samp{e} (resp.@: @samp{E}) style.
 If the precision is set to a value greater than the maximum value for an
 @code{int}, it will be silently reduced down to @code{INT_MAX}.
 
