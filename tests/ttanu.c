@@ -71,13 +71,13 @@ static void
 test_exact (void)
 {
   mpfr_t x, y;
-  int inexact;
+  int inexact, n;
 
   mpfr_init2 (x, 6);
   mpfr_init2 (y, 6);
 
   /* check n + 0.5 for n integer */
-  for (int n = 0; n < 10; n++)
+  for (n = 0; n < 10; n++)
     {
       /* check 2n+0.5 for n>=0: +Inf and divide by 0 exception */
       mpfr_set_ui (x, 4 * n + 1, MPFR_RNDN);
@@ -202,6 +202,12 @@ test_regular (void)
 #endif
 #include "tgeneric.c"
 
+static int
+mpfr_tan2pi (mpfr_ptr y, mpfr_srcptr x, mpfr_rnd_t r)
+{
+  return mpfr_tanu (y, x, 1, r);
+}
+
 int
 main (void)
 {
@@ -212,6 +218,8 @@ main (void)
   test_regular ();
 
   test_generic (MPFR_PREC_MIN, 100, 1);
+
+  data_check ("data/tan2pi", mpfr_tan2pi, "mpfr_tan2pi");
 
   tests_end_mpfr ();
   return 0;
