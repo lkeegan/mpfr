@@ -3,8 +3,6 @@
 #
 # Run this from the build.vc11 directory
 
-from __future__ import print_function
-
 import sys, os, shutil, string, copy, subprocess
 
 test = "dll"
@@ -92,7 +90,9 @@ shutil.copy( "..\\tests\\inp_str.dat", test_dir )
 shutil.copy( "..\\tests\\tfpif_r1.dat", test_dir )
 shutil.copy( "..\\tests\\tfpif_r2.dat", test_dir )
 shutil.copy( "..\\tests\\tmul.dat", test_dir )
-copy_dir("..\\tests\\data\\", test_dir + "\\data\\")
+if (os.path.exists("..\\tests\\data\\")
+    and not os.path.exists(test_dir + "\\data\\")):
+  shutil.copytree("..\\tests\\data\\", test_dir + "\\data\\")
 
 # generate list of projects from *.vcproj files
 

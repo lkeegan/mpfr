@@ -24,6 +24,7 @@ def copy_dir(src, dst):
       shutil.copy2(s, d)
 
 # get a list of tests from the user
+
 def get_input(n):
   li = []
   while True:
@@ -89,7 +90,9 @@ shutil.copy( "..\\tests\\inp_str.dat", test_dir )
 shutil.copy( "..\\tests\\tfpif_r1.dat", test_dir )
 shutil.copy( "..\\tests\\tfpif_r2.dat", test_dir )
 shutil.copy( "..\\tests\\tmul.dat", test_dir )
-copy_dir("..\\tests\\data\\", test_dir + "\\data\\")
+if (os.path.exists("..\\tests\\data\\")
+    and not os.path.exists(test_dir + "\\data\\")):
+  shutil.copytree("..\\tests\\data\\", test_dir + "\\data\\")
 
 # generate list of projects from *.vcproj files
 
