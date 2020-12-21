@@ -16,8 +16,17 @@ lib_name = '\\mpfr.' + test
 cw, f = os.path.split(__file__)
 os.chdir(cw)
 
-# get a list of tests from the user
+def copy_dir(src, dst):
+  os.makedirs(dst, exist_ok=True)
+  for item in os.listdir(src):
+    s = os.path.join(src, item)
+    d = os.path.join(dst, item)
+    if os.path.isdir(s):
+      copy_dir(s, d)
+    else:
+      shutil.copy2(s, d)
 
+# get a list of tests from the user
 def get_input(n):
   li = []
   while True:
@@ -83,9 +92,7 @@ shutil.copy( "..\\tests\\inp_str.dat", test_dir )
 shutil.copy( "..\\tests\\tfpif_r1.dat", test_dir )
 shutil.copy( "..\\tests\\tfpif_r2.dat", test_dir )
 shutil.copy( "..\\tests\\tmul.dat", test_dir )
-if (os.path.exists("..\\tests\\data\\")
-    and not os.path.exists(test_dir + "\\data\\")):
-  shutil.copytree("..\\tests\\data\\", test_dir + "\\data\\")
+copy_dir("..\\tests\\data\\", test_dir + "\\data\\")
 
 # generate list of projects from *.vcproj files
 
