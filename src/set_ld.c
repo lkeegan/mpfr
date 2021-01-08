@@ -1,7 +1,7 @@
 /* mpfr_set_ld -- convert a machine long double to
                   a multiple precision floating-point number
 
-Copyright 2002-2020 Free Software Foundation, Inc.
+Copyright 2002-2021 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
 
 This file is part of the GNU MPFR Library.
@@ -176,7 +176,8 @@ mpfr_set_ld (mpfr_ptr r, long double d, mpfr_rnd_t rnd_mode)
 
 #elif defined(HAVE_LDOUBLE_MAYBE_DOUBLE_DOUBLE)
 
-/* double-double code */
+/* double-double code, see
+   https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=libgcc/config/rs6000/ibm-ldouble-format;h=e8ada17f7696cd942e710d5b67d4149f5fcccf45;hb=HEAD */
 int
 mpfr_set_ld (mpfr_ptr r, long double d, mpfr_rnd_t rnd_mode)
 {

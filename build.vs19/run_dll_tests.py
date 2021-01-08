@@ -3,7 +3,7 @@
 #
 # Run this from the build.vc11 directory
 
-import sys, os, shutil, string, copy, subprocess
+import sys, os, shutil, subprocess, filecmp
 
 test = "dll"
 
@@ -14,6 +14,17 @@ lib_name = '\\mpfr.' + test
 cw, f = os.path.split(__file__)
 os.chdir(cw)
 
+def write_f(ipath, opath):
+  if os.path.exists(ipath) and not os.path.isdir(ipath):
+    if os.path.exists(opath) and os.path.isfile(opath) and filecmp.cmp(ipath, opath):
+      return
+    dp, f = os.path.split(opath)
+    try:
+      os.mkdir(dp)
+    except FileExistsError:
+      pass
+    shutil.copy2(ipath, opath)
+
 def copy_dir(src, dst):
   os.makedirs(dst, exist_ok=True)
   for item in os.listdir(src):
@@ -22,7 +33,7 @@ def copy_dir(src, dst):
     if os.path.isdir(s):
       copy_dir(s, d)
     else:
-      shutil.copy2(s, d)
+      write_f(s, d)
 
 # get a list of tests from the user
 def get_input(n):
@@ -90,9 +101,11 @@ shutil.copy( "..\\tests\\inp_str.dat", test_dir )
 shutil.copy( "..\\tests\\tfpif_r1.dat", test_dir )
 shutil.copy( "..\\tests\\tfpif_r2.dat", test_dir )
 shutil.copy( "..\\tests\\tmul.dat", test_dir )
-if (os.path.exists("..\\tests\\data\\")
-    and not os.path.exists(test_dir + "\\data\\")):
-  shutil.copytree("..\\tests\\data\\", test_dir + "\\data\\")
+if os.path.exists("..\\tests\\data\\"):
+  if not os.path.exists(test_dir + "\\data\\"):
+    shutil.copytree("..\\tests\\data\\", test_dir + "\\data\\")
+  else:
+    copy_dir("..\\tests\\data\\", test_dir + "\\data\\")
 
 # generate list of projects from *.vcproj files
 
