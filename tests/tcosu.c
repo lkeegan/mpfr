@@ -63,6 +63,18 @@ test_singular (void)
   MPFR_ASSERTN(mpfr_cmp_ui (y, 1) == 0);
   MPFR_ASSERTN(inexact == 0);
 
+  /* check x/u = 2^16, for example x=3*2^16 and u=3 */
+  mpfr_set_ui_2exp (x, 3, 16, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 3, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_cmp_ui (y, 1) == 0);
+  MPFR_ASSERTN(inexact == 0);
+
+  /* check x/u = -2^16, for example x=-3*2^16 and u=3 */
+  mpfr_set_si_2exp (x, -3, 16, MPFR_RNDN);
+  inexact = mpfr_cosu (y, x, 3, MPFR_RNDN);
+  MPFR_ASSERTN(mpfr_cmp_ui (y, 1) == 0);
+  MPFR_ASSERTN(inexact == 0);
+
   mpfr_clear (x);
   mpfr_clear (y);
 }
@@ -166,16 +178,60 @@ test_regular (void)
   mpfr_clear (z);
 }
 
-/* FIXME[VL]: For mpfr_cosu, the range reduction should not be expensive.
-   If I'm not mistaken, this is linear in the bitsize of the exponent
-   since one just needs to compute the argument modulo the integer u. */
+/* Check argument reduction with large hard-coded inputs. The following
+   values were generated with the following Sage code:
+# generate N random tests for f, with precision p, u < U, and |x| < 2^K
+# f might be cos (for cosu), sin (for sinu) or tan (for tanu)
+# gen_random(cos,10,53,100,20)
+def gen_random(f,N,p,U,K):
+   R = RealField(p)
+   for n in range(N):
+      u = ZZ.random_element(U)
+      x = R.random_element()*2^K
+      q = p
+      while true:
+         q += 10
+         RI = RealIntervalField(q)
+         y = RI(f(2*pi*x.exact_rational()/u))
+         if R(y.lower().exact_rational()) == R(y.upper().exact_rational()):
+            break
+      y = R(y.lower().exact_rational())
+      print (x.hex(), u, y.hex()) */
+static void
+test_large (void)
+{
+  static struct {
+    const char *x;
+    unsigned long u;
+    const char *y;
+  } t[] = {
+    { "0xd.ddfeb0f4a01fp+16", 72, "0x4.8e54ce9b84d78p-4" },
+    { "-0xb.ccb63f74f9abp+16", 36, "-0xb.cce98d64941bp-4" },
+    { "0x9.8451e45ed4bap+16", 26, "-0xb.b205cfe8a13cp-4" },
+    { "-0x7.6b4c16c45445p+16", 60, "-0x7.dee04000f4934p-4" },
+    { "0x1.bb80916be884p+16", 43, "-0xc.059d9c8f1b7fp-4" },
+    { "-0x5.4d3623b69226p+16", 1, "0xa.3cb353892757p-4" },
+    { "0xd.1c59eab5a14bp+16", 58, "0x1.02978f1c99614p-4" },
+    { "-0xf.bb1f858b9949p+16", 33, "-0x3.b53e5214db138p-4" },
+    { "-0x2.9bcda761bb7p+16", 55, "-0x6.e6c08e7d92898p-4" },
+    { "-0x9.f8f40e2c50f9p+16", 73, "0x7.0e0ff5e4dccbp-4" }
+  };
+  int i;
+  mpfr_t x, y, z;
+
+  mpfr_inits2 (53, x, y, z, (mpfr_ptr) 0);
+  for (i = 0; i < numberof (t); i++)
+    {
+      mpfr_set_str (x, t[i].x, 0, MPFR_RNDN);
+      mpfr_set_str (y, t[i].y, 0, MPFR_RNDN);
+      mpfr_cosu (z, x, t[i].u, MPFR_RNDN);
+      MPFR_ASSERTN (mpfr_equal_p (y, z));
+    }
+  mpfr_clears (x, y, z, (mpfr_ptr) 0);
+}
+
 #define TEST_FUNCTION mpfr_cosu
 #define ULONG_ARG2
-#ifndef MPFR_USE_MINI_GMP
-#define REDUCE_EMAX 262143 /* otherwise arg. reduction is too expensive */
-#else
-#define REDUCE_EMAX 16383  /* reduce further since mini-gmp works in O(n^2) */
-#endif
 #include "tgeneric.c"
 
 static int
@@ -192,12 +248,13 @@ main (void)
   test_singular ();
   test_exact ();
   test_regular ();
+  test_large ();
 
   /* Note: since the value of u can be large (up to 2^64 - 1 on 64-bit
      machines), the cos argument can be very small, yielding a special
      case in small precision. Thus it is better to use a maximum
      precision (second test_generic argument) that is large enough. */
-  test_generic (MPFR_PREC_MIN, 200, 3);
+  test_generic (MPFR_PREC_MIN, 200, 1000);
 
   data_check ("data/cos2pi", mpfr_cos2pi, "mpfr_cos2pi");
 

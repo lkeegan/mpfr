@@ -24,23 +24,21 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define MPFR_NEED_LONGLONG_H
 #include "mpfr-impl.h"
 
-/* FIXME[VL]: Implement the range reduction in this function.
-   That's the whole point of cosu compared to cos. */
-
 /* put in y the corrected-rounded value of cos(2*pi*x/u) */
 int
 mpfr_cosu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
 {
+  mpfr_srcptr xp;
   mpfr_prec_t precy, prec;
   mpfr_exp_t expx, expt, err, log2u, erra, errb;
-  mpfr_t t;
+  mpfr_t t, xr;
   int inexact = 0, nloops = 0, underflow = 0;
   MPFR_ZIV_DECL (loop);
   MPFR_SAVE_EXPO_DECL (expo);
 
   MPFR_LOG_FUNC (
-    ("x[%Pu]=%*.Rg rnd=%d", mpfr_get_prec (x), mpfr_log_prec, x, rnd_mode),
-    ("y[%Pu]=%*.Rg inexact=%d", mpfr_get_prec (y), mpfr_log_prec, y,
+    ("x[%Pu]=%.*Rg rnd=%d", mpfr_get_prec (x), mpfr_log_prec, x, rnd_mode),
+    ("y[%Pu]=%.*Rg inexact=%d", mpfr_get_prec (y), mpfr_log_prec, y,
      inexact));
 
   if (u == 0 || MPFR_UNLIKELY (MPFR_IS_SINGULAR (x)))
@@ -60,8 +58,51 @@ mpfr_cosu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
 
   MPFR_SAVE_EXPO_MARK (expo);
 
+  /* Range reduction. We do not need to reduce the argument if it is
+     already reduced (|x| < u).
+     Note that the case |x| = u is better in the "else" branch as it
+     will give xr = 0. */
+  if (mpfr_cmpabs_ui (x, u) < 0)
+    {
+      xp = x;
+    }
+  else
+    {
+      mpfr_exp_t p = MPFR_GET_PREC (x) - MPFR_GET_EXP (x);
+      int inex;
+
+      /* Let's compute xr = x mod u, with signbit(xr) = signbit(x), though
+         this doesn't matter.
+         The precision of xr is chosen to ensure that x mod u is exactly
+         representable in xr, e.g., the maximum size of u + the length of
+         the fractional part of x. Note that since |x| >= u in this branch,
+         the additional memory amount will not be more than the one of x.
+      */
+      mpfr_init2 (xr, sizeof (unsigned long) * CHAR_BIT + (p < 0 ? 0 : p));
+      MPFR_DBGRES (inex = mpfr_fmod_ui (xr, x, u, MPFR_RNDN));  /* exact */
+      MPFR_ASSERTD (inex == 0);
+      if (MPFR_IS_ZERO (xr))
+        {
+          mpfr_clear (xr);
+          MPFR_SAVE_EXPO_FREE (expo);
+          return mpfr_set_ui (y, 1, rnd_mode);
+        }
+      xp = xr;
+    }
+
+#define CLEAR_XR                       \
+  do                                   \
+    if (xp != x)                       \
+      {                                \
+        MPFR_ASSERTD (xp == xr);       \
+        mpfr_clear (xr);               \
+      }                                \
+  while (0)
+
+  /* now |xp/u| < 1 */
+
   /* for x small, we have |cos(2*pi*x/u)-1| < 1/2*(2*pi*x/u)^2 < 2^5*(x/u)^2 */
-  expx = MPFR_GET_EXP (x);
+  expx = MPFR_GET_EXP (xp);
   log2u = u == 1 ? 0 : MPFR_INT_CEIL_LOG2 (u) - 1;
   /* u >= 2^log2u thus 1/u <= 2^(-log2u) */
   erra = -2 * expx;
@@ -78,14 +119,12 @@ mpfr_cosu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
       mpfr_exp_t err1 = errb >= 0 || erra < MPFR_EXP_MAX + errb ?
         erra - errb : MPFR_EXP_MAX;
       MPFR_SMALL_INPUT_AFTER_SAVE_EXPO (y, __gmpfr_one, err1, 0, 0,
-                                        rnd_mode, expo, {});
+                                        rnd_mode, expo, CLEAR_XR);
     }
 
-  precy = MPFR_PREC (y);
+  precy = MPFR_GET_PREC (y);
   /* For x large, since argument reduction is expensive, we want to avoid
-     any failure in Ziv's strategy, thus we take into account expx too.
-     FIXME: this has to be modified when argument reduction is done
-     directly on x. */
+     any failure in Ziv's strategy, thus we take into account expx too. */
   prec = precy + MAX(expx,MPFR_INT_CEIL_LOG2 (precy)) + 8;
   MPFR_ASSERTD(prec >= 2);
   mpfr_init2 (t, prec);
@@ -93,13 +132,14 @@ mpfr_cosu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
   for (;;)
     {
       nloops ++;
-      /* We first compute an approximation t of 2*pi*x/u, then call cos(t).
+      /* In the error analysis below, xp stands for x.
+         We first compute an approximation t of 2*pi*x/u, then call cos(t).
          If t = 2*pi*x/u + s, then |cos(t) - cos(2*pi*x/u)| <= |s|. */
       mpfr_set_prec (t, prec);
       mpfr_const_pi (t, MPFR_RNDN); /* t = pi * (1 + theta1) where
                                        |theta1| <= 2^-prec */
       mpfr_mul_2ui (t, t, 1, MPFR_RNDN); /* t = 2*pi * (1 + theta1) */
-      mpfr_mul (t, t, x, MPFR_RNDN);     /* t = 2*pi*x * (1 + theta2)^2 where
+      mpfr_mul (t, t, xp, MPFR_RNDN);    /* t = 2*pi*x * (1 + theta2)^2 where
                                             |theta2| <= 2^-prec */
       mpfr_div_ui (t, t, u, MPFR_RNDN);  /* t = 2*pi*x/u * (1 + theta3)^3 where
                                             |theta3| <= 2^-prec */
@@ -137,7 +177,7 @@ mpfr_cosu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
       if (nloops == 1)
         {
           /* detect case (a) */
-          inexact = mpfr_div_ui (t, x, u, MPFR_RNDZ);
+          inexact = mpfr_div_ui (t, xp, u, MPFR_RNDZ);
           mpfr_mul_2ui (t, t, 2, MPFR_RNDZ);
           if (inexact == 0 && mpfr_integer_p (t))
             {
@@ -161,7 +201,7 @@ mpfr_cosu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
           /* detect case (b): this can only occur if u is divisible by 3 */
           if ((u % 3) == 0)
             {
-              inexact = mpfr_div_ui (t, x, u / 3, MPFR_RNDZ);
+              inexact = mpfr_div_ui (t, xp, u / 3, MPFR_RNDZ);
               /* t should be in {1/2,2/2,4/2,5/2} */
               mpfr_mul_2ui (t, t, 1, MPFR_RNDZ);
               /* t should be {1,2,4,5} mod 6:
@@ -201,6 +241,7 @@ mpfr_cosu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
 
  end:
   mpfr_clear (t);
+  CLEAR_XR;
   MPFR_SAVE_EXPO_FREE (expo);
   return underflow ? inexact : mpfr_check_range (y, inexact, rnd_mode);
 }

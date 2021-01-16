@@ -1,4 +1,4 @@
-/* mpfr_sqrt_ui -- square root of a machine integer
+/* mpfr_fmod_ui -- modulo a machine integer
 
 Copyright 2000-2004, 2006-2021 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
@@ -24,16 +24,17 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "mpfr-impl.h"
 
 int
-mpfr_sqrt_ui (mpfr_ptr r, unsigned long u, mpfr_rnd_t rnd_mode)
+mpfr_fmod_ui (mpfr_ptr r, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
 {
   int inex;
 
   MPFR_LOG_FUNC
-    (("u=%lu rnd=%d", u, rnd_mode),
+    (("x[%Pu]=%.*Rg u=%lu rnd=%d",
+      mpfr_get_prec(x), mpfr_log_prec, x, u, rnd_mode),
      ("y[%Pu]=%.*Rg inexact=%d",
       mpfr_get_prec(r), mpfr_log_prec, r, inex));
 
-  if (u != 0)
+  if (MPFR_UNLIKELY (u != 0))
     {
       mpfr_t uu;
 #ifdef MPFR_LONG_WITHIN_LIMB
@@ -48,7 +49,7 @@ mpfr_sqrt_ui (mpfr_ptr r, unsigned long u, mpfr_rnd_t rnd_mode)
 
       MPFR_SAVE_EXPO_MARK (expo);
       MPFR_SET_EXP (uu, GMP_NUMB_BITS - cnt);
-      inex = mpfr_sqrt (r, uu, rnd_mode);
+      inex = mpfr_fmod (r, x, uu, rnd_mode);
 #else
       MPFR_SAVE_EXPO_DECL (expo);
 
@@ -56,17 +57,16 @@ mpfr_sqrt_ui (mpfr_ptr r, unsigned long u, mpfr_rnd_t rnd_mode)
       /* Warning: u might be outside the current exponent range! */
       MPFR_SAVE_EXPO_MARK (expo);
       mpfr_set_ui (uu, u, MPFR_RNDZ);
-      inex = mpfr_sqrt (r, uu, rnd_mode);
+      inex = mpfr_fmod (r, x, uu, rnd_mode);
       mpfr_clear (uu);
 #endif /* MPFR_LONG_WITHIN_LIMB */
       MPFR_SAVE_EXPO_FREE (expo);
       inex = mpfr_check_range (r, inex, rnd_mode);
       return inex;
     }
-  else /* sqrt(0) = 0 */
+  else
     {
-      MPFR_SET_ZERO(r);
-      MPFR_SET_POS(r);
-      MPFR_RET(0);
+      MPFR_SET_NAN (r);
+      MPFR_RET_NAN;
     }
 }

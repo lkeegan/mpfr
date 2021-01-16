@@ -749,6 +749,9 @@
     <ClCompile Include="..\..\src\tanu.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\fmod_ui.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\fits_s.h">

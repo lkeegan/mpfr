@@ -291,6 +291,7 @@
     <ClCompile Include="..\..\src\fits_ushort.c" />
     <ClCompile Include="..\..\src\fma.c" />
     <ClCompile Include="..\..\src\fmma.c" />
+    <ClCompile Include="..\..\src\fmod_ui.c" />
     <ClCompile Include="..\..\src\fms.c" />
     <ClCompile Include="..\..\src\fpif.c" />
     <ClCompile Include="..\..\src\frac.c" />

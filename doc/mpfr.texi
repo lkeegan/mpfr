@@ -1617,11 +1617,11 @@ only under some conditions: see the documentation of @code{mpfr_set_float128},
 @code{mpfr_set_decimal64} and @code{mpfr_set_decimal128} respectively.
 @end deftypefun
 
-@deftypefun long mpfr_get_si (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
-@deftypefunx {unsigned long} mpfr_get_ui (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefun {long int} mpfr_get_si (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefunx {unsigned long int} mpfr_get_ui (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx intmax_t mpfr_get_sj (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx uintmax_t mpfr_get_uj (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
-Convert @var{op} to a @code{long}, an @code{unsigned long},
+Convert @var{op} to a @code{long int}, an @code{unsigned long int},
 an @code{intmax_t} or an @code{uintmax_t} (respectively) after rounding
 it to an integer with respect to @var{rnd}.
 If @var{op} is NaN, 0 is returned and the @emph{erange} flag is set.
@@ -1821,7 +1821,7 @@ The block is assumed to be @code{strlen(@var{str})+1} bytes.
 @deftypefunx int mpfr_fits_uintmax_p (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_fits_intmax_p (mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 Return non-zero if @var{op} would fit in the respective C data type,
-respectively @code{unsigned long}, @code{long}, @code{unsigned int},
+respectively @code{unsigned long int}, @code{long int}, @code{unsigned int},
 @code{int}, @code{unsigned short}, @code{short}, @code{uintmax_t},
 @code{intmax_t}, when rounded to an integer in the direction @var{rnd}.
 For instance, with the @code{MPFR_RNDU} rounding mode on @minus{}0.5,
@@ -1993,7 +1993,7 @@ rounded in the direction @var{rnd}. Just decreases the exponent by @var{op2}
 when @var{rop} and @var{op1} are identical.
 @end deftypefun
 
-@deftypefun int mpfr_fac_ui (mpfr_t @var{rop}, unsigned long int  @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefun int mpfr_fac_ui (mpfr_t @var{rop}, unsigned long int @var{op}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to the factorial of @var{op}, rounded in the direction @var{rnd}.
 @end deftypefun
 
@@ -2100,7 +2100,7 @@ the power @var{e}}. Similar as above.
 @end deftypefun
 
 @deftypefun int mpfr_cmpabs (mpfr_t @var{op1}, mpfr_t @var{op2})
-@deftypefunx int mpfr_cmpabs_ui (mpfr_t @var{op1}, unsigned long @var{op2})
+@deftypefunx int mpfr_cmpabs_ui (mpfr_t @var{op1}, unsigned long int @var{op2})
 Compare @math{|@var{op1}|} and @math{|@var{op2}|}.  Return a positive value if
 @math{|@var{op1}| > |@var{op2}|}, zero if @math{|@var{op1}| = |@var{op2}|}, and
 a negative value if @math{|@var{op1}| < |@var{op2}|}.
@@ -2194,7 +2194,7 @@ exact cases are known and can be detected efficiently).
 @c (tests/tests.c).
 
 @deftypefun int mpfr_log (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_log_ui (mpfr_t @var{rop}, unsigned long @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_log_ui (mpfr_t @var{rop}, unsigned long int @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_log2 (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_log10 (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to the natural logarithm of @var{op},
@@ -2267,9 +2267,9 @@ Set @var{rop} to the cosine of @var{op}, sine of @var{op},
 tangent of @var{op}, rounded in the direction @var{rnd}.
 @end deftypefun
 
-@deftypefun int mpfr_cosu (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long @var{u}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_sinu (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long @var{u}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_tanu (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long @var{u}, mpfr_rnd_t @var{rnd})
+@deftypefun int mpfr_cosu (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long int @var{u}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_sinu (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long int @var{u}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_tanu (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long int @var{u}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to the cosine (resp.@: sine and tangent) of
 @m{@var{op} \times 2\pi/u,@var{op} multiplied by 2@tie{}Pi and divided
 by @var{u}}. For example, if @var{u} equals 360, one gets the cosine
@@ -2281,9 +2281,6 @@ when @m{@var{op} \times 2/u,@var{op} multiplied by 2 and divided by @var{u}}
 is an integer, the result is zero with the same sign as @var{op}, following
 IEEE@tie{}754-2019 (sinPi), so that the function is odd.
 Similarly, the function @code{mpfr_tanu} follows IEEE@tie{}754-2019 (tanPi).
-
-Note: these functions are experimental and their interface might change in
-future versions.
 @end deftypefun
 
 @deftypefun int mpfr_cospi (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -2292,9 +2289,6 @@ future versions.
 Set @var{rop} to the cosine (resp.@: sine and tangent) of
 @m{@var{op} \times \pi,@var{op} multiplied by Pi}. See the description of
 @code{mpfr_sinu}, @code{mpfr_cosu} and @code{mpfr_tanu} for special values.
-
-Note: these functions are experimental and their interface might change in
-future versions.
 @end deftypefun
 
 @deftypefun int mpfr_sin_cos (mpfr_t @var{sop}, mpfr_t @var{cop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -2476,7 +2470,7 @@ and might use a huge internal precision in some cases.
 @end deftypefun
 
 @deftypefun int mpfr_zeta (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_zeta_ui (mpfr_t @var{rop}, unsigned long @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_zeta_ui (mpfr_t @var{rop}, unsigned long int @var{op}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to the value of the Riemann Zeta function on @var{op},
 rounded in the direction @var{rnd}.
 @end deftypefun
@@ -2490,7 +2484,7 @@ rounded in the direction @var{rnd}.
 
 @deftypefun int mpfr_j0 (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_j1 (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_jn (mpfr_t @var{rop}, long @var{n}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_jn (mpfr_t @var{rop}, long int @var{n}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to the value of the first kind Bessel function of order 0,
 (resp.@: 1 and @var{n})
 on @var{op}, rounded in the direction @var{rnd}. When @var{op} is
@@ -2502,7 +2496,7 @@ and the sign of @var{op}.
 
 @deftypefun int mpfr_y0 (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_y1 (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_yn (mpfr_t @var{rop}, long @var{n}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_yn (mpfr_t @var{rop}, long int @var{n}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
 Set @var{rop} to the value of the second kind Bessel function of order 0
 (resp.@: 1 and @var{n})
 on @var{op}, rounded in the direction @var{rnd}. When @var{op} is
@@ -3042,13 +3036,14 @@ corresponding precision of @var{iop} and @var{fop} (equivalent to
 @end deftypefun
 
 @deftypefun int mpfr_fmod (mpfr_t @var{r}, mpfr_t @var{x}, mpfr_t @var{y}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_fmodquo (mpfr_t @var{r}, long* @var{q}, mpfr_t @var{x}, mpfr_t @var{y}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_fmod_ui (mpfr_t @var{r}, mpfr_t @var{x}, unsigned long int @var{y}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_fmodquo (mpfr_t @var{r}, long int* @var{q}, mpfr_t @var{x}, mpfr_t @var{y}, mpfr_rnd_t @var{rnd})
 @deftypefunx int mpfr_remainder (mpfr_t @var{r}, mpfr_t @var{x}, mpfr_t @var{y}, mpfr_rnd_t @var{rnd})
-@deftypefunx int mpfr_remquo (mpfr_t @var{r}, long* @var{q}, mpfr_t @var{x}, mpfr_t @var{y}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_remquo (mpfr_t @var{r}, long int* @var{q}, mpfr_t @var{x}, mpfr_t @var{y}, mpfr_rnd_t @var{rnd})
 Set @var{r} to the value of @math{@var{x} - @var{n}@var{y}}, rounded
 according to the direction @var{rnd}, where @var{n} is the integer quotient
 of @var{x} divided by @var{y}, defined as follows: @var{n} is rounded
-toward zero for @code{mpfr_fmod} and @code{mpfr_fmodquo},
+toward zero for @code{mpfr_fmod}, @code{mpfr_fmod_ui} and @code{mpfr_fmodquo},
 and to the nearest integer (ties rounded to even) for @code{mpfr_remainder}
 and @code{mpfr_remquo}.
 
@@ -3062,7 +3057,7 @@ The return value is the ternary value corresponding to @var{r}.
 
 Additionally, @code{mpfr_fmodquo} and @code{mpfr_remquo} store
 the low significant bits from the quotient @var{n} in @var{*q}
-(more precisely the number of bits in a @code{long} minus one),
+(more precisely the number of bits in a @code{long int} minus one),
 with the sign of @var{x} divided by @var{y}
 (except if those low bits are all zero, in which case zero is returned).
 Note that @var{x} may be so large in magnitude relative to @var{y} that an
@@ -3212,7 +3207,7 @@ or a null pointer if @var{rnd} is an invalid rounding mode.
 
 @deftypefn Macro int mpfr_round_nearest_away (int (@var{foo})(mpfr_t, type1_t, ..., mpfr_rnd_t), mpfr_t @var{rop}, type1_t @var{op}, ...)
 Given a function @var{foo} and one or more values @var{op} (which may be
-a @code{mpfr_t}, a @code{long}, a @code{double}, etc.), put in @var{rop}
+a @code{mpfr_t}, a @code{long int}, a @code{double}, etc.), put in @var{rop}
 the round-to-nearest-away rounding of @code{@var{foo}(@var{op},...)}.
 This rounding is defined in the same way as round-to-nearest-even,
 except in case of tie, where the value away from zero is returned.
@@ -4132,7 +4127,7 @@ but not documented,
 and with a slight difference in the semantics (when
 the second input operand is a NaN)@.
 
-@item @code{mpfr_cosu} in MPFR@tie{}4.2.0 (experimental).
+@item @code{mpfr_cospi} and @code{mpfr_cosu} in MPFR@tie{}4.2.0.
 
 @item @code{mpfr_custom_get_significand} in MPFR@tie{}3.0.
 This function was named @code{mpfr_custom_get_mantissa} in previous
@@ -4165,6 +4160,8 @@ in MPFR@tie{}4.0.
 @item @code{mpfr_fmod} in MPFR@tie{}2.4.
 
 @item @code{mpfr_fmodquo} in MPFR@tie{}4.0.
+
+@item @code{mpfr_fmod_ui} in MPFR@tie{}4.2.0.
 
 @item @code{mpfr_fms} in MPFR@tie{}2.3.
 
@@ -4255,11 +4252,13 @@ use @code{mpfr_get_z_exp}.
 
 @item @code{mpfr_sinh_cosh} in MPFR@tie{}2.4.
 
-@item @code{mpfr_sinu} in MPFR@tie{}4.2.0 (experimental).
+@item @code{mpfr_sinpi} and @code{mpfr_sinu} in MPFR@tie{}4.2.0.
 
 @item @code{mpfr_snprintf} and @code{mpfr_sprintf} in MPFR@tie{}2.4.
 
 @item @code{mpfr_sub_d} in MPFR@tie{}2.4.
+
+@item @code{mpfr_tanpi} and @code{mpfr_tanu} in MPFR@tie{}4.2.0.
 
 @item @code{mpfr_total_order_p} in MPFR@tie{}4.1.
 
