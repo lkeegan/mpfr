@@ -55,13 +55,15 @@ check_ieee754 (void)
       exit (1);
     }
 
-  /* compound(x,0) = 1 for x >= -1 or x = qNaN */
-  for (i = -1; i <= 2; i++)
+  /* compound(x,0) = 1 for x >= -1 or x = NaN */
+  for (i = -2; i <= 2; i++)
     {
-      if (i != 2)
-        mpfr_set_si (x, i, MPFR_RNDN);
-      else
+      if (i == -2)
+        mpfr_set_nan (x);
+      else if (i == 2)
         mpfr_set_inf (x, 1);
+      else
+        mpfr_set_si (x, i, MPFR_RNDN);
       mpfr_compound (y, x, 0, MPFR_RNDN);
       if (mpfr_cmp_ui (y, 1) != 0)
         {
@@ -171,6 +173,47 @@ check_ieee754 (void)
       printf ("got      "); mpfr_dump (y);
       exit (1);
     }
+
+  /* test for negative n */
+  i = -1;
+  while (1)
+    {
+      /* i has the form -(2^k-1) */
+      mpfr_set_si_2exp (x, -1, -1, MPFR_RNDN); /* x = -0.5 */
+      mpfr_compound (y, x, i, MPFR_RNDN);
+      mpfr_set_ui_2exp (x, 1, -i, MPFR_RNDN);
+      if (!mpfr_equal_p (y, x))
+        {
+          printf ("Error for compound(-0.5,%ld)\n", i);
+          printf ("expected "); mpfr_dump (x);
+          printf ("got      "); mpfr_dump (y);
+          exit (1);
+        }
+      if (i == -2147483647) /* largest possible value on 32-bit machine */
+        break;
+      i = 2 * i - 1;
+    }
+
+  /* The "#if" makes sure that 64-bit constants are supported, avoiding
+     a compilation failure. The "if" makes sure that the constant is
+     representable in a long (this would not be the case with 32-bit
+     unsigned long and 64-bit limb). */
+#if GMP_NUMB_BITS >= 64 || MPFR_PREC_BITS >= 64
+  if (4994322635099777669 <= LONG_MAX)
+    {
+      i = -4994322635099777669;
+      mpfr_set_ui (x, 1, MPFR_RNDN);
+      mpfr_compound (y, x, i, MPFR_RNDN);
+      mpfr_set_si_2exp (x, 1, i, MPFR_RNDN);
+      if (!mpfr_equal_p (y, x))
+        {
+          printf ("Error for compound(1,%ld)\n", i);
+          printf ("expected "); mpfr_dump (x);
+          printf ("got      "); mpfr_dump (y);
+          exit (1);
+        }
+    }
+#endif
 
   mpfr_clear (x);
   mpfr_clear (y);

@@ -527,32 +527,36 @@ check_random (void)
 static void
 bug20210203 (void)
 {
+  /* The "#if" makes sure that 64-bit constants are supported, avoiding
+     a compilation failure. The "if" makes sure that the constant is
+     representable in an unsigned long (this would not be the case with
+     32-bit unsigned long and 64-bit limb). */
+
 #if GMP_NUMB_BITS >= 64 || MPFR_PREC_BITS >= 64
-  /* then 64-bit constants are supported */
-
   mpfr_t x, y, z;
-  unsigned long u;
+  unsigned long u = 13484982567905493265U;
 
-  mpfr_init2 (x, 12);
-  mpfr_init2 (y, 12);
-  mpfr_init2 (z, 28);
-  mpfr_set_str_binary (y, "-0.111101100000E-66");
-  mpfr_set_str_binary (x, "0.111011100000E0");
-  u = 13484982567905493265UL;
-  mpfr_atan2u (z, y, x, u, MPFR_RNDN);
-  mpfr_set_prec (x, 28);
-  mpfr_set_str_binary (x, "-0.1111011001001001000110001010E-5");
-  if (!mpfr_equal_p (z, x))
+  if (u == 13484982567905493265U)
     {
-      printf ("Error in bug20210203\n");
-      printf ("expected "); mpfr_dump (x);
-      printf ("got      "); mpfr_dump (z);
-      exit (1);
+      mpfr_init2 (x, 12);
+      mpfr_init2 (y, 12);
+      mpfr_init2 (z, 28);
+      mpfr_set_str_binary (y, "-0.111101100000E-66");
+      mpfr_set_str_binary (x, "0.111011100000E0");
+      mpfr_atan2u (z, y, x, u, MPFR_RNDN);
+      mpfr_set_prec (x, 28);
+      mpfr_set_str_binary (x, "-0.1111011001001001000110001010E-5");
+      if (!mpfr_equal_p (z, x))
+        {
+          printf ("Error in bug20210203\n");
+          printf ("expected "); mpfr_dump (x);
+          printf ("got      "); mpfr_dump (z);
+          exit (1);
+        }
+      mpfr_clear (x);
+      mpfr_clear (y);
+      mpfr_clear (z);
     }
-  mpfr_clear (x);
-  mpfr_clear (y);
-  mpfr_clear (z);
-
 #endif
 }
 
