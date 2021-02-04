@@ -213,6 +213,7 @@
     <ClCompile Include="..\..\src\abort_prec_max.c" />
     <ClCompile Include="..\..\src\acos.c" />
     <ClCompile Include="..\..\src\acosh.c" />
+    <ClCompile Include="..\..\src\acosu.c" />
     <ClCompile Include="..\..\src\add.c" />
     <ClCompile Include="..\..\src\add1.c" />
     <ClCompile Include="..\..\src\add1sp.c" />
@@ -222,9 +223,12 @@
     <ClCompile Include="..\..\src\ai.c" />
     <ClCompile Include="..\..\src\asin.c" />
     <ClCompile Include="..\..\src\asinh.c" />
+    <ClCompile Include="..\..\src\asinu.c" />
     <ClCompile Include="..\..\src\atan.c" />
     <ClCompile Include="..\..\src\atan2.c" />
+    <ClCompile Include="..\..\src\atan2u.c" />
     <ClCompile Include="..\..\src\atanh.c" />
+    <ClCompile Include="..\..\src\atanu.c" />
     <ClCompile Include="..\..\src\bernoulli.c" />
     <ClCompile Include="..\..\src\beta.c" />
     <ClCompile Include="..\..\src\buildopt.c" />
@@ -242,6 +246,7 @@
     <ClCompile Include="..\..\src\cmp_si.c" />
     <ClCompile Include="..\..\src\cmp_ui.c" />
     <ClCompile Include="..\..\src\comparisons.c" />
+    <ClCompile Include="..\..\src\compound.c" />
     <ClCompile Include="..\..\src\const_catalan.c" />
     <ClCompile Include="..\..\src\const_euler.c" />
     <ClCompile Include="..\..\src\const_log2.c" />
@@ -343,8 +348,10 @@
     <ClCompile Include="..\..\src\lngamma.c" />
     <ClCompile Include="..\..\src\log.c" />
     <ClCompile Include="..\..\src\log10.c" />
+    <ClCompile Include="..\..\src\log10p1.c" />
     <ClCompile Include="..\..\src\log1p.c" />
     <ClCompile Include="..\..\src\log2.c" />
+    <ClCompile Include="..\..\src\log2p1.c" />
     <ClCompile Include="..\..\src\logging.c" />
     <ClCompile Include="..\..\src\log_ui.c" />
     <ClCompile Include="..\..\src\min_prec.c" />
