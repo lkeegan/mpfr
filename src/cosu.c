@@ -24,7 +24,7 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define MPFR_NEED_LONGLONG_H
 #include "mpfr-impl.h"
 
-/* put in y the corrected-rounded value of cos(2*pi*x/u) */
+/* put in y the correctly rounded value of cos(2*pi*x/u) */
 int
 mpfr_cosu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
 {
@@ -37,7 +37,8 @@ mpfr_cosu (mpfr_ptr y, mpfr_srcptr x, unsigned long u, mpfr_rnd_t rnd_mode)
   MPFR_SAVE_EXPO_DECL (expo);
 
   MPFR_LOG_FUNC (
-    ("x[%Pu]=%.*Rg rnd=%d", mpfr_get_prec (x), mpfr_log_prec, x, rnd_mode),
+    ("x[%Pu]=%.*Rg u=%lu rnd=%d", mpfr_get_prec (x), mpfr_log_prec, x, u,
+     rnd_mode),
     ("y[%Pu]=%.*Rg inexact=%d", mpfr_get_prec (y), mpfr_log_prec, y,
      inexact));
 

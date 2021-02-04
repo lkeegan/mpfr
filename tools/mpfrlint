@@ -213,6 +213,12 @@ grep 'mpfr_\(div\|mul\)_2exp' {src,tests}/*.[ch] |\
   err-if-output --msg="Use mpfr_div_2ui and mpfr_mul_2ui instead." \
     "mpfr_div_2exp and mpfr_mul_2exp" cat
 
+# In tests, use set_emin / set_emax rather than mpfr_set_emin / mpfr_set_emax
+# (except when a failure may be expected).
+err-if-output --msg="Use set_emin / set_emax instead." \
+  -t "mpfr_set_emin / mpfr_set_emax" \
+  grep "^[[:space:]]*mpfr_set_e\(min\|max\)[[:space:]]*(" tests/*.[ch]
+
 # Note: GMP internals must not be used unless WANT_GMP_INTERNALS is defined.
 # The check below attempts to handle that, but this is a heuristic (it might
 # fail in case of nested #if's, but this is currently OK).
@@ -512,6 +518,10 @@ Minimal GMP version mismatch:
   doc/mpfr.texi:  $gmpv4
 EOF
 
+doc=(FAQ.html Makefile.am README.dev add-with-carry.c check-typography \
+     faq.xsl fdl.texi mini-gmp mpfr.texi sum.txt update-faq)
+doc=(doc/${^doc})
+
 # In case of problems, one can skip files with -S or use "grep -v"...
 # The codespell.exclude could be simplified after this is fixed:
 #   https://github.com/codespell-project/codespell/issues/17
@@ -524,19 +534,21 @@ EOF
 # error message will not be visible (if such an issue is reproducible, then
 # remove the "2> /dev/null" and retry in order to see the error message).
 if which codespell > /dev/null 2> /dev/null; then
-  doc=(FAQ.html Makefile.am README.dev add-with-carry.c check-typography \
-       faq.xsl fdl.texi mini-gmp mpfr.texi sum.txt update-faq)
   cscmd()
   {
     codespell ${term:+--enable-colors} \
       -q3 -I codespell.ignore -x codespell.exclude \
-      AUTHORS BUGS INSTALL NEWS README TODO doc/${^doc} examples $srctests \
+      AUTHORS BUGS INSTALL NEWS README TODO $doc examples $srctests \
       2> /dev/null
   }
   err-if-output "codespell" cscmd
 else
   echo "Warning! codespell is not installed. Cannot check spelling." >&2
 fi
+
+err-if-output --msg='Say "positive infinity" and "negative infinity".' -t \
+  "+/- infinity" grep -Ei "(plus|minus) *infinity" \
+  doc/algorithms.tex $doc $srctests
 
 err-if-output "ck-clz_tab" tools/ck-clz_tab
 err-if-output "ck-inits-clears" tools/ck-inits-clears

@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 4.2.0-dev
-@set UPDATED-MONTH January 2021
+@set UPDATED-MONTH February 2021
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -764,10 +764,10 @@ The following rounding modes are supported:
 @item @code{MPFR_RNDN}: round to nearest, with the even rounding rule
       (roundTiesToEven in IEEE@tie{}754-2008); see details below.
 
-@item @code{MPFR_RNDD}: round toward minus infinity
+@item @code{MPFR_RNDD}: round toward negative infinity
       (roundTowardNegative in IEEE@tie{}754-2008).
 
-@item @code{MPFR_RNDU}: round toward plus infinity
+@item @code{MPFR_RNDU}: round toward positive infinity
       (roundTowardPositive in IEEE@tie{}754-2008).
 
 @item @code{MPFR_RNDZ}: round toward zero
@@ -985,7 +985,7 @@ can also be defined. For instance, consider a function that has the
 exact result @m{7 \times 2^{e-4}, 7 multiplied by two to the power
 @var{e}@minus{}4}, where @var{e} is the smallest exponent (for a
 significand between 1/2 and 1),
-with a 2-bit target precision and rounding toward plus infinity.
+with a 2-bit target precision and rounding toward positive infinity.
 The exact result has the exponent @var{e}@minus{}1. With the underflow
 before rounding, such a function call would yield an underflow, as
 @var{e}@minus{}1 is outside the current exponent range. However, MPFR
@@ -1420,7 +1420,8 @@ to use @code{mpfr_set_float128}, one should define the macro
 If the system does not support the IEEE@tie{}754 standard,
 @code{mpfr_set_flt}, @code{mpfr_set_d}, @code{mpfr_set_ld},
 @code{mpfr_set_decimal64} and @code{mpfr_set_decimal128}
-might not preserve the signed zeros.
+might not preserve the signed zeros
+(and in any case they don't preserve the sign bit of NaN)@.
 The @code{mpfr_set_decimal64} and @code{mpfr_set_decimal128}
 functions are built only with the configure
 option @samp{--enable-decimal-float}, and when the compiler or
@@ -1607,8 +1608,9 @@ See @code{mpfr_set_str}.
 Convert @var{op} to a @code{float} (respectively @code{double},
 @code{long double}, @code{_Decimal64}, or @code{_Decimal128})
 using the rounding mode @var{rnd}.
-If @var{op} is NaN, some fixed NaN (either quiet or signaling) or the result
-of 0.0/0.0 is returned. If @var{op} is @pom{}Inf, an infinity of the same
+If @var{op} is NaN, some NaN (either quiet or signaling) or the result
+of 0.0/0.0 is returned (the sign bit is not preserved).
+If @var{op} is @pom{}Inf, an infinity of the same
 sign or the result of @pom{}1.0/0.0 is returned. If @var{op} is zero, these
 functions return a zero, trying to preserve its sign, if possible.
 The @code{mpfr_get_float128}, @code{mpfr_get_decimal64} and
@@ -2208,8 +2210,11 @@ Set @var{rop} to @minus{}Inf if @var{op} is @pom{}0
 @end deftypefun
 
 @deftypefun int mpfr_log1p (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
-Set @var{rop} to the logarithm of one plus @var{op},
-rounded in the direction @var{rnd}.
+@deftypefunx int mpfr_log2p1 (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_log10p1 (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to the logarithm of one plus @var{op} (in radix two for
+@code{mpfr_log2p1}, and in radix ten for @code{mpfr_log10p1}), rounded in the
+direction @var{rnd}.
 Set @var{rop} to @minus{}Inf if @var{op} is @minus{}1.
 @end deftypefun
 
@@ -2239,25 +2244,32 @@ rounded in the direction @var{rnd}.
 Special values are handled as described in the ISO C99 and IEEE@tie{}754-2008
 standards for the @code{pow} function:
 @itemize @bullet
-@item @code{pow(@pom{}0, @var{y})} returns plus or minus infinity for @var{y} a negative odd integer.
-@item @code{pow(@pom{}0, @var{y})} returns plus infinity for @var{y} negative and not an odd integer.
+@item @code{pow(@pom{}0, @var{y})} returns plus or negative infinity for @var{y} a negative odd integer.
+@item @code{pow(@pom{}0, @var{y})} returns positive infinity for @var{y} negative and not an odd integer.
 @item @code{pow(@pom{}0, @var{y})} returns plus or minus zero for @var{y} a positive odd integer.
 @item @code{pow(@pom{}0, @var{y})} returns plus zero for @var{y} positive and not an odd integer.
 @item @code{pow(-1, @pom{}Inf)} returns 1.
 @item @code{pow(+1, @var{y})} returns 1 for any @var{y}, even a NaN@.
 @item @code{pow(@var{x}, @pom{}0)} returns 1 for any @var{x}, even a NaN@.
 @item @code{pow(@var{x}, @var{y})} returns NaN for finite negative @var{x} and finite non-integer @var{y}.
-@item @code{pow(@var{x}, -Inf)} returns plus infinity for @math{0 < @GMPabs{x} < 1}, and plus zero for @math{@GMPabs{x} > 1}.
-@item @code{pow(@var{x}, +Inf)} returns plus zero for @math{0 < @GMPabs{x} < 1}, and plus infinity for @math{@GMPabs{x} > 1}.
+@item @code{pow(@var{x}, -Inf)} returns positive infinity for @math{0 < @GMPabs{x} < 1}, and plus zero for @math{@GMPabs{x} > 1}.
+@item @code{pow(@var{x}, +Inf)} returns plus zero for @math{0 < @GMPabs{x} < 1}, and positive infinity for @math{@GMPabs{x} > 1}.
 @item @code{pow(-Inf, @var{y})} returns minus zero for @var{y} a negative odd integer.
 @item @code{pow(-Inf, @var{y})} returns plus zero for @var{y} negative and not an odd integer.
-@item @code{pow(-Inf, @var{y})} returns minus infinity for @var{y} a positive odd integer.
-@item @code{pow(-Inf, @var{y})} returns plus infinity for @var{y} positive and not an odd integer.
-@item @code{pow(+Inf, @var{y})} returns plus zero for @var{y} negative, and plus infinity for @var{y} positive.
+@item @code{pow(-Inf, @var{y})} returns negative infinity for @var{y} a positive odd integer.
+@item @code{pow(-Inf, @var{y})} returns positive infinity for @var{y} positive and not an odd integer.
+@item @code{pow(+Inf, @var{y})} returns plus zero for @var{y} negative, and positive infinity for @var{y} positive.
 @end itemize
 Note: When 0 is of integer type, it is regarded as +0 by these functions.
 We do not use the usual limit rules in this case, as these rules are not
 used for @code{pow}.
+@end deftypefun
+
+@deftypefun int mpfr_compound (mpfr_t @var{rop}, mpfr_t @var{op}, long int @var{n}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to the power @var{n} of one plus @var{op},
+following IEEE@tie{}754-2019 for the special cases and exceptions.
+When @var{n} is zero and @var{op} is larger or equal @minus{}1,
+@var{rop} is set to 1 (IEEE@tie{}754-2019 also allows NaN)@.
 @end deftypefun
 
 @deftypefun int mpfr_cos (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -2325,15 +2337,39 @@ small precision of @var{rop}.
 @c PZ: check the above is correct
 @end deftypefun
 
+@deftypefun int mpfr_acosu (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long int @var{u}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_asinu (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long int @var{u}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_atanu (mpfr_t @var{rop}, mpfr_t @var{op}, unsigned long int @var{u}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to @var{a} multiplied by @var{u} and divided by
+@m{2\pi,2@tie{}Pi}, where @var{a} is the arc-cosine (resp.@: arc-sine and
+arc-tangent) of @var{op}.
+For example, if @var{u} equals 360, @code{mpfr_acosu} yields the arc-cosine in
+degrees.
+@end deftypefun
+
+@deftypefun int mpfr_acospi (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_asinpi (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_atanpi (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
+Set @var{rop} to @code{acos(op)} (resp.@: @code{asin(op)} and @code{atan(op)})
+divided by @m{\pi,Pi}.
+@end deftypefun
+
 @deftypefun int mpfr_atan2 (mpfr_t @var{rop}, mpfr_t @var{y}, mpfr_t @var{x}, mpfr_rnd_t @var{rnd})
-Set @var{rop} to the arc-tangent2 of @var{y} and @var{x},
-rounded in the direction @var{rnd}:
+@deftypefunx int mpfr_atan2u (mpfr_t @var{rop}, mpfr_t @var{y}, mpfr_t @var{x}, unsigned long int @var{u}, mpfr_rnd_t @var{rnd})
+@deftypefunx int mpfr_atan2pi (mpfr_t @var{rop}, mpfr_t @var{y}, mpfr_t @var{x}, mpfr_rnd_t @var{rnd})
+For @code{mpfr_atan2}, set @var{rop} to the arc-tangent2 of @var{y} and
+@var{x}, rounded in the direction @var{rnd}:
 if @code{x > 0}, @code{atan2(y, x) = atan(y/x)};
 if @code{x < 0}, @code{atan2(y, x) = sign(y)*(Pi - atan(@GMPabs{y/x}))},
 thus a number from @m{-\pi,-Pi} to @m{\pi,Pi}.
 As for @code{atan}, in case the exact mathematical result is @m{+\pi,+Pi} or
 @m{-\pi,-Pi},
 its rounded result might be outside the function output range.
+The function @code{mpfr_atan2u} behaves similarly, except the result is
+multiplied by @var{u} and divided by 2@tie{}Pi; and @code{mpfr_atan2pi}
+is the same as @code{mpfr_atan2u} with @code{u=2}.
+For example, if @var{u} equals 360, @code{mpfr_atan2u} returns the
+arc-tangent in degrees, with values from @minus{}180 to 180.
 
 @code{atan2(y, 0)} does not raise any floating-point exception.
 Special values are handled as described in the ISO C99 and IEEE@tie{}754-2008
@@ -2488,7 +2524,7 @@ rounded in the direction @var{rnd}.
 Set @var{rop} to the value of the first kind Bessel function of order 0,
 (resp.@: 1 and @var{n})
 on @var{op}, rounded in the direction @var{rnd}. When @var{op} is
-NaN, @var{rop} is always set to NaN@. When @var{op} is plus or minus Infinity,
+NaN, @var{rop} is always set to NaN@. When @var{op} is plus or negative infinity,
 @var{rop} is set to +0. When @var{op} is zero, and @var{n} is not zero,
 @var{rop} is set to +0 or @minus{}0 depending on the parity and sign of @var{n},
 and the sign of @var{op}.
@@ -2780,8 +2816,8 @@ one of the following characters:
 
 @quotation
 @multitable {(space)} {MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM}
-@item @samp{U}  @tab round toward plus infinity
-@item @samp{D}  @tab round toward minus infinity
+@item @samp{U}  @tab round toward positive infinity
+@item @samp{D}  @tab round toward negative infinity
 @item @samp{Y}  @tab round away from zero
 @item @samp{Z}  @tab round toward zero
 @item @samp{N}  @tab round to nearest (with ties to even)
@@ -3256,8 +3292,8 @@ overflow, or inexact exception is raised.
 
 @deftypefun void mpfr_nextabove (mpfr_t @var{x})
 @deftypefunx void mpfr_nextbelow (mpfr_t @var{x})
-Equivalent to @code{mpfr_nexttoward} where @var{y} is plus infinity
-(resp.@: minus infinity).
+Equivalent to @code{mpfr_nexttoward} where @var{y} is positive infinity
+(resp.@: negative infinity).
 @end deftypefun
 
 @deftypefun int mpfr_min (mpfr_t @var{rop}, mpfr_t @var{op1}, mpfr_t @var{op2}, mpfr_rnd_t @var{rnd})
@@ -3958,7 +3994,7 @@ field.
 significant limbs stored first.
 The number of limbs in use is controlled by @code{_mpfr_prec}, namely
 ceil(@code{_mpfr_prec}/@code{mp_bits_per_limb}).
-Non-singular (i.e., different from NaN, Infinity or zero)
+Non-singular (i.e., different from NaN, infinity or zero)
 values always have the most significant bit of the most
 significant limb set to 1.  When the precision does not correspond to a
 whole number of limbs, the excess bits at the low end of the data are zeros.
@@ -4096,11 +4132,19 @@ that were added after MPFR@tie{}2.2, and in which MPFR version.
 
 @itemize @bullet
 
+@item @code{mpfr_acospi} and @code{mpfr_acosu} in MPFR@tie{}4.2.
+
 @item @code{mpfr_add_d} in MPFR@tie{}2.4.
 
 @item @code{mpfr_ai} in MPFR@tie{}3.0 (incomplete, experimental).
 
+@item @code{mpfr_asinpi} and @code{mpfr_asinu} in MPFR@tie{}4.2.
+
 @item @code{mpfr_asprintf} in MPFR@tie{}2.4.
+
+@item @code{mpfr_atanpi} and @code{mpfr_atanu} in MPFR@tie{}4.2.
+
+@item @code{mpfr_atan2pi} and @code{mpfr_atan2u} in MPFR@tie{}4.2.
 
 @item @code{mpfr_beta} in MPFR@tie{}4.0 (incomplete, experimental).
 
@@ -4121,13 +4165,15 @@ that were added after MPFR@tie{}2.2, and in which MPFR version.
 
 @item @code{mpfr_cmpabs_ui} in MPFR@tie{}4.1.
 
+@item @code{mpfr_compound} in MPFR@tie{}4.2.
+
 @item @code{mpfr_copysign} in MPFR@tie{}2.3.
 Note: MPFR@tie{}2.2 had a @code{mpfr_copysign} function that was available,
 but not documented,
 and with a slight difference in the semantics (when
 the second input operand is a NaN)@.
 
-@item @code{mpfr_cospi} and @code{mpfr_cosu} in MPFR@tie{}4.2.0.
+@item @code{mpfr_cospi} and @code{mpfr_cosu} in MPFR@tie{}4.2.
 
 @item @code{mpfr_custom_get_significand} in MPFR@tie{}3.0.
 This function was named @code{mpfr_custom_get_mantissa} in previous
@@ -4161,7 +4207,7 @@ in MPFR@tie{}4.0.
 
 @item @code{mpfr_fmodquo} in MPFR@tie{}4.0.
 
-@item @code{mpfr_fmod_ui} in MPFR@tie{}4.2.0.
+@item @code{mpfr_fmod_ui} in MPFR@tie{}4.2.
 
 @item @code{mpfr_fms} in MPFR@tie{}2.3.
 
@@ -4202,6 +4248,8 @@ use @code{mpfr_get_z_exp}.
 @item @code{mpfr_grandom} in MPFR@tie{}3.1.
 
 @item @code{mpfr_j0}, @code{mpfr_j1} and @code{mpfr_jn} in MPFR@tie{}2.3.
+
+@item @code{mpfr_log2p1} and @code{mpfr_log10p1} in MPFR@tie{}4.2.
 
 @item @code{mpfr_lgamma} in MPFR@tie{}2.3.
 
@@ -4252,13 +4300,13 @@ use @code{mpfr_get_z_exp}.
 
 @item @code{mpfr_sinh_cosh} in MPFR@tie{}2.4.
 
-@item @code{mpfr_sinpi} and @code{mpfr_sinu} in MPFR@tie{}4.2.0.
+@item @code{mpfr_sinpi} and @code{mpfr_sinu} in MPFR@tie{}4.2.
 
 @item @code{mpfr_snprintf} and @code{mpfr_sprintf} in MPFR@tie{}2.4.
 
 @item @code{mpfr_sub_d} in MPFR@tie{}2.4.
 
-@item @code{mpfr_tanpi} and @code{mpfr_tanu} in MPFR@tie{}4.2.0.
+@item @code{mpfr_tanpi} and @code{mpfr_tanu} in MPFR@tie{}4.2.
 
 @item @code{mpfr_total_order_p} in MPFR@tie{}4.1.
 

@@ -175,7 +175,7 @@ check_float (void)
   check24("281474876047360.0", MPFR_RNDD, "1.6777212e7");
   check24("91214552498176.0", MPFR_RNDD, "9.550631e6");
 
-  /* check that rounding away is just rounding toward plus infinity */
+  /* check that rounding away is just rounding toward positive infinity */
   check24("91214552498176.0", MPFR_RNDA, "9.550632e6");
 }
 
@@ -711,7 +711,7 @@ check_overflow (void)
       mpfr_init2 (r, p);
       mpfr_init2 (u, p);
 
-      mpfr_set_emax (-1);
+      set_emax (-1);
       mpfr_set_ui_2exp (u, 1, mpfr_get_emax () - 1, MPFR_RNDN);
       mpfr_nextbelow (u);
       mpfr_mul_2ui (u, u, 1, MPFR_RNDN);
@@ -730,7 +730,7 @@ check_overflow (void)
       MPFR_ASSERTN(inex < 0);
       MPFR_ASSERTN(mpfr_equal_p (r, u));
 
-      mpfr_set_emax (0);
+      set_emax (0);
       mpfr_set_ui_2exp (u, 1, mpfr_get_emax () - 1, MPFR_RNDN);
       mpfr_nextbelow (u);
       mpfr_mul_2ui (u, u, 1, MPFR_RNDN);
@@ -743,7 +743,7 @@ check_overflow (void)
       mpfr_clear (r);
       mpfr_clear (u);
     }
-  mpfr_set_emax (emax);
+  set_emax (emax);
 }
 
 static void
@@ -760,7 +760,7 @@ check_underflow (void)
       mpfr_init2 (r, p);
       mpfr_init2 (u, p);
 
-      mpfr_set_emin (2);
+      set_emin (2);
       mpfr_set_ui_2exp (u, 1, mpfr_get_emin () - 1, MPFR_RNDN); /* u = 2 */
       /* for RNDN, since sqrt(2) is closer from 2 than 0, the result is 2 */
       mpfr_clear_flags ();
@@ -846,7 +846,7 @@ check_underflow (void)
       MPFR_ASSERTN(mpfr_cmp_ui_2exp (r, 1, mpfr_get_emin () - 1) == 0);
       MPFR_ASSERTN(mpfr_underflow_p ());
 
-      mpfr_set_emin (3);
+      set_emin (3);
       mpfr_set_ui_2exp (u, 1, mpfr_get_emin () - 1, MPFR_RNDN); /* u = 4 */
       /* sqrt(u) = 2 = 0.5^2^(emin-1) should be rounded to +0 */
       mpfr_clear_flags ();
@@ -865,7 +865,7 @@ check_underflow (void)
       MPFR_ASSERTN(mpfr_cmp_ui (r, 4) == 0);
       MPFR_ASSERTN(mpfr_underflow_p ());
 
-      mpfr_set_emin (4);
+      set_emin (4);
       mpfr_set_ui_2exp (u, 1, mpfr_get_emin () - 1, MPFR_RNDN); /* u = 8 */
       /* sqrt(u) should be rounded to +0 */
       mpfr_clear_flags ();
@@ -877,7 +877,7 @@ check_underflow (void)
       mpfr_clear (r);
       mpfr_clear (u);
     }
-  mpfr_set_emin (emin);
+  set_emin (emin);
 }
 
 static void
@@ -1053,7 +1053,7 @@ main (void)
   check4 ("72154663483843080704304789585920.0", MPFR_RNDD,
           "1.e2d9a51977e6d@13");
 
-  /* check that rounding away is just rounding toward plus infinity */
+  /* check that rounding away is just rounding toward positive infinity */
   check4 ("72154663483843080704304789585920.0", MPFR_RNDA,
           "1.e2d9a51977e6e@13");
 

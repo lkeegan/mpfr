@@ -568,7 +568,7 @@ main (int argc, char *argv[])
       exit (1);
     }
 
-  for (r = 0 ; r < MPFR_RND_MAX ; r++)
+  RND_LOOP (r)
     {
       mpfr_set_si (x, -1, (mpfr_rnd_t) r);
       mpfr_set_ui (x, 0, (mpfr_rnd_t) r);
@@ -731,11 +731,11 @@ main (int argc, char *argv[])
   emin = mpfr_get_emin ();
   mpfr_set_prec (x, 2);
 
-  mpfr_set_emin (4);
+  set_emin (4);
   mpfr_clear_flags ();
   mpfr_set_ui (x, 7, MPFR_RNDU);
   flag = mpfr_underflow_p ();
-  mpfr_set_emin (emin);
+  set_emin (emin);
   if (mpfr_cmp_ui (x, 8) != 0)
     {
       printf ("Error for mpfr_set_ui (x, 7, MPFR_RNDU), prec = 2, emin = 4\n");
@@ -748,11 +748,11 @@ main (int argc, char *argv[])
       exit (1);
     }
 
-  mpfr_set_emin (4);
+  set_emin (4);
   mpfr_clear_flags ();
   mpfr_set_si (x, -7, MPFR_RNDD);
   flag = mpfr_underflow_p ();
-  mpfr_set_emin (emin);
+  set_emin (emin);
   if (mpfr_cmp_si (x, -8) != 0)
     {
       printf ("Error for mpfr_set_si (x, -7, MPFR_RNDD), prec = 2, emin = 4\n");

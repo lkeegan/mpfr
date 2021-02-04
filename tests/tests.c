@@ -652,7 +652,8 @@ set_emin (mpfr_exp_t exponent)
 {
   if (mpfr_set_emin (exponent))
     {
-      printf ("set_emin: setting emin to %ld failed\n", (long int) exponent);
+      printf ("set_emin: setting emin to %" MPFR_EXP_FSPEC "d failed\n",
+              (mpfr_eexp_t) exponent);
       exit (1);
     }
 }
@@ -662,7 +663,8 @@ set_emax (mpfr_exp_t exponent)
 {
   if (mpfr_set_emax (exponent))
     {
-      printf ("set_emax: setting emax to %ld failed\n", (long int) exponent);
+      printf ("set_emax: setting emax to %" MPFR_EXP_FSPEC "d failed\n",
+              (mpfr_eexp_t) exponent);
       exit (1);
     }
 }
@@ -696,8 +698,8 @@ tests_default_random (mpfr_ptr x, int pos, mpfr_exp_t emin, mpfr_exp_t emax,
           /* The random number doesn't fit in the current exponent range.
              In this case, test the function in the extended exponent range,
              which should be restored by the caller. */
-          mpfr_set_emin (MPFR_EMIN_MIN);
-          mpfr_set_emax (MPFR_EMAX_MAX);
+          set_emin (MPFR_EMIN_MIN);
+          set_emax (MPFR_EMAX_MAX);
           mpfr_set_exp (x, e);
         }
     }
@@ -1114,8 +1116,8 @@ bad_cases (int (*fct)(FLIST), int (*inv)(FLIST), const char *name,
     next_i:
       /* In case the exponent range has been changed by
          tests_default_random()... */
-      mpfr_set_emin (old_emin);
-      mpfr_set_emax (old_emax);
+      set_emin (old_emin);
+      set_emax (old_emax);
     }
   mpfr_clears (x, y, z, (mpfr_ptr) 0);
 

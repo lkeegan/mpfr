@@ -555,6 +555,7 @@ __MPFR_DECLSPEC int mpfr_snprintf (char*, size_t, const char*, ...);
 
 __MPFR_DECLSPEC int mpfr_pow (mpfr_ptr, mpfr_srcptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_pow_si (mpfr_ptr, mpfr_srcptr, long, mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_compound (mpfr_ptr, mpfr_srcptr, long, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_pow_ui (mpfr_ptr, mpfr_srcptr, unsigned long,
                                  mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_ui_pow_ui (mpfr_ptr, unsigned long, unsigned long,
@@ -612,6 +613,8 @@ __MPFR_DECLSPEC int mpfr_log (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_log2 (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_log10 (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_log1p (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_log2p1 (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_log10p1 (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_log_ui (mpfr_ptr, unsigned long, mpfr_rnd_t);
 
 __MPFR_DECLSPEC int mpfr_exp (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
@@ -726,6 +729,14 @@ __MPFR_DECLSPEC int mpfr_cot (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_sinu (mpfr_ptr, mpfr_srcptr, unsigned long, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_cosu (mpfr_ptr, mpfr_srcptr, unsigned long, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_tanu (mpfr_ptr, mpfr_srcptr, unsigned long, mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_acosu (mpfr_ptr, mpfr_srcptr, unsigned long, mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_asinu (mpfr_ptr, mpfr_srcptr, unsigned long, mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_atanu (mpfr_ptr, mpfr_srcptr, unsigned long, mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_atan2u (mpfr_ptr, mpfr_srcptr, mpfr_srcptr, unsigned long, mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_acospi (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_asinpi (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_atanpi (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
+__MPFR_DECLSPEC int mpfr_atan2pi (mpfr_ptr, mpfr_srcptr, mpfr_srcptr, mpfr_rnd_t);
 
 __MPFR_DECLSPEC int mpfr_sinpi (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);
 __MPFR_DECLSPEC int mpfr_cospi (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t);

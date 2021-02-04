@@ -72,6 +72,7 @@ mpfr_set_ld (mpfr_ptr r, long double d, mpfr_rnd_t rnd_mode)
   /* Check for NAN */
   if (MPFR_UNLIKELY (DOUBLE_ISNAN (d)))
     {
+      /* we don't propagate the sign bit */
       MPFR_SET_NAN (r);
       MPFR_RET_NAN;
     }
@@ -186,8 +187,9 @@ mpfr_set_ld (mpfr_ptr r, long double d, mpfr_rnd_t rnd_mode)
   double h, l;
   MPFR_SAVE_EXPO_DECL (expo);
 
-  /* Check for NAN */
-  LONGDOUBLE_NAN_ACTION (d, goto nan);
+  /* Check for NAN. Since we can't use isnan(), we rely on the
+     LONGDOUBLE_NAN_ACTION macro. The sign bit is not propagated. */
+  LONGDOUBLE_NAN_ACTION (d, { MPFR_SET_NAN(r); MPFR_RET_NAN; });
 
   /* Check for INF */
   if (d > LDBL_MAX)
@@ -227,10 +229,6 @@ mpfr_set_ld (mpfr_ptr r, long double d, mpfr_rnd_t rnd_mode)
   MPFR_SAVE_EXPO_FREE (expo);
   inexact = mpfr_check_range (r, inexact, rnd_mode);
   return inexact;
-
- nan:
-  MPFR_SET_NAN(r);
-  MPFR_RET_NAN;
 }
 
 #else
@@ -244,8 +242,9 @@ mpfr_set_ld (mpfr_ptr r, long double d, mpfr_rnd_t rnd_mode)
   long double x;
   MPFR_SAVE_EXPO_DECL (expo);
 
-  /* Check for NAN */
-  LONGDOUBLE_NAN_ACTION (d, goto nan);
+  /* Check for NAN. Since we can't use isnan(), we rely on the
+     LONGDOUBLE_NAN_ACTION macro. The sign bit is not propagated. */
+  LONGDOUBLE_NAN_ACTION (d, { MPFR_SET_NAN(r); MPFR_RET_NAN; });
 
   /* Check for INF */
   if (d > LDBL_MAX)
@@ -416,10 +415,6 @@ mpfr_set_ld (mpfr_ptr r, long double d, mpfr_rnd_t rnd_mode)
 
   MPFR_SAVE_EXPO_FREE (expo);
   return mpfr_check_range (r, inexact, rnd_mode);
-
- nan:
-  MPFR_SET_NAN(r);
-  MPFR_RET_NAN;
 }
 
 #endif
