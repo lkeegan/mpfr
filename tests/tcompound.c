@@ -34,26 +34,44 @@ check_ieee754 (void)
 {
   mpfr_t x, y;
   long i;
+  long t[] = { 0, 1, 2, 3, 17, LONG_MAX-1, LONG_MAX };
+  int j;
   mpfr_prec_t prec = 2; /* we need at least 2 so that 3/4 is exact */
 
   mpfr_init2 (x, prec);
   mpfr_init2 (y, prec);
 
   /* compound(x,n) = NaN for x < -1, and set invalid exception */
-  mpfr_clear_nanflag ();
-  mpfr_set_si (x, -2, MPFR_RNDN);
-  mpfr_compound (y, x, 17, MPFR_RNDN);
-  if (!mpfr_nan_p (y))
-    {
-      printf ("Error, compound(-2,17) should give NaN\n");
-      printf ("got "); mpfr_dump (y);
-      exit (1);
-    }
-  if (!mpfr_nanflag_p ())
-    {
-      printf ("Error, compound(-2,17) should raise invalid flag\n");
-      exit (1);
-    }
+  for (i = 0; i < numberof(t); i++)
+    for (j = 0; j < 2; j++)
+      {
+        const char *s;
+
+        mpfr_clear_nanflag ();
+        if (j == 0)
+          {
+            mpfr_set_si (x, -2, MPFR_RNDN);
+            s = "-2";
+          }
+        else
+          {
+            mpfr_set_inf (x, -1);
+            s = "-Inf";
+          }
+        mpfr_compound (y, x, t[i], MPFR_RNDN);
+        if (!mpfr_nan_p (y))
+          {
+            printf ("Error, compound(%s,%ld) should give NaN\n", s, t[i]);
+            printf ("got "); mpfr_dump (y);
+            exit (1);
+          }
+        if (!mpfr_nanflag_p ())
+          {
+            printf ("Error, compound(%s,%ld) should raise invalid flag\n",
+                    s, t[i]);
+            exit (1);
+          }
+      }
 
   /* compound(x,0) = 1 for x >= -1 or x = NaN */
   for (i = -2; i <= 2; i++)
@@ -204,7 +222,8 @@ check_ieee754 (void)
       i = -4994322635099777669;
       mpfr_set_ui (x, 1, MPFR_RNDN);
       mpfr_compound (y, x, i, MPFR_RNDN);
-      mpfr_set_si_2exp (x, 1, i, MPFR_RNDN);
+      mpfr_set_si (x, 1, MPFR_RNDN);
+      mpfr_mul_2si (x, x, i, MPFR_RNDN);
       if (!mpfr_equal_p (y, x))
         {
           printf ("Error for compound(1,%ld)\n", i);
@@ -219,6 +238,26 @@ check_ieee754 (void)
   mpfr_clear (y);
 }
 
+static int
+mpfr_compound2 (mpfr_ptr y, mpfr_srcptr x, mpfr_rnd_t rnd_mode)
+{
+  return mpfr_compound (y, x, 2, rnd_mode);
+}
+
+static int
+mpfr_compound3 (mpfr_ptr y, mpfr_srcptr x, mpfr_rnd_t rnd_mode)
+{
+  return mpfr_compound (y, x, 3, rnd_mode);
+}
+
+#define TEST_FUNCTION mpfr_compound2
+#define test_generic test_generic_compound2
+#include "tgeneric.c"
+
+#define TEST_FUNCTION mpfr_compound3
+#define test_generic test_generic_compound3
+#include "tgeneric.c"
+
 int
 main (void)
 {
@@ -227,6 +266,9 @@ main (void)
   check_ieee754 ();
 
   test_generic_si (MPFR_PREC_MIN, 100, 100);
+
+  test_generic_compound2 (MPFR_PREC_MIN, 100, 100);
+  test_generic_compound3 (MPFR_PREC_MIN, 100, 100);
 
   tests_end_mpfr ();
   return 0;

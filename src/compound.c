@@ -69,18 +69,28 @@ mpfr_compound (mpfr_ptr y, mpfr_srcptr x, long n, mpfr_rnd_t rnd_mode)
   /* Special cases */
   if (MPFR_IS_SINGULAR (x))
     {
-      if (n == 0 || MPFR_IS_ZERO (x))
+      if (MPFR_IS_INF (x) && MPFR_IS_NEG (x))
         {
-          /* (1+Inf)^0 = 1 and (1+x)^0 = 1, even for x = NaN */
+          /* compound(-Inf,n) is NaN */
+          MPFR_SET_NAN (y);
+          MPFR_RET_NAN;
+        }
+      else if (n == 0 || MPFR_IS_ZERO (x))
+        {
+          /* compound(x,0) = 1 for x >= -1 or NaN (the only special value
+             of x that is not concerned is -Inf, already handled);
+             compound(0,n) = 1 */
           return mpfr_set_ui (y, 1, rnd_mode);
         }
-      else if (MPFR_IS_NAN (x) || (MPFR_IS_INF (x) && MPFR_SIGN (x) < 0))
+      else if (MPFR_IS_NAN (x))
         {
+          /* compound(NaN,n) is NaN, except for n = 0, already handled. */
           MPFR_SET_NAN (y);
           MPFR_RET_NAN;
         }
       else if (MPFR_IS_INF (x)) /* x = +Inf */
         {
+          MPFR_ASSERTD (MPFR_IS_POS (x));
           if (n < 0) /* (1+Inf)^n = +0 for n < 0 */
             MPFR_SET_ZERO (y);
           else /* n > 0: (1+Inf)^n = +Inf */
@@ -121,6 +131,9 @@ mpfr_compound (mpfr_ptr y, mpfr_srcptr x, long n, mpfr_rnd_t rnd_mode)
         }
     }
 
+  if (n == 1)
+    return mpfr_add_ui (y, x, 1, rnd_mode);
+
   MPFR_SAVE_EXPO_MARK (expo);
 
   prec = MPFR_PREC(y);
@@ -147,6 +160,7 @@ mpfr_compound (mpfr_ptr y, mpfr_srcptr x, long n, mpfr_rnd_t rnd_mode)
       /* detect overflow */
       if (nloop == 0 && mpfr_cmp_si (t, __gmpfr_emax) >= 0)
         {
+          MPFR_ZIV_FREE (loop);
           mpfr_clear (t);
           MPFR_SAVE_EXPO_FREE (expo);
           return mpfr_overflow (y, rnd_mode, 1);
@@ -154,6 +168,7 @@ mpfr_compound (mpfr_ptr y, mpfr_srcptr x, long n, mpfr_rnd_t rnd_mode)
       /* detect underflow */
       if (nloop == 0 && mpfr_cmp_si (t, __gmpfr_emin - 1) <= 0)
         {
+          MPFR_ZIV_FREE (loop);
           mpfr_clear (t);
           MPFR_SAVE_EXPO_FREE (expo);
           return mpfr_underflow (y,
@@ -163,11 +178,11 @@ mpfr_compound (mpfr_ptr y, mpfr_srcptr x, long n, mpfr_rnd_t rnd_mode)
          |2^t - 1| = |exp(t*log(2)) - 1| <= |t|*log(2) < |t| */
       if (nloop == 0 && MPFR_GET_EXP(t) < - (mpfr_exp_t) MPFR_PREC(y))
         {
-          int signt = MPFR_SIGN(t);
           /* since ulp(1) = 2^(1-PREC(y)), we have |t| < 1/4*ulp(1) */
-          mpfr_clear (t);
-          MPFR_SAVE_EXPO_FREE (expo);
-          return mpfr_compound_near_one (y, signt, rnd_mode);
+          /* mpfr_compound_near_one must be called in the extended
+             exponent range, so that 1 is representable. */
+          inexact = mpfr_compound_near_one (y, MPFR_SIGN (t), rnd_mode);
+          goto end;
         }
       inexact |= mpfr_exp2 (t, t, MPFR_RNDA) != 0;
       /* |t - (1+x)^n| <= ulp(t) + |t|*log(2)*2^(e-prec)
@@ -179,12 +194,28 @@ mpfr_compound (mpfr_ptr y, mpfr_srcptr x, long n, mpfr_rnd_t rnd_mode)
                        MPFR_CAN_ROUND (t, prec - e, MPFR_PREC(y), rnd_mode)))
         break;
 
+      /* Exact cases like compound(0.5,2) = 9/4 must be detected, since
+         except for 1+x power of 2, the log2p1 above will be inexact,
+         so that in the Ziv test, inexact != 0 and MPFR_CAN_ROUND will
+         fail (even for RNDN, as the ternary value cannot be determined),
+         yielding an infinite loop.
+         For an exact case in precision prec(y), 1+x will necessarily
+         be exact in precision prec(y), thus also in prec(t), where
+         prec(t) >= prec(y), and we can use mpfr_pow_si under this
+         condition (which will also evaluate some non-exact cases). */
+      if (mpfr_add_ui (t, x, 1, MPFR_RNDZ) == 0)
+        {
+          inexact = mpfr_pow_si (y, t, n, rnd_mode);
+          goto end;
+        }
+
       MPFR_ZIV_NEXT (loop, prec);
       mpfr_set_prec (t, prec);
     }
 
   inexact = mpfr_set (y, t, rnd_mode);
 
+ end:
   MPFR_ZIV_FREE (loop);
   mpfr_clear (t);
 
