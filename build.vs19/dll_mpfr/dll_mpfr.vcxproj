@@ -280,7 +280,9 @@
     <ClCompile Include="..\..\src\exceptions.c" />
     <ClCompile Include="..\..\src\exp.c" />
     <ClCompile Include="..\..\src\exp10.c" />
+    <ClCompile Include="..\..\src\exp10m1.c" />
     <ClCompile Include="..\..\src\exp2.c" />
+    <ClCompile Include="..\..\src\exp2m1.c" />
     <ClCompile Include="..\..\src\exp3.c" />
     <ClCompile Include="..\..\src\exp_2.c" />
     <ClCompile Include="..\..\src\expm1.c" />
