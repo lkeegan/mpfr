@@ -1,5 +1,4 @@
-/* mpfr_pow_ui-- compute the power of a floating-point
-                                  by a machine integer
+/* mpfr_pow_ui -- compute the power of a floating-point by a machine integer
 
 Copyright 1999-2021 Free Software Foundation, Inc.
 Contributed by the AriC and Caramba projects, INRIA.
@@ -24,11 +23,18 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define MPFR_NEED_LONGLONG_H
 #include "mpfr-impl.h"
 
+#ifndef POW_U
+#define POW_U mpfr_pow_ui
+#define MPZ_SET_U mpz_set_ui
+#define UTYPE unsigned long int
+#define FSPEC "l"
+#endif
+
 /* sets y to x^n, and return 0 if exact, non-zero otherwise */
 int
-mpfr_pow_ui (mpfr_ptr y, mpfr_srcptr x, unsigned long int n, mpfr_rnd_t rnd)
+POW_U (mpfr_ptr y, mpfr_srcptr x, UTYPE n, mpfr_rnd_t rnd)
 {
-  unsigned long m;
+  UTYPE m;
   mpfr_t res;
   mpfr_prec_t prec, err;
   int inexact;
@@ -38,7 +44,7 @@ mpfr_pow_ui (mpfr_ptr y, mpfr_srcptr x, unsigned long int n, mpfr_rnd_t rnd)
   MPFR_BLOCK_DECL (flags);
 
   MPFR_LOG_FUNC
-    (("x[%Pu]=%.*Rg n=%lu rnd=%d",
+    (("x[%Pu]=%.*Rg n=%" FSPEC "u rnd=%d",
       mpfr_get_prec (x), mpfr_log_prec, x, n, rnd),
      ("y[%Pu]=%.*Rg inexact=%d",
       mpfr_get_prec (y), mpfr_log_prec, y, inexact));
@@ -110,12 +116,12 @@ mpfr_pow_ui (mpfr_ptr y, mpfr_srcptr x, unsigned long int n, mpfr_rnd_t rnd)
       MPFR_BLOCK (flags,
                   inexact = mpfr_sqr (res, x, MPFR_RNDU);
                   MPFR_ASSERTD (i >= 2);
-                  if (n & (1UL << (i-2)))
+                  if (n & ((UTYPE) 1 << (i-2)))
                     inexact |= mpfr_mul (res, res, x, rnd1);
                   for (i -= 3; i >= 0 && !MPFR_BLOCK_EXCEP; i--)
                     {
                       inexact |= mpfr_sqr (res, res, MPFR_RNDU);
-                      if (n & (1UL << i))
+                      if (n & ((UTYPE) 1 << i))
                         inexact |= mpfr_mul (res, res, x, rnd1);
                     });
       /* let r(n) be the number of roundings: we have r(2)=1, r(3)=2,
@@ -150,7 +156,7 @@ mpfr_pow_ui (mpfr_ptr y, mpfr_srcptr x, unsigned long int n, mpfr_rnd_t rnd)
       mpfr_clear (res);
       MPFR_SAVE_EXPO_FREE (expo);
       mpz_init (z);
-      mpz_set_ui (z, n);
+      MPZ_SET_U (z, n);
       inexact = mpfr_pow_z (y, x, z, rnd);
       mpz_clear (z);
       return inexact;

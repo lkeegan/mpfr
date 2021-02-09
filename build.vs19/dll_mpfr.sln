@@ -1106,6 +1106,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "texp2m1", "dll_mpfr_tests\t
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "texp10m1", "dll_mpfr_tests\texp10m1\texp10m1.vcxproj", "{5277A682-04AE-45EA-958D-B99891BA7393}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tpowr", "dll_mpfr_tests\tpowr\tpowr.vcxproj", "{AB417934-BEB4-4A2B-81B1-23CA8DCBAB06}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -2690,6 +2692,14 @@ Global
 		{5277A682-04AE-45EA-958D-B99891BA7393}.Release|Win32.Build.0 = Release|Win32
 		{5277A682-04AE-45EA-958D-B99891BA7393}.Release|x64.ActiveCfg = Release|x64
 		{5277A682-04AE-45EA-958D-B99891BA7393}.Release|x64.Build.0 = Release|x64
+		{AB417934-BEB4-4A2B-81B1-23CA8DCBAB06}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AB417934-BEB4-4A2B-81B1-23CA8DCBAB06}.Debug|Win32.Build.0 = Debug|Win32
+		{AB417934-BEB4-4A2B-81B1-23CA8DCBAB06}.Debug|x64.ActiveCfg = Debug|x64
+		{AB417934-BEB4-4A2B-81B1-23CA8DCBAB06}.Debug|x64.Build.0 = Debug|x64
+		{AB417934-BEB4-4A2B-81B1-23CA8DCBAB06}.Release|Win32.ActiveCfg = Release|Win32
+		{AB417934-BEB4-4A2B-81B1-23CA8DCBAB06}.Release|Win32.Build.0 = Release|Win32
+		{AB417934-BEB4-4A2B-81B1-23CA8DCBAB06}.Release|x64.ActiveCfg = Release|x64
+		{AB417934-BEB4-4A2B-81B1-23CA8DCBAB06}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -2890,6 +2900,7 @@ Global
 		{7ED4237F-275E-4160-A986-565B29106231} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
 		{3BA30ED9-C973-4D79-A392-EB6CDA8F2E5E} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
 		{5277A682-04AE-45EA-958D-B99891BA7393} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
+		{AB417934-BEB4-4A2B-81B1-23CA8DCBAB06} = {FED52033-9973-40F8-9300-E2EBE7D76A09}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DF0C069F-3E76-403F-BEAC-2692113BE006}
