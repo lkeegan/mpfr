@@ -378,8 +378,11 @@
     <ClCompile Include="..\..\src\out_str.c" />
     <ClCompile Include="..\..\src\pool.c" />
     <ClCompile Include="..\..\src\pow.c" />
+    <ClCompile Include="..\..\src\powr.c" />
     <ClCompile Include="..\..\src\pow_si.c" />
+    <ClCompile Include="..\..\src\pow_sj.c" />
     <ClCompile Include="..\..\src\pow_ui.c" />
+    <ClCompile Include="..\..\src\pow_uj.c" />
     <ClCompile Include="..\..\src\pow_z.c" />
     <ClCompile Include="..\..\src\powerof2.c" />
     <ClCompile Include="..\..\src\print_raw.c" />
