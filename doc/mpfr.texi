@@ -3,7 +3,7 @@
 @setfilename mpfr.info
 @documentencoding UTF-8
 @set VERSION 4.2.0-dev
-@set UPDATED-MONTH February 2021
+@set UPDATED-MONTH March 2021
 @settitle GNU MPFR @value{VERSION}
 @synindex tp fn
 @iftex
@@ -1890,6 +1890,8 @@ direction @var{rnd}.
 When a result is zero, its sign is the product of the signs of the operands
 (for types having no signed zeros, 0 is considered positive).
 The same restrictions than for @code{mpfr_add_d} apply to @code{mpfr_mul_d}.
+Note: when @var{op1} and @var{op2} are equal, use @code{mpfr_sqr} instead of
+@code{mpfr_mul} for better efficiency.
 @end deftypefun
 
 @deftypefun int mpfr_sqr (mpfr_t @var{rop}, mpfr_t @var{op}, mpfr_rnd_t @var{rnd})
@@ -3902,6 +3904,12 @@ to the application.
 Each function in this interface is also implemented as a macro for
 efficiency reasons: for example @code{mpfr_custom_init (s, p)}
 uses the macro, while @code{(mpfr_custom_init) (s, p)} uses the function.
+Note that the macro may evaluate arguments multiple times (or none).
+Moreover, macros implementing functions with the @code{void} return type
+may not be used in contexts where an expression is expected, e.g., inside
+@code{for(...)} or before a comma operator.
+@c These limitations with macros cannot be avoided in a C90 compatible way.
+@c In the future, inline functions could be used.
 
 Note 1: MPFR functions may still initialize temporary floating-point numbers
 using @code{mpfr_init} and similar functions. See Custom Allocation (GNU MP)@.

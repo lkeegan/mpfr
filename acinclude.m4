@@ -40,7 +40,6 @@ AC_DEFUN([MPFR_CONFIGS],
 AC_REQUIRE([AC_OBJEXT])
 AC_REQUIRE([MPFR_CHECK_LIBM])
 AC_REQUIRE([MPFR_CHECK_LIBQUADMATH])
-AC_REQUIRE([AC_HEADER_TIME])
 AC_REQUIRE([AC_CANONICAL_HOST])
 
 dnl Features for the MPFR shared cache. This needs to be done
@@ -61,6 +60,10 @@ dnl The \b is necessary to avoid an error with recent ax_pthread.m4
 dnl (such as with Debian's autoconf-archive 20160320-1), which contains
 dnl AX_PTHREAD_ZOS_MISSING, etc. It is not documented, but see:
 dnl   https://lists.gnu.org/archive/html/autoconf/2015-03/msg00011.html
+dnl
+dnl Even if we decide to include AX_PTHREAD in the MPFR repository, we
+dnl should leave this case, just in case there is some issue loading it
+dnl (or any other reason).
 dnl
 dnl Note: each time a change is done in m4_pattern_forbid, autogen.sh
 dnl should be tested with and without ax_pthread.m4 availability (in
@@ -119,7 +122,7 @@ AC_CHECK_HEADER([stdarg.h],[AC_DEFINE([HAVE_STDARG],1,[Define if stdarg])],
     AC_MSG_ERROR([stdarg.h or varargs.h not found]))])
 
 dnl sys/fpu.h - MIPS specific
-AC_CHECK_HEADERS([sys/time.h sys/fpu.h])
+AC_CHECK_HEADERS([sys/fpu.h])
 
 dnl Android has a <locale.h>, but not the following members.
 AC_CHECK_MEMBERS([struct lconv.decimal_point, struct lconv.thousands_sep],,,
