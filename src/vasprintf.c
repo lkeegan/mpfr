@@ -645,7 +645,13 @@ buffer_widen (struct string_buffer *b, size_t len)
 static int
 buffer_cat (struct string_buffer *b, const char *s, size_t len)
 {
-  MPFR_ASSERTD (len > 0);
+  /* If len == 0, which is possible when outputting an integer 0
+     (either a native one or mpfr_prec_t) with precision field = 0,
+     do nothing. This test is not necessary since the code below is
+     valid for len == 0, but this is safer, just in case. */
+  if (len == 0)
+    return 0;
+
   MPFR_ASSERTD (len <= strlen (s));
 
   if (buffer_incr_len (b, len))
@@ -1042,7 +1048,8 @@ mpfr_get_str_wrapper (mpfr_exp_t *exp, int base, size_t n, mpfr_srcptr op,
    Moreover, if one increases the output precision, the output form
    changes (even if no rounding is involved). For instance, for 32,
    "0x8p+2" changes to "0x2.0p+4" instead of "0x8.0p+2".
-   FIXME?
+   FIXME: choose first digit = always 1. Discussion:
+     https://sympa.inria.fr/sympa/arc/mpfr/2021-05/msg00002.html
 */
 static int
 regular_ab (struct number_parts *np, mpfr_srcptr p,
