@@ -141,8 +141,8 @@ mpfr_cos (mpfr_ptr y, mpfr_srcptr x, mpfr_rnd_t rnd_mode)
   MPFR_GROUP_DECL (group);
 
   MPFR_LOG_FUNC (
-    ("x[%Pu]=%*.Rg rnd=%d", mpfr_get_prec (x), mpfr_log_prec, x, rnd_mode),
-    ("y[%Pu]=%*.Rg inexact=%d", mpfr_get_prec (y), mpfr_log_prec, y,
+    ("x[%Pu]=%.*Rg rnd=%d", mpfr_get_prec (x), mpfr_log_prec, x, rnd_mode),
+    ("y[%Pu]=%.*Rg inexact=%d", mpfr_get_prec (y), mpfr_log_prec, y,
      inexact));
 
   if (MPFR_UNLIKELY (MPFR_IS_SINGULAR (x)))
@@ -263,8 +263,8 @@ mpfr_cos (mpfr_ptr y, mpfr_srcptr x, mpfr_rnd_t rnd_mode)
           if (m > k && (m - k >= precy + (rnd_mode == MPFR_RNDN)))
             {
               /* If round to nearest or away, result is s = 1 or -1,
-                 otherwise it is round(nexttoward (s, 0)). However in order to
-                 have the inexact flag correctly set below, we set |s| to
+                 otherwise it is round(nexttoward (s, 0)). However, in order
+                 to have the inexact flag correctly set below, we set |s| to
                  1 - 2^(-m) in all cases. */
               mpfr_nexttozero (s);
               break;
