@@ -25,6 +25,7 @@ https://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "mpfr-test.h"
 #include "ieee_floats.h"
 
+#ifdef HAVE_SUBNORM_FLT
 /* return non-zero iff f == g, and if both are zero check the sign */
 static int
 equal_flt (float f, float g)
@@ -46,6 +47,7 @@ equal_flt (float f, float g)
       return !sf == !sg;
     }
 }
+#endif
 
 int
 main (void)
@@ -82,7 +84,7 @@ main (void)
       exit (1);
     }
   mpfr_set_flt (x, f, MPFR_RNDN);
-  if (mpfr_nan_p (x) == 0)
+  if (! mpfr_nan_p (x))
     {
       printf ("Error for mpfr_set_flt(NaN)\n");
       exit (1);
@@ -91,7 +93,7 @@ main (void)
   mpfr_set_inf (x, 1);
   f = mpfr_get_flt (x, MPFR_RNDN);
   mpfr_set_flt (x, f, MPFR_RNDN);
-  if (mpfr_inf_p (x) == 0 || mpfr_sgn (x) < 0)
+  if (! mpfr_inf_p (x) || mpfr_sgn (x) < 0)
     {
       printf ("Error for mpfr_set_flt(mpfr_get_flt(+Inf)):\n");
       printf ("f=%f, expected -Inf\n", f);
@@ -102,7 +104,7 @@ main (void)
   mpfr_set_inf (x, -1);
   f = mpfr_get_flt (x, MPFR_RNDN);
   mpfr_set_flt (x, f, MPFR_RNDN);
-  if (mpfr_inf_p (x) == 0 || mpfr_sgn (x) > 0)
+  if (! mpfr_inf_p (x) || mpfr_sgn (x) > 0)
     {
       printf ("Error for mpfr_set_flt(mpfr_get_flt(-Inf)):\n");
       printf ("f=%f, expected -Inf\n", f);
@@ -114,7 +116,7 @@ main (void)
   mpfr_set_ui (x, 0, MPFR_RNDN);
   f = mpfr_get_flt (x, MPFR_RNDN);
   mpfr_set_flt (x, f, MPFR_RNDN);
-  if (mpfr_zero_p (x) == 0 || MPFR_IS_NEG (x))
+  if (! mpfr_zero_p (x) || MPFR_IS_NEG (x))
     {
       printf ("Error for mpfr_set_flt(mpfr_get_flt(+0))\n");
       exit (1);
@@ -125,7 +127,7 @@ main (void)
   mpfr_neg (x, x, MPFR_RNDN);
   f = mpfr_get_flt (x, MPFR_RNDN);
   mpfr_set_flt (x, f, MPFR_RNDN);
-  if (mpfr_zero_p (x) == 0 || MPFR_IS_POS (x))
+  if (! mpfr_zero_p (x) || MPFR_IS_POS (x))
     {
       printf ("Error for mpfr_set_flt(mpfr_get_flt(-0))\n");
       exit (1);
